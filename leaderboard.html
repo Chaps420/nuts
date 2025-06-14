@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard - $NUTS Sports Pick'em</title>
+    <meta name="description" content="View top performers in $NUTS sports pick'em contests. Daily and weekly leaderboards with prize history.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="src/assets/images/favicon.ico">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/css/styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="logo-placeholder">🥜</div>
+                <span class="brand-text">$NUTS</span>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <div class="nav-links desktop-nav">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="daily-contest.html" class="nav-link">Daily Contest</a>
+                <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
+                <a href="leaderboard.html" class="nav-link active">Leaderboard</a>
+                <a href="how-it-works.html" class="nav-link">How It Works</a>
+                <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
+            </div>
+            
+            <!-- Wallet Connection -->
+            <div class="nav-actions">
+                <div id="wallet-info" class="wallet-info hidden">
+                    <span class="wallet-address"></span>
+                    <span class="nuts-balance"></span>
+                </div>
+                <button id="connect-wallet-btn" class="connect-wallet-btn">
+                    <span id="walletText">Connect Wallet</span>
+                    <span id="walletSpinner" class="spinner hidden"></span>
+                </button>
+                <div id="wallet-loading" class="wallet-loading hidden">Connecting...</div>
+                
+                <!-- Mobile menu toggle -->
+                <button class="mobile-menu-toggle" id="mobile-menu-btn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Navigation -->
+        <div class="mobile-nav hidden" id="mobile-menu">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="daily-contest.html" class="nav-link">Daily Contest</a>
+            <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
+            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+            <a href="how-it-works.html" class="nav-link">How It Works</a>
+            <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Page Header -->
+        <section class="page-header leaderboard-header">
+            <div class="container">
+                <div class="header-content">
+                    <h1 class="page-title">Leaderboard</h1>
+                    <p class="page-subtitle">Top performers in $NUTS sports pick'em contests</p>
+                    
+                    <!-- Leaderboard Tabs -->
+                    <div class="leaderboard-tabs">
+                        <button class="tab-btn active" data-tab="daily">Daily Contest</button>
+                        <button class="tab-btn" data-tab="weekly">Weekly NFT Contest</button>
+                        <button class="tab-btn" data-tab="all-time">All-Time Leaders</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Leaderboard Content -->
+        <section class="leaderboard-content">
+            <div class="container">
+                <!-- Daily Contest Leaderboard -->
+                <div class="leaderboard-tab active" id="daily-tab">
+                    <div class="tab-header">
+                        <h2>Today's Daily Contest</h2>
+                        <div class="contest-info">
+                            <span>Prize Pool: <strong class="accent-gold">2,500 $NUTS</strong></span>
+                            <span>Entries: <strong>47</strong></span>
+                        </div>
+                    </div>
+                    
+                    <div class="leaderboard-table">
+                        <div class="table-header">
+                            <div class="rank-col">Rank</div>
+                            <div class="player-col">Player</div>
+                            <div class="score-col">Correct Picks</div>
+                            <div class="prize-col">Prize</div>
+                        </div>
+                        <div class="table-body" id="daily-leaderboard">
+                            <!-- Daily leaderboard data will be loaded here -->
+                            <div class="loading-row">
+                                <div class="spinner"></div>
+                                <span>Loading leaderboard...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weekly NFT Contest Leaderboard -->
+                <div class="leaderboard-tab" id="weekly-tab">
+                    <div class="tab-header">
+                        <h2>This Week's NFT Holder Contest</h2>
+                        <div class="contest-info">
+                            <span>Prize Pool: <strong class="accent-green">1,000 $NUTS</strong></span>
+                            <span>NFT Holders: <strong>23</strong></span>
+                        </div>
+                    </div>
+                    
+                    <div class="leaderboard-table">
+                        <div class="table-header">
+                            <div class="rank-col">Rank</div>
+                            <div class="player-col">Player</div>
+                            <div class="nft-col">NFTs</div>
+                            <div class="score-col">Correct Picks</div>
+                            <div class="prize-col">Prize</div>
+                        </div>
+                        <div class="table-body" id="weekly-leaderboard">
+                            <!-- Weekly leaderboard data will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- All-Time Leaders -->
+                <div class="leaderboard-tab" id="all-time-tab">
+                    <div class="tab-header">
+                        <h2>All-Time Leaders</h2>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value">47,350</div>
+                                <div class="stat-label">Total $NUTS Awarded</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">1,247</div>
+                                <div class="stat-label">Total Contests</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">3,891</div>
+                                <div class="stat-label">Unique Players</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="all-time-sections">
+                        <!-- Most Wins -->
+                        <div class="leaderboard-section">
+                            <h3>Most Contest Wins</h3>
+                            <div class="leaderboard-table">
+                                <div class="table-header">
+                                    <div class="rank-col">Rank</div>
+                                    <div class="player-col">Player</div>
+                                    <div class="wins-col">Wins</div>
+                                    <div class="winnings-col">Total Winnings</div>
+                                </div>
+                                <div class="table-body" id="most-wins-leaderboard">
+                                    <!-- Most wins data will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Highest Winnings -->
+                        <div class="leaderboard-section">
+                            <h3>Highest Total Winnings</h3>
+                            <div class="leaderboard-table">
+                                <div class="table-header">
+                                    <div class="rank-col">Rank</div>
+                                    <div class="player-col">Player</div>
+                                    <div class="winnings-col">Total Winnings</div>
+                                    <div class="contests-col">Contests Played</div>
+                                </div>
+                                <div class="table-body" id="highest-winnings-leaderboard">
+                                    <!-- Highest winnings data will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Winners Section -->
+        <section class="recent-winners">
+            <div class="container">
+                <h2 class="section-title">Recent Winners</h2>
+                <div class="winners-grid" id="recent-winners">
+                    <!-- Recent winners will be loaded here -->
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Loading recent winners...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Achievement Showcase -->
+        <section class="achievements">
+            <div class="container">
+                <h2 class="section-title">Notable Achievements</h2>
+                <div class="achievements-grid">
+                    <div class="achievement-card">
+                        <div class="achievement-icon">🏆</div>
+                        <h3>Perfect Score</h3>
+                        <p>SquirrelMaster42 achieved a perfect 10/10 on March 15th</p>
+                        <div class="achievement-prize">Bonus: 500 $NUTS</div>
+                    </div>
+                    <div class="achievement-card">
+                        <div class="achievement-icon">🔥</div>
+                        <h3>Hot Streak</h3>
+                        <p>CryptoNutCollector won 5 contests in a row</p>
+                        <div class="achievement-prize">Streak Bonus: 1,000 $NUTS</div>
+                    </div>
+                    <div class="achievement-card">
+                        <div class="achievement-icon">💎</div>
+                        <h3>NFT Champion</h3>
+                        <p>DiamondSquirrel dominated 3 consecutive weekly NFT contests</p>
+                        <div class="achievement-prize">Legendary NFT Awarded</div>
+                    </div>
+                    <div class="achievement-card">
+                        <div class="achievement-icon">🎯</div>
+                        <h3>Accuracy Master</h3>
+                        <p>PredictionPro maintains 78% accuracy over 50+ contests</p>
+                        <div class="achievement-prize">Hall of Fame Inducted</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-brand">
+                        <div class="logo-placeholder">🥜</div>
+                        <span class="brand-text">$NUTS</span>
+                    </div>
+                    <p class="footer-description">
+                        The premier sports pick'em platform powered by $NUTS token on the XRP Ledger.
+                    </p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contests</h4>
+                    <ul class="footer-links">
+                        <li><a href="daily-contest.html">Daily Pick'em</a></li>
+                        <li><a href="nft-contest.html">NFT Holder Contest</a></li>
+                        <li><a href="leaderboard.html">Leaderboard</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Platform</h4>
+                    <ul class="footer-links">
+                        <li><a href="how-it-works.html">How It Works</a></li>
+                        <li><a href="buy-nuts.html">Buy $NUTS</a></li>
+                        <li><a href="#support">Support</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Community</h4>
+                    <ul class="footer-links">
+                        <li><a href="#twitter" target="_blank">Twitter</a></li>
+                        <li><a href="#discord" target="_blank">Discord</a></li>
+                        <li><a href="#telegram" target="_blank">Telegram</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <div class="footer-legal">
+                    <p>&copy; 2024 $NUTS Sports Pick'em. All rights reserved.</p>
+                    <div class="legal-links">
+                        <a href="#privacy">Privacy Policy</a>
+                        <a href="#terms">Terms of Service</a>
+                    </div>
+                </div>
+                <div class="footer-powered">
+                    <span>Powered by</span>
+                    <div class="tech-logos">
+                        <span class="tech-item">XRPL</span>
+                        <span class="tech-item">XUMM</span>
+                        <span class="tech-item">The Odds API</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>    <!-- Scripts -->
+    <script src="config/config-browser.js"></script>
+    <script src="src/js/wallet-browser.js"></script>
+    <script src="src/js/odds-api-browser.js"></script>
+    <script src="src/js/contests-browser.js"></script>
+    <script src="src/js/main-browser.js"></script>
+    <script src="src/js/leaderboard.js"></script>
+</body>
+</html>

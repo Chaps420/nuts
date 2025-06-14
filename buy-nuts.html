@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy $NUTS - $NUTS Sports Pick'em</title>
+    <meta name="description" content="Buy $NUTS tokens to enter daily sports pick'em contests. Multiple purchase options and secure XRPL transactions.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="src/assets/images/favicon.ico">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/css/styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="logo-placeholder">🥜</div>
+                <span class="brand-text">$NUTS</span>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <div class="nav-links desktop-nav">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="daily-contest.html" class="nav-link">Daily Contest</a>
+                <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+                <a href="how-it-works.html" class="nav-link">How It Works</a>
+                <a href="buy-nuts.html" class="nav-link active">Buy $NUTS</a>
+            </div>
+            
+            <!-- Wallet Connection -->
+            <div class="nav-actions">
+                <div id="wallet-info" class="wallet-info hidden">
+                    <span class="wallet-address"></span>
+                    <span class="nuts-balance"></span>
+                </div>
+                <button id="connect-wallet-btn" class="connect-wallet-btn">
+                    <span id="walletText">Connect Wallet</span>
+                    <span id="walletSpinner" class="spinner hidden"></span>
+                </button>
+                <div id="wallet-loading" class="wallet-loading hidden">Connecting...</div>
+                
+                <!-- Mobile menu toggle -->
+                <button class="mobile-menu-toggle" id="mobile-menu-btn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Navigation -->
+        <div class="mobile-nav hidden" id="mobile-menu">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="daily-contest.html" class="nav-link">Daily Contest</a>
+            <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
+            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+            <a href="how-it-works.html" class="nav-link">How It Works</a>
+            <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="buy-nuts-hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1 class="page-title">Buy $NUTS Tokens</h1>
+                    <p class="page-subtitle">Get $NUTS tokens to enter daily contests and win crypto prizes</p>
+                    
+                    <!-- Token Info -->
+                    <div class="token-info">
+                        <div class="token-stat">
+                            <div class="stat-label">Current Price</div>
+                            <div class="stat-value" id="nuts-price">$0.0847</div>
+                        </div>
+                        <div class="token-stat">
+                            <div class="stat-label">24h Change</div>
+                            <div class="stat-value positive" id="price-change">+5.2%</div>
+                        </div>
+                        <div class="token-stat">
+                            <div class="stat-label">Your Balance</div>
+                            <div class="stat-value" id="user-balance">0 $NUTS</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Purchase Options -->
+        <section class="purchase-options">
+            <div class="container">
+                <h2 class="section-title">Choose Your Purchase Method</h2>
+                
+                <!-- Quick Buy Packages -->
+                <div class="quick-buy-section">
+                    <h3>Quick Buy Packages</h3>
+                    <div class="packages-grid">
+                        <div class="package-card starter">
+                            <div class="package-header">
+                                <h4>Starter Pack</h4>
+                                <div class="package-icon">🥜</div>
+                            </div>
+                            <div class="package-amount">
+                                <span class="nuts-amount">1,000 $NUTS</span>
+                                <span class="usd-amount">≈ $84.70</span>
+                            </div>
+                            <div class="package-benefits">
+                                <ul>
+                                    <li>20 Daily Contest Entries</li>
+                                    <li>Perfect for Beginners</li>
+                                    <li>Instant Delivery</li>
+                                </ul>
+                            </div>
+                            <button class="btn btn-primary package-btn" data-amount="1000">
+                                <span>Buy Starter Pack</span>
+                                <div class="btn-glow"></div>
+                            </button>
+                        </div>
+
+                        <div class="package-card popular">
+                            <div class="package-badge">Most Popular</div>
+                            <div class="package-header">
+                                <h4>Player Pack</h4>
+                                <div class="package-icon">🏆</div>
+                            </div>
+                            <div class="package-amount">
+                                <span class="nuts-amount">5,000 $NUTS</span>
+                                <span class="usd-amount">≈ $423.50</span>
+                            </div>
+                            <div class="package-benefits">
+                                <ul>
+                                    <li>100 Daily Contest Entries</li>
+                                    <li>5% Bonus $NUTS</li>
+                                    <li>Priority Support</li>
+                                </ul>
+                            </div>
+                            <button class="btn btn-primary package-btn" data-amount="5000">
+                                <span>Buy Player Pack</span>
+                                <div class="btn-glow"></div>
+                            </button>
+                        </div>
+
+                        <div class="package-card premium">
+                            <div class="package-header">
+                                <h4>Champion Pack</h4>
+                                <div class="package-icon">👑</div>
+                            </div>
+                            <div class="package-amount">
+                                <span class="nuts-amount">10,000 $NUTS</span>
+                                <span class="usd-amount">≈ $847.00</span>
+                            </div>
+                            <div class="package-benefits">
+                                <ul>
+                                    <li>200 Daily Contest Entries</li>
+                                    <li>10% Bonus $NUTS</li>
+                                    <li>Exclusive Rewards</li>
+                                </ul>
+                            </div>
+                            <button class="btn btn-primary package-btn" data-amount="10000">
+                                <span>Buy Champion Pack</span>
+                                <div class="btn-glow"></div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Amount -->
+                <div class="custom-buy-section">
+                    <h3>Buy Custom Amount</h3>
+                    <div class="custom-buy-container">
+                        <div class="buy-calculator">
+                            <div class="input-group">
+                                <label for="nuts-amount">$NUTS Amount</label>
+                                <input type="number" id="nuts-amount" placeholder="Enter amount" min="50" step="10">
+                                <span class="input-suffix">$NUTS</span>
+                            </div>
+                            
+                            <div class="conversion-display">
+                                <div class="conversion-row">
+                                    <span>XRP Cost:</span>
+                                    <span id="xrp-cost">0 XRP</span>
+                                </div>
+                                <div class="conversion-row">
+                                    <span>USD Value:</span>
+                                    <span id="usd-value">$0.00</span>
+                                </div>
+                            </div>
+                            
+                            <button id="custom-buy-btn" class="btn btn-primary">
+                                <span>Buy Custom Amount</span>
+                                <div class="btn-glow"></div>
+                            </button>
+                        </div>
+                        
+                        <div class="buy-info">
+                            <h4>Purchase Information</h4>
+                            <div class="info-list">
+                                <div class="info-item">
+                                    <span class="info-icon">⚡</span>
+                                    <span>Instant delivery to your wallet</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-icon">🔒</span>
+                                    <span>Secure XRPL transactions</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-icon">💰</span>
+                                    <span>Minimum purchase: 50 $NUTS</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-icon">🎯</span>
+                                    <span>Ready for immediate contest entry</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- DEX Trading -->
+        <section class="dex-trading">
+            <div class="container">
+                <h2 class="section-title">Trade on DEX</h2>
+                <div class="dex-content">
+                    <div class="dex-info">
+                        <h3>Trade $NUTS on Decentralized Exchanges</h3>
+                        <p>For advanced traders, $NUTS is available on XRPL DEX and other decentralized exchanges with potentially better rates.</p>
+                        
+                        <div class="dex-benefits">
+                            <div class="benefit-item">
+                                <span class="benefit-icon">📈</span>
+                                <div class="benefit-text">
+                                    <strong>Market Rates</strong>
+                                    <p>Get the best market price through orderbook trading</p>
+                                </div>
+                            </div>
+                            <div class="benefit-item">
+                                <span class="benefit-icon">🔄</span>
+                                <div class="benefit-text">
+                                    <strong>Direct Trading</strong>
+                                    <p>Trade directly with other users on XRPL</p>
+                                </div>
+                            </div>
+                            <div class="benefit-item">
+                                <span class="benefit-icon">💎</span>
+                                <div class="benefit-text">
+                                    <strong>No Intermediary</strong>
+                                    <p>Decentralized trading without middlemen</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="dex-links">
+                        <h4>Available on:</h4>
+                        <div class="dex-buttons">
+                            <a href="#" class="dex-btn" target="_blank">
+                                <span class="dex-icon">🔄</span>
+                                <span>XRPL DEX</span>
+                            </a>
+                            <a href="#" class="dex-btn" target="_blank">
+                                <span class="dex-icon">💧</span>
+                                <span>XRP Toolkit</span>
+                            </a>
+                            <a href="#" class="dex-btn" target="_blank">
+                                <span class="dex-icon">⚡</span>
+                                <span>Sologenic DEX</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Token Information -->
+        <section class="token-information">
+            <div class="container">
+                <h2 class="section-title">About $NUTS Token</h2>
+                <div class="token-grid">
+                    <div class="token-card">
+                        <div class="token-icon">🥜</div>
+                        <h3>Token Details</h3>
+                        <div class="token-details">
+                            <div class="detail-row">
+                                <span>Name:</span>
+                                <span>$NUTS</span>
+                            </div>
+                            <div class="detail-row">
+                                <span>Blockchain:</span>
+                                <span>XRP Ledger</span>
+                            </div>
+                            <div class="detail-row">
+                                <span>Total Supply:</span>
+                                <span>100,000,000</span>
+                            </div>
+                            <div class="detail-row">
+                                <span>Circulating:</span>
+                                <span>25,000,000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="token-card">
+                        <div class="token-icon">🎯</div>
+                        <h3>Use Cases</h3>
+                        <div class="use-cases">
+                            <div class="use-case">
+                                <span>🏆</span>
+                                <span>Daily Contest Entry Fees</span>
+                            </div>
+                            <div class="use-case">
+                                <span>💰</span>
+                                <span>Contest Prize Rewards</span>
+                            </div>
+                            <div class="use-case">
+                                <span>🎨</span>
+                                <span>NFT Purchases & Trading</span>
+                            </div>
+                            <div class="use-case">
+                                <span>🚀</span>
+                                <span>Platform Governance</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="token-card">
+                        <div class="token-icon">📊</div>
+                        <h3>Market Stats</h3>
+                        <div class="market-stats">
+                            <div class="stat-row">
+                                <span>Market Cap:</span>
+                                <span id="market-cap">$2,117,500</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>24h Volume:</span>
+                                <span id="volume-24h">$45,230</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>Holders:</span>
+                                <span id="holder-count">1,247</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>All-time High:</span>
+                                <span id="ath-price">$0.1234</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="token-card">
+                        <div class="token-icon">🔒</div>
+                        <h3>Security</h3>
+                        <div class="security-features">
+                            <div class="security-item">
+                                <span>✅</span>
+                                <span>XRPL Native Token</span>
+                            </div>
+                            <div class="security-item">
+                                <span>✅</span>
+                                <span>No Smart Contract Risk</span>
+                            </div>
+                            <div class="security-item">
+                                <span>✅</span>
+                                <span>Audited Tokenomics</span>
+                            </div>
+                            <div class="security-item">
+                                <span>✅</span>
+                                <span>Transparent Distribution</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Purchase Process -->
+        <section class="purchase-process">
+            <div class="container">
+                <h2 class="section-title">How to Buy $NUTS</h2>
+                <div class="process-steps">
+                    <div class="process-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Connect Wallet</h3>
+                            <p>Connect your XUMM wallet to the platform securely</p>
+                        </div>
+                    </div>
+                    <div class="process-arrow">→</div>
+                    <div class="process-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>Choose Amount</h3>
+                            <p>Select a package or enter custom $NUTS amount</p>
+                        </div>
+                    </div>
+                    <div class="process-arrow">→</div>
+                    <div class="process-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Confirm Payment</h3>
+                            <p>Approve the XRP payment in your XUMM wallet</p>
+                        </div>
+                    </div>
+                    <div class="process-arrow">→</div>
+                    <div class="process-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h3>Receive $NUTS</h3>
+                            <p>$NUTS tokens arrive instantly in your wallet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="buy-faq">
+            <div class="container">
+                <h2 class="section-title">Purchase FAQ</h2>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>What payment methods do you accept?</h3>
+                            <span class="faq-toggle">+</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>We accept XRP payments through XUMM wallet. You can also trade for $NUTS on XRPL DEX using other XRP Ledger tokens.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>Is there a minimum purchase amount?</h3>
+                            <span class="faq-toggle">+</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Yes, the minimum purchase is 50 $NUTS tokens to cover transaction costs and provide enough for contest entry.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>How quickly will I receive my $NUTS?</h3>
+                            <span class="faq-toggle">+</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>$NUTS tokens are delivered instantly upon XRP payment confirmation, typically within 3-5 seconds.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>Can I sell my $NUTS tokens back?</h3>
+                            <span class="faq-toggle">+</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Yes, you can trade $NUTS on XRPL DEX or other exchanges. We don't offer direct buyback, but there's an active secondary market.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-brand">
+                        <div class="logo-placeholder">🥜</div>
+                        <span class="brand-text">$NUTS</span>
+                    </div>
+                    <p class="footer-description">
+                        The premier sports pick'em platform powered by $NUTS token on the XRP Ledger.
+                    </p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contests</h4>
+                    <ul class="footer-links">
+                        <li><a href="daily-contest.html">Daily Pick'em</a></li>
+                        <li><a href="nft-contest.html">NFT Holder Contest</a></li>
+                        <li><a href="leaderboard.html">Leaderboard</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Platform</h4>
+                    <ul class="footer-links">
+                        <li><a href="how-it-works.html">How It Works</a></li>
+                        <li><a href="buy-nuts.html">Buy $NUTS</a></li>
+                        <li><a href="#support">Support</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Community</h4>
+                    <ul class="footer-links">
+                        <li><a href="#twitter" target="_blank">Twitter</a></li>
+                        <li><a href="#discord" target="_blank">Discord</a></li>
+                        <li><a href="#telegram" target="_blank">Telegram</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <div class="footer-legal">
+                    <p>&copy; 2024 $NUTS Sports Pick'em. All rights reserved.</p>
+                    <div class="legal-links">
+                        <a href="#privacy">Privacy Policy</a>
+                        <a href="#terms">Terms of Service</a>
+                    </div>
+                </div>
+                <div class="footer-powered">
+                    <span>Powered by</span>
+                    <div class="tech-logos">
+                        <span class="tech-item">XRPL</span>
+                        <span class="tech-item">XUMM</span>
+                        <span class="tech-item">The Odds API</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>    <!-- Scripts -->
+    <script src="config/config-browser.js"></script>
+    <script src="src/js/wallet-browser.js"></script>
+    <script src="src/js/main-browser.js"></script>
+    <script src="src/js/buy-nuts.js"></script>
+</body>
+</html>

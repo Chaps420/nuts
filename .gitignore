@@ -1,0 +1,73 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+dist/
+build/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Development and test files
+dev/
+test-*.html
+debug-*.html
+demo-*.html
+admin-portal*.html
+system-dashboard.html
+
+# Development documentation
+*-SUCCESS.md
+*-COMPLETE.md
+*-REPORT.md
+*-SUMMARY.md
+CLAUDE-*.md
+IMPLEMENTATION-*.md
+INTEGRATION-*.md
+SYSTEM-*.md
+MULTIDAY-*.md
+ENHANCED-*.md
+FINAL-*.md
+WALLET-*.md
+XAMAN-*.md
+SIMPLIFIED-*.md
+COMPACT-*.md
+
+# Generated reports
+production-readiness-report.json

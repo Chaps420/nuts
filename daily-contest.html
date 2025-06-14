@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Contest - $NUTS Sports Pick'em</title>
+    <meta name="description" content="Enter the daily $NUTS sports pick'em contest. 50 $NUTS entry fee, top 3 win crypto prizes.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="src/assets/images/favicon.ico">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+      <!-- Styles -->
+    <link rel="stylesheet" href="src/css/styles.css">
+    
+    <style>
+        /* Ensure horizontal tabs override any conflicts */
+        .day-tabs {
+            margin-bottom: 20px !important;
+            background: transparent !important;
+        }
+        
+        .tabs-container {
+            display: flex !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            flex-wrap: wrap !important;
+            margin-bottom: 20px !important;
+        }
+        
+        .day-tab {
+            background: #2a2a2a !important;
+            border: 2px solid #444 !important;
+            border-radius: 8px !important;
+            padding: 12px 16px !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
+            text-align: center !important;
+            min-width: 120px !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        
+        .day-tab:hover {
+            border-color: #4CAF50 !important;
+            transform: translateY(-2px) !important;
+        }
+        
+        .day-tab.active {
+            background: #4CAF50 !important;
+            color: #000 !important;
+            border-color: #4CAF50 !important;
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.3) !important;
+        }
+        
+        .tab-day {
+            font-weight: bold !important;
+            font-size: 0.9em !important;
+        }
+        
+        .tab-date {
+            font-size: 0.75em !important;
+            opacity: 0.8 !important;
+            margin-top: 2px !important;
+        }
+        
+        .tab-indicator {
+            font-size: 0.7em !important;
+            font-weight: bold !important;
+            margin-top: 4px !important;
+            padding: 2px 6px !important;
+            background: rgba(255,255,255,0.1) !important;
+            border-radius: 10px !important;
+        }
+        
+        .day-tab.active .tab-indicator {
+            background: rgba(0,0,0,0.2) !important;
+        }
+        
+        /* Hide any conflicting layouts */
+        .contest-days-sidebar {
+            display: none !important;
+        }
+        
+        /* Ensure games section is visible */
+        .games-section {
+            display: block !important;
+            width: 100% !important;
+        }
+        
+        @media (max-width: 768px) {
+            .tabs-container {
+                gap: 4px !important;
+            }            .day-tab {
+                min-width: 100px !important;
+                padding: 10px 12px !important;
+            }
+        }
+        
+        /* Authentication UI Styles */
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #1a1a1a;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #4CAF50;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #4CAF50;
+        }
+        
+        .user-details {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 4px;
+        }
+        
+        .user-wallet {
+            font-size: 0.8em;
+            color: #888;
+            font-family: monospace;
+        }
+        
+        .btn-secondary {
+            background: #666 !important;
+            color: white !important;
+        }
+        
+        .btn-secondary:hover {
+            background: #555 !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="logo-placeholder">🥜</div>
+                <span class="brand-text">$NUTS</span>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <div class="nav-links desktop-nav">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="daily-contest.html" class="nav-link active">Daily Contest</a>
+                <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+                <a href="how-it-works.html" class="nav-link">How It Works</a>
+                <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
+            </div>
+            
+            <!-- Wallet Connection -->
+            <div class="nav-actions">
+                <div id="wallet-info" class="wallet-info hidden">
+                    <span class="wallet-address"></span>
+                    <span class="nuts-balance"></span>
+                </div>
+                <button id="connect-wallet-btn" class="connect-wallet-btn">
+                    <span id="walletText">Connect Wallet</span>
+                    <span id="walletSpinner" class="spinner hidden"></span>
+                </button>
+                <div id="wallet-loading" class="wallet-loading hidden">Connecting...</div>
+                
+                <!-- Mobile menu toggle -->
+                <button class="mobile-menu-toggle" id="mobile-menu-btn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Navigation -->
+        <div class="mobile-nav hidden" id="mobile-menu">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="daily-contest.html" class="nav-link">Daily Contest</a>
+            <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
+            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+            <a href="how-it-works.html" class="nav-link">How It Works</a>
+            <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Page Header -->
+        <section class="page-header">
+            <div class="container">
+                <div class="header-content">
+                    <h1 class="page-title">Daily Pick'em Contest</h1>
+                    <p class="page-subtitle">Pick 10 game winners, top 3 split the $NUTS prize pool</p>
+                    <div class="contest-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Entry Fee</span>
+                            <span class="stat-value accent-gold">50 $NUTS</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Today's Pool</span>
+                            <span class="stat-value" id="prize-pool">Loading...</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Entries</span>
+                            <span class="stat-value" id="entry-count">Loading...</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Time Left</span>
+                            <span class="stat-value" id="time-remaining">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contest Entry Section -->
+        <section class="contest-entry">
+            <div class="container">
+                <div class="entry-container">
+                    <!-- Entry Status -->
+                    <div class="entry-status" id="entry-status">                        <div class="status-card">
+                            <div class="status-icon">🔗</div>
+                            <h3>Wallet Connection Required</h3>
+                            <p>Connect your Xaman wallet to participate in contests</p>
+                              <!-- User Info (hidden by default) -->
+                            <div id="user-info" style="display: none; margin-bottom: 15px;">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                            
+                            <!-- Contest Entry Button -->
+                            <button id="enter-contest-btn" class="btn btn-primary" disabled>
+                                <span>Connect Wallet to Enter Contest</span>
+                                <div class="btn-glow"></div>
+                            </button>
+                        </div>
+                    </div>                    <!-- Games Selection -->                    <div class="games-section" id="games-section">
+                        <!-- Day Selection Tabs (Horizontal across top) -->
+                        <div class="day-tabs" id="day-tabs">
+                            <div class="tab-header">
+                                <span>Contest Days</span>
+                            </div>
+                            <div class="tabs-container" id="tabs-container">
+                                <!-- Tabs will be generated by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <!-- Games Display -->
+                        <div class="games-display">
+                            <div class="games-grid" id="games-grid">
+                                <!-- Games will be loaded here by JavaScript -->
+                                <div class="loading-placeholder">
+                                    <div class="spinner"></div>
+                                    <p>Loading games...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Picks -->
+                        <div class="submit-section hidden" id="submit-section">
+                            <div class="picks-summary">
+                                <h3>Your Picks</h3>
+                                <div id="picks-list"></div>
+                            </div>
+                            <button id="submit-picks-btn" class="btn btn-success">
+                                <span>Submit Your Picks</span>
+                                <div class="btn-glow"></div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contest Rules -->
+        <section class="contest-rules">
+            <div class="container">
+                <h2 class="section-title">Contest Rules</h2>
+                <div class="rules-grid">
+                    <div class="rule-card">
+                        <div class="rule-icon">💰</div>
+                        <h3>Entry Fee</h3>
+                        <p>50 $NUTS per entry. Multiple entries allowed.</p>
+                    </div>
+                    <div class="rule-card">
+                        <div class="rule-icon">🎯</div>
+                        <h3>How to Win</h3>
+                        <p>Pick the winner of each game. Most correct picks wins.</p>
+                    </div>
+                    <div class="rule-card">
+                        <div class="rule-icon">🏆</div>
+                        <h3>Prize Split</h3>
+                        <p>1st: 50%, 2nd: 30%, 3rd: 20% of total pool.</p>
+                    </div>
+                    <div class="rule-card">
+                        <div class="rule-icon">⏰</div>
+                        <h3>Deadline</h3>
+                        <p>All picks must be submitted before first game starts.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-brand">
+                        <div class="logo-placeholder">🥜</div>
+                        <span class="brand-text">$NUTS</span>
+                    </div>
+                    <p class="footer-description">
+                        The premier sports pick'em platform powered by $NUTS token on the XRP Ledger.
+                    </p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contests</h4>
+                    <ul class="footer-links">
+                        <li><a href="daily-contest.html">Daily Pick'em</a></li>
+                        <li><a href="nft-contest.html">NFT Holder Contest</a></li>
+                        <li><a href="leaderboard.html">Leaderboard</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Platform</h4>
+                    <ul class="footer-links">
+                        <li><a href="how-it-works.html">How It Works</a></li>
+                        <li><a href="buy-nuts.html">Buy $NUTS</a></li>
+                        <li><a href="#support">Support</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Community</h4>
+                    <ul class="footer-links">
+                        <li><a href="#twitter" target="_blank">Twitter</a></li>
+                        <li><a href="#discord" target="_blank">Discord</a></li>
+                        <li><a href="#telegram" target="_blank">Telegram</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <div class="footer-legal">
+                    <p>&copy; 2024 $NUTS Sports Pick'em. All rights reserved.</p>
+                    <div class="legal-links">
+                        <a href="#privacy">Privacy Policy</a>
+                        <a href="#terms">Terms of Service</a>
+                    </div>
+                </div>
+                <div class="footer-powered">
+                    <span>Powered by</span>
+                    <div class="tech-logos">
+                        <span class="tech-item">XRPL</span>
+                        <span class="tech-item">XUMM</span>
+                        <span class="tech-item">The Odds API</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>    <!-- Scripts -->
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+    
+    <!-- App Configuration and Core Scripts -->
+    <script src="config/config-browser.js"></script>
+    <script src="src/js/firebase-integration.js"></script>
+    <script src="src/js/xaman-oauth2-web.js"></script>
+    <script src="src/js/xaman-auth.js"></script>
+    <script src="src/js/xaman-qr.js"></script>
+    <script src="src/js/enhanced-qr-modal.js"></script>
+    <script src="src/js/contest-wallet.js"></script>
+    <script src="src/js/wallet-browser.js"></script>
+    <script src="src/js/odds-api-mlb.js"></script>
+    <script src="src/js/contests-browser.js"></script>
+    <script src="src/js/main-browser.js"></script>
+    <script src="src/js/daily-contest-new.js"></script>
+    
+    <!-- Initialize Firebase when page loads -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🔥 Initializing Firebase for contest platform...');
+            
+            if (window.firebaseIntegration) {
+                const success = await window.firebaseIntegration.initialize();
+                if (success) {
+                    console.log('✅ Firebase integration ready for contest platform');
+                    
+                    // Set up OAuth2 event listeners
+                    window.addEventListener('xamanOAuth2Success', (event) => {
+                        console.log('🎉 OAuth2 authentication successful:', event.detail);
+                        
+                        // Update UI to show authenticated state
+                        if (window.dailyContestManager) {
+                            window.dailyContestManager.onWalletConnected(event.detail);
+                        }
+                    });
+                    
+                    window.addEventListener('xamanOAuth2Error', (event) => {
+                        console.error('❌ OAuth2 authentication failed:', event.detail);
+                        
+                        // Show error to user
+                        if (window.dailyContestManager) {
+                            window.dailyContestManager.showError('OAuth2 authentication failed: ' + event.detail.error);
+                        }
+                    });
+                    
+                } else {
+                    console.warn('⚠️ Firebase initialization failed, using local-only mode');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

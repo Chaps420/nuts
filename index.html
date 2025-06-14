@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$NUTS Sports Pick'em - Win Crypto Prizes</title>
+    <meta name="description" content="Daily sports pick'em contests powered by $NUTS token on XRPL. Win crypto prizes with your sports knowledge.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="src/assets/images/favicon.ico">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/css/styles.css">
+    
+    <!-- Meta tags for social sharing -->
+    <meta property="og:title" content="$NUTS Sports Pick'em - Win Crypto Prizes">
+    <meta property="og:description" content="Daily sports pick'em contests powered by $NUTS token on XRPL">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://your-domain.com">
+    <meta property="og:image" content="https://your-domain.com/src/assets/images/og-image.png">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="$NUTS Sports Pick'em">
+    <meta name="twitter:description" content="Win crypto prizes with your sports knowledge">
+    <meta name="twitter:image" content="https://your-domain.com/src/assets/images/twitter-card.png">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">            <div class="nav-brand">
+                <div class="logo-placeholder">🥜</div>
+                <span class="brand-text">$NUTS</span>
+            </div>              <!-- Desktop Navigation -->
+            <div class="nav-links desktop-nav">
+                <a href="#home" class="nav-link active">Home</a>
+                <a href="daily-contest.html" class="nav-link">Daily Contest</a>
+                <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+                <a href="contest-creator.html" class="nav-link">Create Contest</a>
+                <a href="admin-portal.html" class="nav-link">🔧 Admin Portal</a>
+                <a href="how-it-works.html" class="nav-link">How It Works</a>
+                <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
+            </div>
+            
+            <!-- Wallet Connection -->            <div class="nav-actions">
+                <div id="wallet-info" class="wallet-info hidden">
+                    <span class="wallet-address"></span>
+                    <span class="nuts-balance"></span>
+                </div>
+                <button id="connect-wallet-btn" class="connect-wallet-btn">
+                    <span id="walletText">Connect Wallet</span>
+                    <span id="walletSpinner" class="spinner hidden"></span>
+                </button>
+                <div id="wallet-loading" class="wallet-loading hidden">Connecting...</div>
+                
+                <!-- Mobile menu toggle -->
+                <button class="mobile-menu-toggle" id="mobile-menu-btn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>          <!-- Mobile Navigation -->        <div class="mobile-nav hidden" id="mobile-menu">
+            <a href="#home" class="nav-link">Home</a>
+            <a href="daily-contest.html" class="nav-link">Daily Contest</a>
+            <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
+            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+            <a href="contest-creator.html" class="nav-link">Create Contest</a>
+            <a href="admin-portal.html" class="nav-link">🔧 Admin Portal</a>
+            <a href="how-it-works.html" class="nav-link">How It Works</a>
+            <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero" id="home">
+            <div class="hero-background">
+                <div class="animated-bg"></div>
+            </div>
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1 class="hero-title">
+                        PICK WINNERS. <span class="accent-gold">WIN $NUTS.</span><br>
+                        HOLD NFTs. <span class="accent-green">GET PAID.</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        Join the $NUTS sports contest hub—powered by XRP and your collectible NFTs.
+                    </p>                    <div class="hero-actions">
+                        <a href="daily-contest.html" class="btn btn-primary wallet-required" id="daily-contest-btn">
+                            <span>ENTER DAILY CONTEST</span>
+                            <div class="btn-glow"></div>
+                        </a>
+                        <a href="nft-contest.html" class="btn btn-secondary wallet-required" id="weekly-contest-btn">
+                            <span>ENTER WEEKLY NFT CONTEST</span>
+                            <div class="btn-glow"></div>
+                        </a>
+                    </div>
+                    <div class="quick-actions">
+                        <a href="buy-nuts.html" class="quick-link">
+                            💰 Buy $NUTS
+                        </a>
+                        <a href="#nft-showcase" class="quick-link">
+                            🖼️ View NFTs on XRP Cafe
+                        </a>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="nft-preview-container">
+                        <div class="hero-nft-placeholder floating">
+                            <div class="nft-placeholder-content">
+                                <div class="nft-icon">🐿️</div>
+                                <div class="nft-text">$NUTS NFT</div>
+                                <div class="nft-subtext">Premium Squirrel</div>
+                            </div>
+                        </div>
+                        <div class="nft-glow"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contest Overview -->
+        <section class="contests-overview" id="contests">
+            <div class="container">
+                <h2 class="section-title">Choose Your Contest</h2>
+                <div class="contest-cards">
+                    <!-- Daily Contest Card -->
+                    <div class="contest-card daily-contest">
+                        <div class="contest-header">
+                            <div class="contest-icon">🏆</div>
+                            <h3>DAILY PICK'EM CONTEST</h3>
+                            <div class="contest-badge">Paid Entry</div>
+                        </div>
+                        <div class="contest-details">
+                            <div class="detail-row">
+                                <span class="label">Entry:</span>
+                                <span class="value accent-gold">50 $NUTS</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Prize:</span>
+                                <span class="value">Top 3 split the pot</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Format:</span>
+                                <span class="value">Pick 10 daily sports winners</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Frequency:</span>
+                                <span class="value">Every day</span>
+                            </div>
+                        </div>                        <div class="contest-stats">
+                            <div class="stat">
+                                <span class="stat-value" id="daily-players">--</span>
+                                <span class="stat-label">Players Today</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value" id="daily-prize-pool">-- $NUTS</span>
+                                <span class="stat-label">Prize Pool</span>
+                            </div>
+                        </div>
+                        <a href="daily-contest.html" class="btn btn-contest btn-primary">
+                            <span>ENTER NOW</span>
+                            <div class="btn-glow"></div>
+                        </a>
+                    </div>
+
+                    <!-- Weekly NFT Contest Card -->
+                    <div class="contest-card nft-contest">
+                        <div class="contest-header">
+                            <div class="contest-icon">🎫</div>
+                            <h3>WEEKLY NFT HOLDER CONTEST</h3>
+                            <div class="contest-badge nft-badge">NFT Holders Only</div>
+                        </div>
+                        <div class="contest-details">
+                            <div class="detail-row">
+                                <span class="label">Entry:</span>
+                                <span class="value accent-green">FREE</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Prize:</span>
+                                <span class="value">$NUTS token drops</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Requirement:</span>
+                                <span class="value">Hold 1+ $NUTS NFT</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="label">Frequency:</span>
+                                <span class="value">Weekly pick'em + bonus</span>
+                            </div>
+                        </div>                        <div class="contest-stats">
+                            <div class="stat">
+                                <span class="stat-value" id="weekly-players">--</span>
+                                <span class="stat-label">NFT Holders This Week</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value" id="weekly-prize-pool">-- $NUTS</span>
+                                <span class="stat-label">Weekly Prizes</span>
+                            </div>
+                        </div>
+                        <a href="nft-contest.html" class="btn btn-contest btn-secondary">
+                            <span>ENTER NOW</span>
+                            <div class="btn-glow"></div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NFT Showcase -->
+        <section class="nft-showcase-section" id="nft-showcase">
+            <div class="container">
+                <h2 class="section-title">NFT SHOWCASE</h2>
+                <p class="section-subtitle">Meet the $NUTS Squad - Your ticket to exclusive contests</p>
+                  <div class="nft-gallery">
+                    <div class="nft-item" data-team="Phoenix">
+                        <div class="nft-card placeholder">
+                            <div class="nft-placeholder">
+                                <div class="nft-emoji">🐿️</div>
+                                <div class="nft-team">Phoenix</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nft-item" data-team="San Francisco">
+                        <div class="nft-card placeholder">
+                            <div class="nft-placeholder">
+                                <div class="nft-emoji">🐿️</div>
+                                <div class="nft-team">San Francisco</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nft-item" data-team="New York">
+                        <div class="nft-card placeholder">
+                            <div class="nft-placeholder">
+                                <div class="nft-emoji">🐿️</div>
+                                <div class="nft-team">New York</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nft-item" data-team="Dodgers">
+                        <div class="nft-card placeholder">
+                            <div class="nft-placeholder">
+                                <div class="nft-emoji">🐿️</div>
+                                <div class="nft-team">Dodgers</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nft-item" data-team="Chicago">
+                        <div class="nft-card placeholder">
+                            <div class="nft-placeholder">
+                                <div class="nft-emoji">🐿️</div>
+                                <div class="nft-team">Chicago</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="nft-perks">
+                    <h3>NFTs = <span class="accent-green">FREE ENTRIES</span> + <span class="accent-gold">DAILY $NUTS DROPS</span></h3>
+                    <p>Hold any $NUTS NFT to unlock weekly free contests and receive daily token airdrops</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Latest Winners -->        <section class="latest-winners" id="winners">
+            <div class="container">
+                <h2 class="section-title">LATEST WINNERS</h2>
+                <div class="winners-container" id="latest-winners">
+                    <!-- Winners will be loaded dynamically -->
+                    <div class="loading-placeholder">
+                        <div class="loading-spinner"></div>
+                        <p>Loading latest winners...</p>
+                    </div>
+                </div>
+                            </div>
+                            <div class="winner-prize">-- $NUTS</div>
+                        </div>
+                        <!-- More winners will be loaded dynamically -->
+                    </div>
+                </div>
+                <a href="leaderboard.html" class="btn btn-outline">View Full Leaderboard</a>            </div>
+        </section>
+
+        <!-- Upcoming Games Preview -->
+        <section class="upcoming-games" id="upcoming-games">
+            <div class="container">
+                <h2 class="section-title">TODAY'S GAMES</h2>
+                <p class="section-subtitle">Preview of games available for today's contest</p>
+                
+                <div class="games-container" id="upcoming-games-preview">
+                    <!-- Games will be loaded dynamically -->
+                    <div class="loading-placeholder">
+                        <div class="loading-spinner"></div>
+                        <p>Loading today's games...</p>
+                    </div>
+                </div>
+                
+                <a href="daily-contest.html" class="btn btn-primary">
+                    <span>View All Games & Enter Contest</span>
+                    <div class="btn-glow"></div>
+                </a>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section class="how-it-works-preview" id="how-it-works">
+            <div class="container">
+                <h2 class="section-title">HOW IT WORKS</h2>
+                <p class="section-subtitle">Four simple steps to start winning crypto prizes</p>
+                
+                <div class="steps-container">
+                    <div class="step" data-step="1">
+                        <div class="step-number">1</div>
+                        <div class="step-icon">🔗</div>
+                        <h4>CONNECT WALLET</h4>
+                        <p>Link your XRPL wallet using XUMM or enter manually</p>
+                    </div>
+                    <div class="step" data-step="2">
+                        <div class="step-number">2</div>
+                        <div class="step-icon">🏟️</div>
+                        <h4>ENTER A CONTEST</h4>
+                        <p>Choose daily paid or weekly NFT contest</p>
+                    </div>
+                    <div class="step" data-step="3">
+                        <div class="step-number">3</div>
+                        <div class="step-icon">✅</div>
+                        <h4>MAKE YOUR PICKS</h4>
+                        <p>Select winners for all 10 matchups before lock time</p>
+                    </div>
+                    <div class="step" data-step="4">
+                        <div class="step-number">4</div>
+                        <div class="step-icon">💰</div>
+                        <h4>WIN $NUTS TOKENS</h4>
+                        <p>Top 3 scorers receive crypto prizes directly to wallet</p>
+                    </div>
+                </div>
+                
+                <div class="cta-section">
+                    <a href="how-it-works.html" class="btn btn-outline">Learn More Details</a>
+                    <div class="new-user-help">
+                        <p>New to crypto? <a href="buy-nuts.html" class="help-link">Get started here</a></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">                <div class="footer-brand">
+                    <div class="footer-logo">🥜</div>
+                    <div class="brand-info">
+                        <span class="brand-name">$NUTS Sports Pick'em</span>
+                        <span class="brand-tagline">Powered by XRPL</span>
+                    </div>
+                </div>
+                
+                <div class="footer-links">
+                    <div class="link-group">
+                        <h4>Platform</h4>
+                        <a href="daily-contest.html">Daily Contest</a>
+                        <a href="nft-contest.html">NFT Contest</a>
+                        <a href="leaderboard.html">Leaderboard</a>
+                        <a href="how-it-works.html">How It Works</a>
+                    </div>
+                    <div class="link-group">
+                        <h4>Resources</h4>
+                        <a href="buy-nuts.html">Buy $NUTS</a>
+                        <a href="terms.html">Terms of Service</a>
+                        <a href="privacy.html">Privacy Policy</a>
+                        <a href="support.html">Support</a>
+                    </div>
+                    <div class="link-group">
+                        <h4>Community</h4>
+                        <a href="#" target="_blank" rel="noopener">Discord</a>
+                        <a href="#" target="_blank" rel="noopener">Twitter</a>
+                        <a href="#" target="_blank" rel="noopener">Telegram</a>
+                        <a href="#" target="_blank" rel="noopener">XRPL Cafe</a>
+                    </div>
+                </div>
+                
+                <div class="footer-social">
+                    <a href="#" class="social-link" aria-label="Twitter">
+                        <span>🐦</span>
+                    </a>
+                    <a href="#" class="social-link" aria-label="Discord">
+                        <span>💬</span>
+                    </a>
+                    <a href="#" class="social-link" aria-label="Telegram">
+                        <span>📱</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <div class="footer-disclaimer">
+                    <p>
+                        <strong>Skill-based contest.</strong> Must be 18+ to participate. 
+                        Void where prohibited. This is not gambling - winners determined by sports knowledge and skill.
+                    </p>
+                </div>
+                <div class="footer-legal">
+                    <span>&copy; 2025 $NUTS Sports Pick'em. All rights reserved.</span>
+                    <span>Built on XRP Ledger</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p id="loadingText">Loading...</p>
+        </div>
+    </div>    <!-- Scripts -->
+    <script src="config/config-browser.js"></script>
+    <script src="src/js/wallet-browser.js"></script>
+    <script src="src/js/odds-api-browser.js"></script>
+    <script src="src/js/contests-browser.js"></script>
+    <script src="src/js/main-browser.js"></script>
+</body>
+</html>

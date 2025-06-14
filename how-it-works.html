@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How It Works - $NUTS Sports Pick'em</title>
+    <meta name="description" content="Learn how to play $NUTS sports pick'em contests. Step-by-step guide to entering contests and winning crypto prizes.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="src/assets/images/favicon.ico">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/css/styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="logo-placeholder">🥜</div>
+                <span class="brand-text">$NUTS</span>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <div class="nav-links desktop-nav">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="daily-contest.html" class="nav-link">Daily Contest</a>
+                <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+                <a href="how-it-works.html" class="nav-link active">How It Works</a>
+                <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
+            </div>
+            
+            <!-- Wallet Connection -->
+            <div class="nav-actions">
+                <div id="wallet-info" class="wallet-info hidden">
+                    <span class="wallet-address"></span>
+                    <span class="nuts-balance"></span>
+                </div>
+                <button id="connect-wallet-btn" class="connect-wallet-btn">
+                    <span id="walletText">Connect Wallet</span>
+                    <span id="walletSpinner" class="spinner hidden"></span>
+                </button>
+                <div id="wallet-loading" class="wallet-loading hidden">Connecting...</div>
+                
+                <!-- Mobile menu toggle -->
+                <button class="mobile-menu-toggle" id="mobile-menu-btn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Navigation -->
+        <div class="mobile-nav hidden" id="mobile-menu">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="daily-contest.html" class="nav-link">Daily Contest</a>
+            <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
+            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+            <a href="how-it-works.html" class="nav-link">How It Works</a>
+            <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="how-it-works-hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1 class="page-title">How $NUTS Sports Pick'em Works</h1>
+                    <p class="page-subtitle">Your complete guide to winning crypto prizes with sports predictions</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Start Guide -->
+        <section class="quick-start">
+            <div class="container">
+                <h2 class="section-title">Quick Start Guide</h2>
+                <div class="steps-container">
+                    <div class="step-item">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>Connect Your Wallet</h3>
+                            <p>Use XUMM to connect your XRP wallet securely to the platform</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>Get $NUTS Tokens</h3>
+                            <p>Purchase $NUTS tokens or hold $NUTS NFTs for free contest entry</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>Make Your Picks</h3>
+                            <p>Predict winners of 10 games in daily contests or 15 games in weekly contests</p>
+                        </div>
+                    </div>
+                    <div class="step-item">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h3>Win Prizes</h3>
+                            <p>Top performers split the prize pool and earn $NUTS rewards</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contest Types -->
+        <section class="contest-types">
+            <div class="container">
+                <h2 class="section-title">Contest Types</h2>
+                <div class="contest-comparison">
+                    <!-- Daily Contest -->
+                    <div class="contest-type-card">
+                        <div class="contest-header">
+                            <div class="contest-icon">🏆</div>
+                            <h3>Daily Pick'em Contest</h3>
+                            <div class="contest-badge paid">Paid Entry</div>
+                        </div>
+                        
+                        <div class="contest-details">
+                            <div class="detail-section">
+                                <h4>Entry Requirements</h4>
+                                <ul>
+                                    <li>50 $NUTS entry fee</li>
+                                    <li>Connected XUMM wallet</li>
+                                    <li>Picks submitted before first game</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <h4>How to Play</h4>
+                                <ul>
+                                    <li>Pick winners of 10 daily games</li>
+                                    <li>No point spreads - just pick winners</li>
+                                    <li>All major sports included</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <h4>Prize Structure</h4>
+                                <ul>
+                                    <li>1st Place: 50% of prize pool</li>
+                                    <li>2nd Place: 30% of prize pool</li>
+                                    <li>3rd Place: 20% of prize pool</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="contest-cta">
+                            <a href="daily-contest.html" class="btn btn-primary">
+                                <span>Enter Daily Contest</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Weekly NFT Contest -->
+                    <div class="contest-type-card">
+                        <div class="contest-header">
+                            <div class="contest-icon">🎨</div>
+                            <h3>Weekly NFT Holder Contest</h3>
+                            <div class="contest-badge free">Free Entry</div>
+                        </div>
+                        
+                        <div class="contest-details">
+                            <div class="detail-section">
+                                <h4>Entry Requirements</h4>
+                                <ul>
+                                    <li>Hold at least 1 $NUTS NFT</li>
+                                    <li>Connected XUMM wallet</li>
+                                    <li>Picks submitted before Sunday</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <h4>How to Play</h4>
+                                <ul>
+                                    <li>Pick winners of 15 weekly games</li>
+                                    <li>Compete only vs other NFT holders</li>
+                                    <li>Sunday-Saturday contest period</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="detail-section">
+                                <h4>Prize Structure</h4>
+                                <ul>
+                                    <li>1,000+ $NUTS minimum prize pool</li>
+                                    <li>Top 5 finishers win prizes</li>
+                                    <li>Bonus rewards for rare NFT holders</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="contest-cta">
+                            <a href="nft-contest.html" class="btn btn-secondary">
+                                <span>Enter NFT Contest</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Scoring System -->
+        <section class="scoring-system">
+            <div class="container">
+                <h2 class="section-title">Scoring System</h2>
+                <div class="scoring-grid">
+                    <div class="scoring-card">
+                        <div class="scoring-icon">✅</div>
+                        <h3>Correct Pick</h3>
+                        <p>1 point for each correct winner prediction</p>
+                        <div class="scoring-example">
+                            <strong>Example:</strong> Pick Lakers to beat Warriors, Lakers win = 1 point
+                        </div>
+                    </div>
+                    
+                    <div class="scoring-card">
+                        <div class="scoring-icon">❌</div>
+                        <h3>Incorrect Pick</h3>
+                        <p>0 points for incorrect predictions</p>
+                        <div class="scoring-example">
+                            <strong>Example:</strong> Pick Lakers to beat Warriors, Warriors win = 0 points
+                        </div>
+                    </div>
+                    
+                    <div class="scoring-card">
+                        <div class="scoring-icon">🔄</div>
+                        <h3>Cancelled/Postponed Games</h3>
+                        <p>No points awarded, game removed from scoring</p>
+                        <div class="scoring-example">
+                            <strong>Note:</strong> Weather cancellations don't count against you
+                        </div>
+                    </div>
+                    
+                    <div class="scoring-card">
+                        <div class="scoring-icon">🏆</div>
+                        <h3>Tiebreakers</h3>
+                        <p>Earlier submission time wins ties</p>
+                        <div class="scoring-example">
+                            <strong>Tip:</strong> Submit picks early to gain tiebreaker advantage
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Wallet & Payments -->
+        <section class="wallet-guide">
+            <div class="container">
+                <h2 class="section-title">Wallet & Payments</h2>
+                <div class="wallet-content">
+                    <div class="wallet-info">
+                        <h3>XUMM Wallet Integration</h3>
+                        <p>We use XUMM, the most trusted XRP wallet, for secure transactions and NFT verification.</p>
+                        
+                        <div class="wallet-features">
+                            <div class="feature-item">
+                                <span class="feature-icon">🔒</span>
+                                <div class="feature-text">
+                                    <strong>Secure Transactions</strong>
+                                    <p>All payments processed on XRP Ledger</p>
+                                </div>
+                            </div>
+                            
+                            <div class="feature-item">
+                                <span class="feature-icon">💰</span>
+                                <div class="feature-text">
+                                    <strong>Instant Payouts</strong>
+                                    <p>Win prizes paid directly to your wallet</p>
+                                </div>
+                            </div>
+                            
+                            <div class="feature-item">
+                                <span class="feature-icon">🎨</span>
+                                <div class="feature-text">
+                                    <strong>NFT Verification</strong>
+                                    <p>Automatic detection of $NUTS NFTs</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="wallet-cta">
+                            <a href="#" class="btn btn-primary" target="_blank">
+                                <span>Download XUMM</span>
+                            </a>
+                            <a href="buy-nuts.html" class="btn btn-secondary">
+                                <span>Buy $NUTS Tokens</span>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="payment-flow">
+                        <h4>Payment Process</h4>
+                        <div class="flow-steps">
+                            <div class="flow-step">
+                                <div class="step-circle">1</div>
+                                <p>Connect XUMM wallet to platform</p>
+                            </div>
+                            <div class="flow-arrow">→</div>
+                            <div class="flow-step">
+                                <div class="step-circle">2</div>
+                                <p>Approve 50 $NUTS payment in XUMM</p>
+                            </div>
+                            <div class="flow-arrow">→</div>
+                            <div class="flow-step">
+                                <div class="step-circle">3</div>
+                                <p>Transaction confirmed on XRPL</p>
+                            </div>
+                            <div class="flow-arrow">→</div>
+                            <div class="flow-step">
+                                <div class="step-circle">4</div>
+                                <p>Contest entry activated</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tips & Strategy -->
+        <section class="tips-strategy">
+            <div class="container">
+                <h2 class="section-title">Tips & Strategy</h2>
+                <div class="tips-grid">
+                    <div class="tip-card">
+                        <div class="tip-icon">📊</div>
+                        <h3>Research Teams</h3>
+                        <p>Check recent performance, injuries, and head-to-head records before making picks.</p>
+                    </div>
+                    
+                    <div class="tip-card">
+                        <div class="tip-icon">⏰</div>
+                        <h3>Submit Early</h3>
+                        <p>Early submissions win tiebreakers. Don't wait until the last minute!</p>
+                    </div>
+                    
+                    <div class="tip-card">
+                        <div class="tip-icon">🎯</div>
+                        <h3>Mix Favorites & Underdogs</h3>
+                        <p>Balance safe picks with strategic upsets to differentiate from the field.</p>
+                    </div>
+                    
+                    <div class="tip-card">
+                        <div class="tip-icon">📈</div>
+                        <h3>Track Your Performance</h3>
+                        <p>Learn from past contests to improve your picking accuracy over time.</p>
+                    </div>
+                    
+                    <div class="tip-card">
+                        <div class="tip-icon">🏆</div>
+                        <h3>Multiple Entries</h3>
+                        <p>Enter multiple times with different strategies to increase winning chances.</p>
+                    </div>
+                    
+                    <div class="tip-card">
+                        <div class="tip-icon">🎨</div>
+                        <h3>Get NFTs for Free Play</h3>
+                        <p>Own $NUTS NFTs to enter weekly contests without paying entry fees.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section class="faq">
+            <div class="container">
+                <h2 class="section-title">Frequently Asked Questions</h2>
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>What happens if a game is cancelled?</h3>
+                            <span class="faq-toggle">+</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Cancelled or postponed games are removed from the contest. Your score is calculated based on the remaining games, and all players are scored fairly.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>When do I receive my winnings?</h3>
+                            <span class="faq-toggle">+</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Winnings are paid out automatically within 24 hours after all contest games are final. Payments go directly to your connected XUMM wallet.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>Can I change my picks after submitting?</h3>
+                            <span class="faq-toggle">+</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>No, picks are final once submitted. Make sure you're confident in your selections before confirming your entry.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>What sports are included?</h3>
+                            <span class="faq-toggle">+</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>We include all major professional sports: NFL, NBA, MLB, NHL, Soccer, and more. Games are selected based on availability and betting interest.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>Do I need to be in a specific country?</h3>
+                            <span class="faq-toggle">+</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>Our platform is available globally, but please check your local laws regarding online contests and cryptocurrency use.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>How do $NUTS NFTs work?</h3>
+                            <span class="faq-toggle">+</span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>$NUTS NFTs grant access to free weekly contests and may provide other platform benefits. They're tradeable on XRP Cafe and other XRPL NFT marketplaces.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-brand">
+                        <div class="logo-placeholder">🥜</div>
+                        <span class="brand-text">$NUTS</span>
+                    </div>
+                    <p class="footer-description">
+                        The premier sports pick'em platform powered by $NUTS token on the XRP Ledger.
+                    </p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contests</h4>
+                    <ul class="footer-links">
+                        <li><a href="daily-contest.html">Daily Pick'em</a></li>
+                        <li><a href="nft-contest.html">NFT Holder Contest</a></li>
+                        <li><a href="leaderboard.html">Leaderboard</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Platform</h4>
+                    <ul class="footer-links">
+                        <li><a href="how-it-works.html">How It Works</a></li>
+                        <li><a href="buy-nuts.html">Buy $NUTS</a></li>
+                        <li><a href="#support">Support</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Community</h4>
+                    <ul class="footer-links">
+                        <li><a href="#twitter" target="_blank">Twitter</a></li>
+                        <li><a href="#discord" target="_blank">Discord</a></li>
+                        <li><a href="#telegram" target="_blank">Telegram</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <div class="footer-legal">
+                    <p>&copy; 2024 $NUTS Sports Pick'em. All rights reserved.</p>
+                    <div class="legal-links">
+                        <a href="#privacy">Privacy Policy</a>
+                        <a href="#terms">Terms of Service</a>
+                    </div>
+                </div>
+                <div class="footer-powered">
+                    <span>Powered by</span>
+                    <div class="tech-logos">
+                        <span class="tech-item">XRPL</span>
+                        <span class="tech-item">XUMM</span>
+                        <span class="tech-item">The Odds API</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>    <!-- Scripts -->
+    <script src="config/config-browser.js"></script>
+    <script src="src/js/wallet-browser.js"></script>
+    <script src="src/js/main-browser.js"></script>
+    <script src="src/js/how-it-works.js"></script>
+</body>
+</html>

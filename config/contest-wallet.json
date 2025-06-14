@@ -1,0 +1,26 @@
+{
+    "contest_wallet": {
+        "seed": "sEd7d97WpuAUt7Qn21yhkZxtso2pYbx",
+        "address": "rnWCi37MWrY4EWxnUDVHMwJ8sLY7R1XiyX",
+        "description": "Main contest wallet for collecting entry fees and distributing winnings",
+        "network": "mainnet",
+        "activated": true
+    },
+    "wallet_config": {
+        "network": "mainnet",
+        "entry_fee_amount": "50",
+        "currency": "NUTS",
+        "payout_distribution": {
+            "first_place": 0.50,
+            "second_place": 0.30,
+            "third_place": 0.20
+        },
+        "minimum_balance_required": "100",
+        "transaction_fee": "0.000012"
+    },
+    "security_notes": {
+        "warning": "PRIVATE KEY EXPOSED - Use only for development/testing",
+        "production_recommendation": "Use hardware wallet or secure key management",
+        "backup_strategy": "Ensure wallet seed is backed up securely"
+    }
+}

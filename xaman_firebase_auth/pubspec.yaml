@@ -1,0 +1,33 @@
+name: xaman_firebase_auth
+description: A Flutter package that provides seamless authentication between Xaman (XUMM) wallet and Firebase.
+version: 0.1.0
+homepage: https://github.com/yourusername/xaman_firebase_auth
+
+environment:
+  sdk: '>=2.19.0 <4.0.0'
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_auth: ^5.0.0
+  firebase_core: ^3.0.0
+  cloud_firestore: ^5.0.0
+  http: ^1.0.0
+  url_launcher: ^6.2.0
+  flutter_web_plugins:
+    sdk: flutter
+  
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  mockito: ^5.4.0
+  build_runner: ^2.4.0
+
+flutter:
+  plugin:
+    platforms:
+      web:
+        pluginClass: XamanFirebaseAuthWeb
+        fileName: xaman_firebase_auth_web.dart
