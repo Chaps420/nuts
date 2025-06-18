@@ -118,12 +118,15 @@ exports.createNutsPayment = functions.https.onRequest((req, res) => {
 exports.payloadStatus = functions.https.onRequest((req, res) => {
     return corsHandler(req, res, async () => {
         try {
-            const uuid = req.params.uuid || req.path.split('/').pop();
+            // Get UUID from query parameter or request body
+            const uuid = req.query.uuid || req.body?.uuid || req.body?.payloadId;
             const config = getConfig();
             
-            if (!uuid || uuid === 'payloadStatus') {
-                throw new Error('UUID parameter required');
+            if (!uuid) {
+                throw new Error('UUID parameter required in query or body');
             }
+            
+            console.log('Checking payment status for UUID:', uuid);
 
             const response = await fetch(`https://xumm.app/api/v1/platform/payload/${uuid}`, {
                 method: 'GET',

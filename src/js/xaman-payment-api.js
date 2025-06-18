@@ -87,15 +87,12 @@ class XamanPaymentAPI {
             }
             
             try {
+                // For production, use query parameter; for dev, use path parameter
                 const statusUrl = window.ENV_CONFIG && window.ENV_CONFIG.environment === 'production' 
-                    ? this.statusEndpoint 
+                    ? `${this.statusEndpoint}?uuid=${uuid}`
                     : `${this.serverUrl}/payload-status/${uuid}`;
                 
-                const response = await fetch(statusUrl, window.ENV_CONFIG && window.ENV_CONFIG.environment === 'production' ? {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ payloadId: uuid })
-                } : undefined);
+                const response = await fetch(statusUrl);
                 
                 if (!response.ok) {
                     console.error('❌ Status poll HTTP error:', response.status);
