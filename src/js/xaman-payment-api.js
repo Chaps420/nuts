@@ -8,10 +8,15 @@ class XamanPaymentAPI {
         this.contestWallet = 'rN2K1Tv6LEM94YN8Kxfe3QyWcGPQNgsD6d';
         this.nutsIssuer = 'rBpdegD7kqHdczjKzTKNEUZj1Fg1eYZRbe';
         this.entryFee = '50';
-        this.serverUrl = 'http://localhost:3001';
+        
+        // Use environment-based URL
+        this.serverUrl = window.ENV_CONFIG ? window.ENV_CONFIG.api.baseUrl : 'http://localhost:3001';
+        this.createPaymentEndpoint = window.ENV_CONFIG ? window.ENV_CONFIG.api.createNutsPayment : `${this.serverUrl}/create-nuts-payment`;
+        this.statusEndpoint = window.ENV_CONFIG ? window.ENV_CONFIG.api.payloadStatus : `${this.serverUrl}/payload-status`;
         
         console.log('💸 Xaman Payment API initialized');
         console.log('🔗 Server URL:', this.serverUrl);
+        console.log('🌍 Environment:', window.ENV_CONFIG?.environment || 'development');
     }
 
     async createContestPayment() {
@@ -19,7 +24,7 @@ class XamanPaymentAPI {
         
         try {
             // Call the XUMM server to create payload
-            const response = await fetch(`${this.serverUrl}/create-nuts-payment`, {
+            const response = await fetch(this.createPaymentEndpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -73,43 +78,76 @@ class XamanPaymentAPI {
         
         const poll = async () => {
             if (attempts >= maxAttempts) {
-                console.log('⏱️ Polling timeout');
+                console.log('⏱️ Polling timeout - closing modal');
+                document.getElementById('xaman-payment-modal')?.remove();
+                if (window.xamanPaymentReject) {
+                    window.xamanPaymentReject(new Error('Payment timeout - please check your wallet'));
+                }
                 return;
             }
             
             try {
-                const response = await fetch(`${this.serverUrl}/payload-status/${uuid}`);
+                const statusUrl = window.ENV_CONFIG && window.ENV_CONFIG.environment === 'production' 
+                    ? this.statusEndpoint 
+                    : `${this.serverUrl}/payload-status/${uuid}`;
+                
+                const response = await fetch(statusUrl, window.ENV_CONFIG && window.ENV_CONFIG.environment === 'production' ? {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ payloadId: uuid })
+                } : undefined);
+                
+                if (!response.ok) {
+                    console.error('❌ Status poll HTTP error:', response.status);
+                    attempts++;
+                    setTimeout(poll, 5000);
+                    return;
+                }
+                
                 const data = await response.json();
                 
-                console.log('📊 Payment status:', data);
+                console.log('📊 Payment status response:', data);
+                console.log('📊 Signed:', data.meta?.signed, 'Cancelled:', data.meta?.cancelled, 'Resolved:', data.meta?.resolved);
                 
-                if (data.meta?.signed === true) {
-                    console.log('✅ Payment signed!');
-                    document.getElementById('xaman-payment-modal')?.remove();
-                    
-                    if (window.xamanPaymentResolve) {
-                        window.xamanPaymentResolve({
-                            success: true,
-                            txid: data.response?.txid || 'XUMM_' + Date.now(),
-                            timestamp: new Date().toISOString()
-                        });
-                    }
-                    return;
+                // Update status text
+                const statusElement = document.getElementById('payment-status');
+                if (statusElement) {
+                    statusElement.textContent = `Checking payment... (attempt ${attempts + 1})`;
                 }
                 
-                if (data.meta?.signed === false) {
-                    console.log('❌ Payment rejected');
-                    document.getElementById('xaman-payment-modal')?.remove();
-                    
-                    if (window.xamanPaymentReject) {
-                        window.xamanPaymentReject(new Error('Payment rejected by user'));
+                // Check if payment is resolved (completed in any way)
+                if (data.meta?.resolved === true) {
+                    // Payment is resolved, check the outcome
+                    if (data.meta?.signed === true) {
+                        console.log('✅ Payment signed! Transaction ID:', data.response?.txid);
+                        document.getElementById('xaman-payment-modal')?.remove();
+                        
+                        if (window.xamanPaymentResolve) {
+                            window.xamanPaymentResolve({
+                                success: true,
+                                txid: data.response?.txid || 'XUMM_' + Date.now(),
+                                txHash: data.response?.txid || 'XUMM_' + Date.now(),
+                                walletAddress: data.response?.account || null,
+                                timestamp: new Date().toISOString()
+                            });
+                        }
+                        return;
+                    } else {
+                        // Resolved but not signed = rejected/cancelled/expired
+                        console.log('❌ Payment rejected/cancelled/expired');
+                        document.getElementById('xaman-payment-modal')?.remove();
+                        
+                        if (window.xamanPaymentReject) {
+                            window.xamanPaymentReject(new Error('Payment was not completed'));
+                        }
+                        return;
                     }
-                    return;
+                } else {
+                    // Not resolved yet, continue polling
+                    console.log('⏳ Payment pending, continuing to poll...');
+                    attempts++;
+                    setTimeout(poll, 5000); // Poll every 5 seconds
                 }
-                
-                // Continue polling
-                attempts++;
-                setTimeout(poll, 5000); // Poll every 5 seconds
                 
             } catch (error) {
                 console.error('❌ Status poll error:', error);
@@ -118,8 +156,8 @@ class XamanPaymentAPI {
             }
         };
         
-        // Start polling after 3 seconds
-        setTimeout(poll, 3000);
+        // Start polling after 1 second (give time for QR to be scanned)
+        setTimeout(poll, 1000);
     }
 
     showPaymentModal(payload) {
@@ -148,9 +186,7 @@ class XamanPaymentAPI {
             <div style="
                 background: #1a1a1a;
                 border-radius: 12px;
-                padding: 30px;
-                max-width: 500px;
-                width: 100%;
+                padding: 20px;
                 text-align: center;
                 position: relative;
                 border: 2px solid #ff6b00;
@@ -159,72 +195,33 @@ class XamanPaymentAPI {
                     position: absolute;
                     top: 10px;
                     right: 10px;
-                    background: none;
+                    background: #ff6b00;
                     border: none;
                     color: #fff;
                     font-size: 24px;
                     cursor: pointer;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 ">×</button>
                 
-                <h2 style="color: #ff6b00; margin-bottom: 20px;">Contest Entry Payment</h2>
-                
-                <div style="background: #28a745; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <p style="margin: 5px 0; font-size: 32px; font-weight: bold;">
-                        50 NUTS
-                    </p>
-                    <p style="margin: 5px 0; font-size: 16px;">
-                        Daily Contest Entry Fee
-                    </p>
+                <div style="background: white; padding: 10px; border-radius: 8px; display: inline-block;">
+                    <img src="${payload.refs.qr_png}" 
+                         width="300" height="300" alt="Payment QR">
                 </div>
                 
-                ${payload.pushed ? `
-                    <div style="background: #2196F3; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <p style="margin: 5px 0;">
-                            📱 Push notification sent to your Xaman wallet!
-                        </p>
-                    </div>
-                ` : ''}
-                
-                <div style="margin: 20px 0;">
-                    <p style="color: #fff; margin-bottom: 15px;">Scan with Xaman Wallet:</p>
-                    <div style="background: white; padding: 20px; border-radius: 8px; display: inline-block;">
-                        <img src="${payload.refs.qr_png}" 
-                             width="256" height="256" alt="Payment QR">
-                    </div>
-                </div>
-                
-                <div style="margin: 20px 0;">
-                    <a href="${payload.next.always}" target="_blank" style="
-                        display: inline-block;
-                        background: #ff6b00;
-                        color: white;
-                        padding: 16px 32px;
-                        border-radius: 8px;
-                        text-decoration: none;
-                        font-weight: bold;
-                        font-size: 18px;
-                        width: 80%;
-                    ">Open in Xaman</a>
-                </div>
-                
-                <div style="background: #2a2a2a; padding: 15px; border-radius: 8px; margin-top: 20px;">
-                    <p style="color: #888; font-size: 14px; margin: 5px 0;">
-                        Waiting for payment confirmation...
-                    </p>
-                    <div style="margin-top: 10px;">
-                        <div style="display: inline-block; width: 8px; height: 8px; background: #ff6b00; border-radius: 50%; animation: pulse 1.5s infinite;"></div>
-                        <div style="display: inline-block; width: 8px; height: 8px; background: #ff6b00; border-radius: 50%; animation: pulse 1.5s infinite 0.5s; margin-left: 5px;"></div>
-                        <div style="display: inline-block; width: 8px; height: 8px; background: #ff6b00; border-radius: 50%; animation: pulse 1.5s infinite 1s; margin-left: 5px;"></div>
-                    </div>
-                </div>
-                
-                <style>
-                    @keyframes pulse {
-                        0% { opacity: 0.3; }
-                        50% { opacity: 1; }
-                        100% { opacity: 0.3; }
-                    }
-                </style>
+                <p style="color: #ff6b00; margin-top: 15px; font-size: 18px; font-weight: bold;">
+                    50 NUTS Entry Fee
+                </p>
+                <p id="payment-status" style="color: #888; margin-top: 10px; font-size: 14px;">
+                    Scan QR code with Xaman wallet...
+                </p>
+                <p style="color: #666; margin-top: 5px; font-size: 12px;">
+                    Do not close this window until payment is complete
+                </p>
             </div>
         `;
 

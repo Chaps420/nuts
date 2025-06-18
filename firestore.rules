@@ -51,7 +51,7 @@ service cloud.firestore {
     // Contest entries collection
     match /contest_entries/{entryId} {
       allow create: if true; // Allow anonymous entries (payment verified server-side)
-      allow read: if request.auth != null;
+      allow read: if true; // Allow anonymous read for contest stats
       allow update: if request.auth != null && isAdmin();
       allow delete: if false;
     }

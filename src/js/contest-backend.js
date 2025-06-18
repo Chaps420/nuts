@@ -26,6 +26,8 @@ class ContestBackend {
             id: `ENTRY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             userId: entryData.userId,
             userName: entryData.userName || 'Anonymous',
+            twitterHandle: entryData.twitterHandle || null, // Store Twitter handle
+            walletAddress: entryData.walletAddress || null, // Store wallet address from payment
             contestDate: entryData.contestDay,
             picks: entryData.picks,
             tiebreakerRuns: entryData.tiebreakerRuns,
@@ -132,7 +134,10 @@ class ContestBackend {
                 return JSON.parse(this.localStorage.getItem(dateKey) || '[]');
             }
         } catch (error) {
-            console.error('Failed to get contest entries:', error);
+            // Don't log permission errors as they're expected for non-authenticated users
+            if (error.code !== 'permission-denied' && !error.message?.includes('permissions')) {
+                console.error('Failed to get contest entries:', error);
+            }
             return [];
         }
     }

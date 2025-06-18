@@ -72,7 +72,8 @@ class FirebaseXamanIntegration {
                 paymentTxHash: paymentResult.txid,
                 paymentTimestamp: paymentResult.timestamp || new Date().toISOString(),
                 paymentAmount: 50,
-                paymentCurrency: 'NUTS'
+                paymentCurrency: 'NUTS',
+                walletAddress: paymentResult.walletAddress || null
             };
 
             let storeResult;
@@ -124,6 +125,8 @@ class FirebaseXamanIntegration {
                 id: entryId,
                 userId: entryData.userId,
                 userName: entryData.userName,
+                twitterHandle: entryData.twitterHandle || null,
+                walletAddress: entryData.walletAddress || null,
                 contestDate: entryData.contestDay,
                 picks: entryData.picks,
                 tiebreakerRuns: entryData.tiebreakerRuns,

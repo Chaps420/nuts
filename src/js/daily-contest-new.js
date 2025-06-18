@@ -58,10 +58,20 @@ class DailyContestManager {
             
             this.setupEventListeners();
             this.updateUI();
+            
+            // Load and display contest stats
+            await this.loadContestStats();
+            
+            // Refresh stats every 30 seconds
+            setInterval(() => this.loadContestStats(), 30000);
+            
             console.log('✅ Multi-day contest initialized with wallet integration');
         } catch (error) {
             console.error('❌ Failed to initialize daily contest:', error);
-            this.showError('Failed to load contest games. Please try refreshing the page.');
+            // Only show error if it's not a permissions issue
+            if (error.code !== 'permission-denied' && !error.message?.includes('permissions')) {
+                this.showError('Failed to load contest games. Please try refreshing the page.');
+            }
         }
     }
 
@@ -853,6 +863,42 @@ class DailyContestManager {
                 </div>
             ` : ''}
             
+            <!-- Twitter Handle Section -->
+            <div class="twitter-handle-section" style="
+                background: #1a1a1a; 
+                padding: 20px; 
+                border-radius: 8px; 
+                margin: 20px 0; 
+                border: 1px solid #333;
+            ">
+                <h4 style="color: #1DA1F2; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#1DA1F2">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    Add Your X Handle (Optional)
+                </h4>
+                <p style="color: #ccc; font-size: 0.9em; margin-bottom: 15px;">
+                    Show your X username on the leaderboard
+                </p>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: #666; font-size: 1.2em;">@</span>
+                    <input type="text" 
+                           id="twitter-handle" 
+                           placeholder="yourhandle"
+                           style="
+                               background: #2a2a2a; 
+                               border: 1px solid #444; 
+                               color: white; 
+                               padding: 8px 12px; 
+                               border-radius: 4px; 
+                               flex: 1;
+                               max-width: 300px;
+                           "
+                           onkeyup="this.value = this.value.replace(/[@\\s]/g, '').toLowerCase();">
+                    <span style="color: #666; font-size: 0.85em;">(Leave blank to stay anonymous)</span>
+                </div>
+            </div>
+            
             <button id="enter-contest-btn" type="button" class="contest-enter-btn" onclick="window.dailyContestManager.handleContestEntry()" style="
                 background: ${picksCount === totalGames ? 'linear-gradient(135deg, #4CAF50, #00ff88)' : '#555'};
                 color: ${picksCount === totalGames ? '#000' : '#888'};
@@ -982,10 +1028,15 @@ class DailyContestManager {
             console.log('💰 Processing contest entry...');
             console.log('🎯 Tiebreaker prediction:', tiebreakerRuns, 'runs');
             
+            // Get Twitter handle if provided
+            const twitterHandleInput = document.getElementById('twitter-handle');
+            const twitterHandle = twitterHandleInput ? twitterHandleInput.value.trim() : '';
+            
             // Prepare contest entry data
             const contestEntry = {
                 userId: 'USER_' + Date.now(),
-                userName: 'Player #' + Math.floor(Math.random() * 9999),
+                userName: twitterHandle ? `@${twitterHandle}` : 'Player #' + Math.floor(Math.random() * 9999),
+                twitterHandle: twitterHandle ? `@${twitterHandle}` : null,
                 picks: this.userPicks,
                 tiebreakerRuns: tiebreakerRuns,
                 entryFee: 50,
@@ -1003,6 +1054,8 @@ class DailyContestManager {
             if (paymentResult && paymentResult.success) {
                 console.log('✅ Payment successful!');
                 contestEntry.transactionId = paymentResult.txid || paymentResult.txHash;
+                contestEntry.paymentTxHash = paymentResult.txid || paymentResult.txHash; // Add this field for Firebase
+                contestEntry.paymentTimestamp = paymentResult.timestamp || new Date().toISOString();
                 
                 // Store the entry
                 if (this.integration) {
@@ -1038,6 +1091,9 @@ class DailyContestManager {
                 
             this.showSuccess(`✅ Contest entered successfully! Entry fee paid: 50 NUTS`);
             this.showSuccess(`📋 Entry ID: ${result.entryId}`);
+            if (twitterHandle) {
+                this.showSuccess(`🐦 Entered as ${contestEntry.twitterHandle}`);
+            }
             this.showSuccess(`💰 Transaction: ${result.txHash ? result.txHash.substring(0, 16) + '...' : 'Recorded'}`);
             this.showSuccess(`🎯 ${picksCount} picks submitted. Good luck! 🍀`);
                 
@@ -1053,6 +1109,23 @@ class DailyContestManager {
                 entryButton.disabled = true;
                 entryButton.style.background = '#4CAF50';
             }
+            
+            // Reload contest stats to show updated entry count and prize pool
+            setTimeout(() => {
+                this.loadContestStats();
+            }, 1000);
+            
+            // Show redirect message
+            setTimeout(() => {
+                this.showSuccess('🏆 Redirecting to leaderboard...');
+            }, 2000);
+            
+            // Redirect to contest results page after showing success messages
+            setTimeout(() => {
+                console.log('🏆 Redirecting to leaderboard...');
+                const contestDate = this.formatDate(this.contestDays[this.currentDay].date);
+                window.location.href = `contest-results.html?date=${contestDate}&entry=${result.entryId}`;
+            }, 3000); // Give user time to see success messages
             
         } catch (error) {
             console.error('❌ Contest entry failed:', error);
@@ -1453,6 +1526,104 @@ class DailyContestManager {
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
+    }
+    
+    async loadContestStats() {
+        try {
+            const currentDate = this.formatDate(this.contestDays[this.currentDay].date);
+            
+            if (this.backend) {
+                const entries = await this.backend.getContestEntries(currentDate);
+                
+                // Calculate stats
+                const totalEntries = entries.length;
+                const prizePool = totalEntries * 50; // 50 NUTS per entry
+                
+                // Update the display
+                this.updateContestStats(totalEntries, prizePool);
+                
+                // Also update the header stats
+                document.getElementById('prize-pool').textContent = prizePool + ' NUTS';
+                document.getElementById('entry-count').textContent = totalEntries;
+            } else {
+                // Show default values
+                this.updateContestStats(0, 0);
+                document.getElementById('prize-pool').textContent = '0 NUTS';
+                document.getElementById('entry-count').textContent = '0';
+            }
+            
+        } catch (error) {
+            // Check if it's a permission error (expected for non-authenticated users)
+            if (error.code === 'permission-denied' || error.message?.includes('permissions')) {
+                console.log('📊 Contest stats require authentication - showing defaults');
+            } else {
+                console.error('❌ Failed to load contest stats:', error);
+            }
+            // Show default values - this is normal for non-authenticated users
+            this.updateContestStats(0, 0);
+            document.getElementById('prize-pool').textContent = '0 NUTS';
+            document.getElementById('entry-count').textContent = '0';
+        }
+    }
+    
+    updateContestStats(entries, prizePool) {
+        // Update the prize section in the rules - find div containing Prize h4
+        const allDivs = document.querySelectorAll('.contest-rules-horizontal > div > div');
+        let prizeSection = null;
+        allDivs.forEach(div => {
+            const h4 = div.querySelector('h4');
+            if (h4 && h4.textContent.includes('Prize')) {
+                prizeSection = div;
+            }
+        });
+        
+        if (prizeSection) {
+            const prizeText = prizeSection.querySelector('p');
+            if (prizeText) {
+                prizeText.innerHTML = `<strong>${prizePool} NUTS</strong> (${entries} entries)`;
+            }
+        }
+        
+        // Add or update live stats banner
+        let banner = document.getElementById('live-stats-banner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'live-stats-banner';
+            banner.style.cssText = `
+                background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+                border: 2px solid #ff6b00;
+                border-radius: 12px;
+                padding: 20px;
+                margin: 20px auto 30px;
+                max-width: 800px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            `;
+            
+            const contestEntry = document.querySelector('.contest-entry .container');
+            if (contestEntry) {
+                contestEntry.insertBefore(banner, contestEntry.firstChild);
+            }
+        }
+        
+        banner.innerHTML = `
+            <h3 style="text-align: center; color: #ff6b00; margin-bottom: 20px;">
+                🏆 Today's Contest Stats
+            </h3>
+            <div style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 20px;">
+                <div style="text-align: center;">
+                    <div style="color: #888; font-size: 0.9em; margin-bottom: 5px;">Total Entries</div>
+                    <div style="color: #4CAF50; font-size: 2em; font-weight: bold;">${entries}</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="color: #888; font-size: 0.9em; margin-bottom: 5px;">Prize Pool</div>
+                    <div style="color: #ff6b00; font-size: 2em; font-weight: bold;">${prizePool} NUTS</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="color: #888; font-size: 0.9em; margin-bottom: 5px;">Entry Fee</div>
+                    <div style="color: #4CAF50; font-size: 2em; font-weight: bold;">50 NUTS</div>
+                </div>
+            </div>
+        `;
     }
 }
 

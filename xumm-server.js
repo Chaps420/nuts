@@ -11,7 +11,10 @@ const app = express();
 const port = 3001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:8080', 'http://localhost:3000', 'http://127.0.0.1:8080'],
+    credentials: true
+}));
 app.use(express.json());
 
 // XUMM API Configuration
@@ -39,15 +42,23 @@ app.post('/create-nuts-payment', async (req, res) => {
     try {
         console.log('🎯 Creating NUTS payment payload...');
         
-        const { amount = 50, memo = 'Contest Entry' } = req.body;
+        const { amount = 50, memo = 'Contest Entry', destination = null } = req.body;
+        
+        // Use provided destination or default to contest wallet
+        const paymentDestination = destination || CONTEST_WALLET;
+        const isPayoutMode = destination !== null;
+        
+        console.log('Amount:', amount, 'NUTS');
+        console.log('Destination:', paymentDestination);
+        console.log('Type:', isPayoutMode ? 'Payout' : 'Contest Entry');
         
         // Create transaction with proper NUTS currency using standard format
         // XUMM should accept standard 3-char codes, but let's try uppercase NUTS
         const payload = {
             txjson: {
                 TransactionType: 'Payment',
-                Destination: CONTEST_WALLET,
-                DestinationTag: 2024,
+                Destination: paymentDestination,
+                DestinationTag: isPayoutMode ? undefined : 2024,
                 Amount: {
                     currency: NUTS_HEX_CODE, // Use exact hex from trust line
                     value: amount.toString(),
@@ -159,6 +170,63 @@ app.get('/check-payment/:uuid', async (req, res) => {
             expired: result.meta.expired,
             txid: result.response?.txid,
             account: result.response?.account
+        });
+
+    } catch (error) {
+        console.error('❌ Error checking payment status:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * Check payment status (alias for frontend compatibility)
+ */
+app.get('/payload-status/:uuid', async (req, res) => {
+    try {
+        const { uuid } = req.params;
+        
+        console.log('🔍 Checking payment status via /payload-status for:', uuid);
+        
+        const response = await fetch(`https://xumm.app/api/v1/platform/payload/${uuid}`, {
+            method: 'GET',
+            headers: {
+                'X-API-Key': XUMM_API_KEY,
+                'X-API-Secret': XUMM_API_SECRET
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ XUMM API error response:', errorText);
+            throw new Error(`XUMM API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('📊 Payment status:', {
+            signed: result.meta?.signed,
+            cancelled: result.meta?.cancelled,
+            expired: result.meta?.expired,
+            resolved: result.meta?.resolved
+        });
+
+        // Return in the format the frontend expects
+        res.json({
+            success: true,
+            meta: {
+                signed: result.meta?.signed || false,
+                cancelled: result.meta?.cancelled || false,
+                expired: result.meta?.expired || false,
+                resolved: result.meta?.resolved || false
+            },
+            response: {
+                txid: result.response?.txid,
+                account: result.response?.account,
+                hex: result.response?.hex
+            },
+            custom_meta: result.custom_meta
         });
 
     } catch (error) {
