@@ -34,7 +34,7 @@ dist/
 build/
 
 # Local test files
-test-*.html
+# test-*.html  # Temporarily commented for GitHub Pages test
 debug*.html
 simple-test.html
 check-trustline.html
