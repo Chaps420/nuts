@@ -1,0 +1,89 @@
+/* Mobile Payment Modal Styles */
+@media (max-width: 768px) {
+    #xaman-payment-modal {
+        padding: 10px !important;
+    }
+    
+    #xaman-payment-modal > div {
+        width: 95% !important;
+        max-width: none !important;
+        padding: 15px !important;
+    }
+    
+    #xaman-payment-modal button {
+        touch-action: manipulation; /* Prevent zoom on double tap */
+    }
+    
+    /* Make the open in Xaman button more prominent */
+    #xaman-payment-modal button[onclick*="openInXaman"] {
+        padding: 18px 30px !important;
+        font-size: 20px !important;
+        box-shadow: 0 4px 15px rgba(255, 107, 0, 0.3);
+        transition: all 0.2s ease;
+    }
+    
+    #xaman-payment-modal button[onclick*="openInXaman"]:active {
+        transform: scale(0.98);
+        box-shadow: 0 2px 8px rgba(255, 107, 0, 0.3);
+    }
+    
+    /* Make details/summary more touch-friendly */
+    #xaman-payment-modal details summary {
+        padding: 10px;
+        margin: -10px;
+    }
+    
+    /* Improve QR code visibility in other options */
+    #xaman-payment-modal details img {
+        max-width: 200px !important;
+        width: 200px !important;
+        height: 200px !important;
+    }
+}
+
+/* Desktop improvements */
+@media (min-width: 769px) {
+    #xaman-payment-modal > div {
+        animation: modalFadeIn 0.3s ease-out;
+    }
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* General improvements for all devices */
+#xaman-payment-modal {
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+#xaman-payment-modal button:hover {
+    transform: translateY(-1px);
+    transition: transform 0.2s ease;
+}
+
+/* Loading state */
+.payment-loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #ff6b00;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    vertical-align: middle;
+    margin-left: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
