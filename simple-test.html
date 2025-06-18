@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Test</title>
+    <style>
+        body { background: #000; color: #fff; font-family: Arial; padding: 20px; }
+        .test { margin: 10px 0; padding: 10px; background: #111; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Simple Test Page</h1>
+    <div id="output"></div>
+    
+    <script>
+        document.getElementById('output').innerHTML = '<div class="test">✅ Basic HTML and JS working!</div>';
+        
+        // Test config loading
+        const script = document.createElement('script');
+        script.src = 'config/config-browser.js';
+        script.onload = () => {
+            document.getElementById('output').innerHTML += '<div class="test">✅ Config script loaded</div>';
+            
+            setTimeout(() => {
+                if (window.config) {
+                    document.getElementById('output').innerHTML += '<div class="test">✅ Config object available</div>';
+                } else {
+                    document.getElementById('output').innerHTML += '<div class="test">❌ Config object missing</div>';
+                }
+            }, 100);
+        };
+        script.onerror = () => {
+            document.getElementById('output').innerHTML += '<div class="test">❌ Config script failed to load</div>';
+        };
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>

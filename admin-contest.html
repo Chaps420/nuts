@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contest Admin - $NUTS Sports Pick'em</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="src/assets/images/nuts-logo.jpg">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/css/styles.css">
+    
+    <style>
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4CAF50;
+            margin: 10px 0;
+        }
+        
+        .entries-table {
+            background: #1a1a1a;
+            border-radius: 12px;
+            overflow: hidden;
+            width: 100%;
+        }
+        
+        .entries-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .entries-table th {
+            background: #2a2a2a;
+            padding: 15px;
+            text-align: left;
+            color: #ffa500;
+            font-weight: 600;
+            border-bottom: 2px solid #444;
+        }
+        
+        .entries-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .entries-table tr:hover {
+            background: #252525;
+        }
+        
+        .picks-preview {
+            font-size: 0.85em;
+            color: #888;
+        }
+        
+        .score-badge {
+            background: #4CAF50;
+            color: #000;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .date-selector {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .refresh-btn {
+            background: #4CAF50;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .refresh-btn:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="src/assets/images/nuts-logo.jpg" alt="$NUTS Logo" class="logo" style="width: 40px; height: 40px; border-radius: 50%;">
+                <span class="brand-text">$NUTS Admin</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="daily-contest.html" class="nav-link">Contest</a>
+                <a href="admin-games-upload.html" class="nav-link">Upload Games</a>
+                <a href="admin-contest.html" class="nav-link active">Contest Admin</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="admin-container">
+        <h1 style="color: #ffa500; margin-bottom: 30px;">Contest Administration</h1>
+        
+        <!-- Date Selector -->
+        <div style="margin-bottom: 30px;">
+            <label style="margin-right: 10px;">Contest Date:</label>
+            <input type="date" id="contest-date" class="date-selector">
+            <button onclick="loadContestData()" class="refresh-btn">Load Data</button>
+        </div>
+        
+        <!-- Statistics -->
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <h3>Total Entries</h3>
+                <div class="stat-value" id="total-entries">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Prize Pool</h3>
+                <div class="stat-value" id="prize-pool">0 NUTS</div>
+            </div>
+            <div class="stat-card">
+                <h3>Contest Status</h3>
+                <div class="stat-value" id="contest-status">Pending</div>
+            </div>
+            <div class="stat-card">
+                <h3>Average Score</h3>
+                <div class="stat-value" id="avg-score">0</div>
+            </div>
+        </div>
+        
+        <!-- Entries Table -->
+        <div class="entries-table">
+            <h2 style="padding: 20px; color: #ffa500;">Contest Entries</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Entry ID</th>
+                        <th>User</th>
+                        <th>Picks</th>
+                        <th>Tiebreaker</th>
+                        <th>Score</th>
+                        <th>Prize</th>
+                        <th>Status</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody id="entries-tbody">
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: #888;">
+                            Select a date and click Load Data
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Actions -->
+        <div style="margin-top: 30px; text-align: center;">
+            <button onclick="calculateWinners()" class="btn btn-primary" style="margin-right: 10px;">
+                Calculate Winners
+            </button>
+            <button onclick="exportData()" class="btn btn-secondary">
+                Export to CSV
+            </button>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="config/config-browser.js"></script>
+    <script src="src/js/firebase-integration.js"></script>
+    <script src="src/js/firebase-xaman-integration.js"></script>
+    
+    <script>
+        let integration;
+        let currentEntries = [];
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Set today's date as default
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('contest-date').value = today;
+            
+            // Initialize Firebase integration
+            integration = new FirebaseXamanIntegration();
+            await integration.init();
+            
+            // Load today's data
+            loadContestData();
+        });
+        
+        async function loadContestData() {
+            const dateInput = document.getElementById('contest-date');
+            const contestDate = dateInput.value;
+            
+            if (!contestDate) {
+                alert('Please select a date');
+                return;
+            }
+            
+            try {
+                console.log('Loading data for', contestDate);
+                
+                // Get entries
+                currentEntries = await integration.getContestEntries(contestDate);
+                
+                // Get stats
+                const stats = await integration.getContestStats(contestDate);
+                
+                // Update UI
+                updateStats(stats);
+                updateEntriesTable(currentEntries);
+                
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                alert('Failed to load contest data: ' + error.message);
+            }
+        }
+        
+        function updateStats(stats) {
+            document.getElementById('total-entries').textContent = stats.totalEntries;
+            document.getElementById('prize-pool').textContent = stats.prizePool + ' NUTS';
+            document.getElementById('contest-status').textContent = 
+                stats.totalEntries >= 2 ? 'Active' : 'Needs ' + (2 - stats.totalEntries) + ' more';
+            document.getElementById('avg-score').textContent = stats.avgScore.toFixed(1);
+        }
+        
+        function updateEntriesTable(entries) {
+            const tbody = document.getElementById('entries-tbody');
+            
+            if (entries.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: #888;">
+                            No entries for this date
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = entries.map(entry => `
+                <tr>
+                    <td style="font-family: monospace; font-size: 0.85em;">
+                        ${entry.id.substring(0, 12)}...
+                    </td>
+                    <td>${entry.userName}</td>
+                    <td class="picks-preview">
+                        ${Object.keys(entry.picks || {}).length} picks
+                    </td>
+                    <td>${entry.tiebreakerRuns || 0} runs</td>
+                    <td>
+                        ${entry.score !== undefined ? 
+                            `<span class="score-badge">${entry.score}</span>` : 
+                            '<span style="color: #666;">-</span>'}
+                    </td>
+                    <td>${entry.prizeWon || 0} NUTS</td>
+                    <td>
+                        <span style="color: ${
+                            entry.status === 'won' ? '#4CAF50' : 
+                            entry.status === 'active' ? '#2196F3' : '#888'
+                        }">
+                            ${entry.status || 'pending'}
+                        </span>
+                    </td>
+                    <td style="font-size: 0.85em; color: #888;">
+                        ${new Date(entry.timestamp || entry.paymentTimestamp).toLocaleTimeString()}
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        async function calculateWinners() {
+            if (currentEntries.length < 2) {
+                alert('Need at least 2 entries to calculate winners');
+                return;
+            }
+            
+            // In production, this would get actual game results
+            const mockGameResults = {};
+            currentEntries[0].picks && Object.keys(currentEntries[0].picks).forEach(gameId => {
+                mockGameResults[gameId] = {
+                    winner: Math.random() > 0.5 ? 'home' : 'away'
+                };
+            });
+            mockGameResults.lastGameRuns = Math.floor(Math.random() * 15) + 5;
+            
+            try {
+                const result = await integration.updateGameResults(
+                    document.getElementById('contest-date').value,
+                    mockGameResults
+                );
+                
+                if (result && result.winner) {
+                    alert(`Winner: ${result.winner.userName} with ${result.winner.score} correct picks!\nPrize: ${result.prizePool} NUTS`);
+                    loadContestData(); // Reload to show updated data
+                }
+            } catch (error) {
+                alert('Failed to calculate winners: ' + error.message);
+            }
+        }
+        
+        function exportData() {
+            if (currentEntries.length === 0) {
+                alert('No data to export');
+                return;
+            }
+            
+            // Create CSV
+            const headers = ['Entry ID', 'User', 'Picks', 'Tiebreaker', 'Score', 'Prize', 'Status', 'Timestamp'];
+            const rows = currentEntries.map(e => [
+                e.id,
+                e.userName,
+                Object.keys(e.picks || {}).length,
+                e.tiebreakerRuns || 0,
+                e.score || 0,
+                e.prizeWon || 0,
+                e.status || 'pending',
+                new Date(e.timestamp || e.paymentTimestamp).toISOString()
+            ]);
+            
+            const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+            
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `contest_entries_${document.getElementById('contest-date').value}.csv`;
+            a.click();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFT Holder Contest - $NUTS Sports Pick'em</title>
+    <meta name="description" content="Free weekly contest for $NUTS NFT holders. Win crypto prizes with your sports knowledge.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="src/assets/images/favicon.ico">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/css/styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="logo-placeholder">🥜</div>
+                <span class="brand-text">$NUTS</span>
+            </div>
+            
+            <!-- Desktop Navigation -->
+            <div class="nav-links desktop-nav">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="daily-contest.html" class="nav-link">Daily Contest</a>
+                <a href="nft-contest.html" class="nav-link active">NFT Holder Contest</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+                <a href="how-it-works.html" class="nav-link">How It Works</a>
+                <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
+            </div>
+            
+            <!-- Wallet Connection -->
+            <div class="nav-actions">
+                <div id="wallet-info" class="wallet-info hidden">
+                    <span class="wallet-address"></span>
+                    <span class="nuts-balance"></span>
+                </div>
+                <button id="connect-wallet-btn" class="connect-wallet-btn">
+                    <span id="walletText">Connect Wallet</span>
+                    <span id="walletSpinner" class="spinner hidden"></span>
+                </button>
+                <div id="wallet-loading" class="wallet-loading hidden">Connecting...</div>
+                
+                <!-- Mobile menu toggle -->
+                <button class="mobile-menu-toggle" id="mobile-menu-btn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Navigation -->
+        <div class="mobile-nav hidden" id="mobile-menu">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="daily-contest.html" class="nav-link">Daily Contest</a>
+            <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
+            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+            <a href="how-it-works.html" class="nav-link">How It Works</a>
+            <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Page Header -->
+        <section class="page-header nft-header">
+            <div class="container">
+                <div class="header-content">
+                    <h1 class="page-title">NFT Holder Weekly Contest</h1>
+                    <p class="page-subtitle">Exclusive free contest for $NUTS NFT holders</p>
+                    <div class="contest-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Entry Fee</span>
+                            <span class="stat-value accent-green">FREE</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Prize Pool</span>
+                            <span class="stat-value" id="nft-prize-pool">1,000 $NUTS</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">NFT Holders</span>
+                            <span class="stat-value" id="nft-entry-count">Loading...</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Week Ends</span>
+                            <span class="stat-value" id="week-remaining">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NFT Verification Section -->
+        <section class="nft-verification">
+            <div class="container">
+                <div class="verification-container">
+                    <!-- NFT Status -->
+                    <div class="nft-status" id="nft-status">
+                        <div class="status-card">
+                            <div class="status-icon">🔍</div>
+                            <h3>Checking NFT Holdings</h3>
+                            <p>Connect your wallet to verify $NUTS NFT ownership</p>
+                            <div class="verification-steps">
+                                <div class="step-item">
+                                    <span class="step-number">1</span>
+                                    <span>Connect Wallet</span>
+                                </div>
+                                <div class="step-item">
+                                    <span class="step-number">2</span>
+                                    <span>Verify NFT Holdings</span>
+                                </div>
+                                <div class="step-item">
+                                    <span class="step-number">3</span>
+                                    <span>Enter Contest</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NFT Collection Display -->
+                    <div class="nft-collection hidden" id="nft-collection">
+                        <h2 class="section-title">Your $NUTS NFT Collection</h2>
+                        <div class="nfts-grid" id="nfts-grid">
+                            <!-- User's NFTs will be loaded here -->
+                        </div>
+                        
+                        <div class="collection-actions">
+                            <button id="enter-nft-contest-btn" class="btn btn-primary">
+                                <span>Enter Weekly Contest (FREE)</span>
+                                <div class="btn-glow"></div>
+                            </button>
+                            <a href="#buy-nfts" class="btn btn-secondary">
+                                <span>Buy More NFTs</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Games Selection for NFT Contest -->
+                    <div class="nft-games-section hidden" id="nft-games-section">
+                        <h2 class="section-title">This Week's Games</h2>
+                        <div class="games-grid" id="nft-games-grid">
+                            <!-- Games will be loaded here by JavaScript -->
+                            <div class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Loading this week's games...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Picks -->
+                        <div class="submit-section hidden" id="nft-submit-section">
+                            <div class="picks-summary">
+                                <h3>Your Weekly Picks</h3>
+                                <div id="nft-picks-list"></div>
+                            </div>
+                            <button id="submit-nft-picks-btn" class="btn btn-success">
+                                <span>Submit Your Picks</span>
+                                <div class="btn-glow"></div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NFT Benefits Section -->
+        <section class="nft-benefits">
+            <div class="container">
+                <h2 class="section-title">NFT Holder Benefits</h2>
+                <div class="benefits-grid">
+                    <div class="benefit-card">
+                        <div class="benefit-icon">🆓</div>
+                        <h3>Free Weekly Entry</h3>
+                        <p>No entry fee required. Just hold a $NUTS NFT and play for free.</p>
+                    </div>
+                    <div class="benefit-card">
+                        <div class="benefit-icon">💰</div>
+                        <h3>Guaranteed Prize Pool</h3>
+                        <p>1,000 $NUTS minimum prize pool, funded by daily contest fees.</p>
+                    </div>
+                    <div class="benefit-card">
+                        <div class="benefit-icon">🏆</div>
+                        <h3>Exclusive Competition</h3>
+                        <p>Compete only against other NFT holders for better odds.</p>
+                    </div>
+                    <div class="benefit-card">
+                        <div class="benefit-icon">🎨</div>
+                        <h3>Special Rewards</h3>
+                        <p>Winners may receive rare NFTs and exclusive access benefits.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NFT Marketplace Integration -->
+        <section class="nft-marketplace">
+            <div class="container">
+                <h2 class="section-title">Get Your $NUTS NFTs</h2>
+                <div class="marketplace-content">
+                    <div class="marketplace-info">
+                        <h3>Available on XRP Cafe</h3>
+                        <p>Browse and purchase $NUTS NFTs on the premier XRPL NFT marketplace.</p>
+                        <div class="nft-features">
+                            <div class="feature-item">
+                                <span class="feature-icon">🐿️</span>
+                                <span>Unique Squirrel Artwork</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">🎯</span>
+                                <span>Contest Entry Access</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">💎</span>
+                                <span>Rarity Tiers</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">🔄</span>
+                                <span>Tradeable Assets</span>
+                            </div>
+                        </div>                        <a href="https://xrp.cafe/collection/nutsmlb" class="btn btn-primary" target="_blank">
+                            <span>Browse on XRP Cafe</span>
+                            <div class="btn-glow"></div>
+                        </a>
+                    </div>
+                    <div class="marketplace-preview">
+                        <div class="nft-showcase">
+                            <div class="showcase-nft">
+                                <div class="nft-placeholder">
+                                    <div class="nft-icon">🐿️</div>
+                                    <div class="nft-text">Golden Squirrel</div>
+                                    <div class="nft-rarity">Ultra Rare</div>
+                                </div>
+                            </div>
+                            <div class="showcase-nft">
+                                <div class="nft-placeholder">
+                                    <div class="nft-icon">🥜</div>
+                                    <div class="nft-text">Diamond Nut</div>
+                                    <div class="nft-rarity">Legendary</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contest Rules -->
+        <section class="contest-rules">
+            <div class="container">
+                <h2 class="section-title">Weekly Contest Rules</h2>
+                <div class="rules-grid">
+                    <div class="rule-card">
+                        <div class="rule-icon">🎫</div>
+                        <h3>Eligibility</h3>
+                        <p>Must hold at least one $NUTS NFT in connected wallet.</p>
+                    </div>
+                    <div class="rule-card">
+                        <div class="rule-icon">📅</div>
+                        <h3>Weekly Format</h3>
+                        <p>Contest runs Sunday to Saturday. New games each week.</p>
+                    </div>
+                    <div class="rule-card">
+                        <div class="rule-icon">🏆</div>
+                        <h3>Prize Distribution</h3>
+                        <p>Top 5 winners split the prize pool based on performance.</p>
+                    </div>
+                    <div class="rule-card">
+                        <div class="rule-icon">⏰</div>
+                        <h3>Submission Deadline</h3>
+                        <p>All picks must be submitted before Sunday kickoff.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-brand">
+                        <div class="logo-placeholder">🥜</div>
+                        <span class="brand-text">$NUTS</span>
+                    </div>
+                    <p class="footer-description">
+                        The premier sports pick'em platform powered by $NUTS token on the XRP Ledger.
+                    </p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contests</h4>
+                    <ul class="footer-links">
+                        <li><a href="daily-contest.html">Daily Pick'em</a></li>
+                        <li><a href="nft-contest.html">NFT Holder Contest</a></li>
+                        <li><a href="leaderboard.html">Leaderboard</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Platform</h4>
+                    <ul class="footer-links">
+                        <li><a href="how-it-works.html">How It Works</a></li>
+                        <li><a href="buy-nuts.html">Buy $NUTS</a></li>
+                        <li><a href="#support">Support</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Community</h4>
+                    <ul class="footer-links">
+                        <li><a href="#twitter" target="_blank">Twitter</a></li>
+                        <li><a href="#discord" target="_blank">Discord</a></li>
+                        <li><a href="#telegram" target="_blank">Telegram</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <div class="footer-legal">
+                    <p>&copy; 2024 $NUTS Sports Pick'em. All rights reserved.</p>
+                    <div class="legal-links">
+                        <a href="#privacy">Privacy Policy</a>
+                        <a href="#terms">Terms of Service</a>
+                    </div>
+                </div>
+                <div class="footer-powered">
+                    <span>Powered by</span>
+                    <div class="tech-logos">
+                        <span class="tech-item">XRPL</span>
+                        <span class="tech-item">XUMM</span>
+                        <span class="tech-item">The Odds API</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>    <!-- Scripts -->
+    <script src="config/config-browser.js"></script>
+    <script src="src/js/wallet-browser.js"></script>
+    <script src="src/js/odds-api-browser.js"></script>
+    <script src="src/js/contests-browser.js"></script>
+    <script src="src/js/main-browser.js"></script>
+    <script src="src/js/nft-contest.js"></script>
+</body>
+</html>

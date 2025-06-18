@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check NUTS Trustline</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .container {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 12px;
+            border: 2px solid #ff6b00;
+        }
+        h1 {
+            color: #ff6b00;
+            text-align: center;
+        }
+        .info-box {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .address {
+            font-family: monospace;
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        button {
+            background: #ff6b00;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 100%;
+        }
+        button:hover {
+            background: #ff8533;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .warning {
+            color: #ffc107;
+        }
+        pre {
+            background: #000;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 NUTS Trustline Checker</h1>
+        
+        <div class="info-box">
+            <h2>Wallet Addresses:</h2>
+            <p><strong>Contest Wallet:</strong></p>
+            <div class="address">rN2K1Tv6LEM94YN8Kxfe3QyWcGPQNgsD6d</div>
+            
+            <p><strong>NUTS Token Issuer:</strong></p>
+            <div class="address">rBpdegD7kqHdczjKzTKNEUZj1Fg1eYZRbe</div>
+        </div>
+        
+        <button onclick="checkTrustline()">Check Contest Wallet Trustlines</button>
+        <button onclick="checkBalance()">Check NUTS Balance</button>
+        <button onclick="checkIssuerInfo()">Check NUTS Issuer Info</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const CONTEST_WALLET = 'rN2K1Tv6LEM94YN8Kxfe3QyWcGPQNgsD6d';
+        const NUTS_ISSUER = 'rBpdegD7kqHdczjKzTKNEUZj1Fg1eYZRbe';
+        const XRPL_API = 'https://s1.ripple.com:51234/';
+
+        async function xrplRequest(method, params) {
+            try {
+                const response = await fetch(XRPL_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        method: method,
+                        params: [params]
+                    })
+                });
+                
+                const data = await response.json();
+                return data.result;
+            } catch (error) {
+                console.error('XRPL API Error:', error);
+                throw error;
+            }
+        }
+
+        async function checkTrustline() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="info-box"><p>Checking trustlines...</p></div>';
+            
+            try {
+                // Get account lines (trustlines)
+                const result = await xrplRequest('account_lines', {
+                    account: CONTEST_WALLET,
+                    ledger_index: 'validated'
+                });
+                
+                console.log('Account lines result:', result);
+                
+                if (result.error) {
+                    resultsDiv.innerHTML = `<div class="info-box error">
+                        <h3>❌ Error checking trustlines:</h3>
+                        <p>${result.error_message || result.error}</p>
+                    </div>`;
+                    return;
+                }
+                
+                // Look for NUTS trustline
+                const nutsTrustline = result.lines?.find(line => 
+                    line.account === NUTS_ISSUER && 
+                    line.currency === 'NUTS'
+                );
+                
+                let html = '<div class="info-box">';
+                html += '<h3>📋 Trustlines for Contest Wallet:</h3>';
+                
+                if (nutsTrustline) {
+                    html += '<p class="success">✅ NUTS trustline is set up!</p>';
+                    html += '<h4>NUTS Trustline Details:</h4>';
+                    html += '<pre>' + JSON.stringify(nutsTrustline, null, 2) + '</pre>';
+                } else {
+                    html += '<p class="error">❌ No NUTS trustline found!</p>';
+                    html += '<p class="warning">The contest wallet needs to set up a trustline to the NUTS token.</p>';
+                }
+                
+                html += '<h4>All Trustlines (' + (result.lines?.length || 0) + ' total):</h4>';
+                html += '<pre>' + JSON.stringify(result.lines || [], null, 2) + '</pre>';
+                html += '</div>';
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="info-box error">
+                    <h3>❌ Failed to check trustlines:</h3>
+                    <p>${error.message}</p>
+                </div>`;
+            }
+        }
+
+        async function checkBalance() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="info-box"><p>Checking balances...</p></div>';
+            
+            try {
+                // Get account info
+                const result = await xrplRequest('account_info', {
+                    account: CONTEST_WALLET,
+                    ledger_index: 'validated'
+                });
+                
+                console.log('Account info result:', result);
+                
+                if (result.error) {
+                    resultsDiv.innerHTML = `<div class="info-box error">
+                        <h3>❌ Error checking account:</h3>
+                        <p>${result.error_message || result.error}</p>
+                    </div>`;
+                    return;
+                }
+                
+                // Get account lines for token balances
+                const linesResult = await xrplRequest('account_lines', {
+                    account: CONTEST_WALLET,
+                    ledger_index: 'validated'
+                });
+                
+                const nutsTrustline = linesResult.lines?.find(line => 
+                    line.account === NUTS_ISSUER && 
+                    line.currency === 'NUTS'
+                );
+                
+                let html = '<div class="info-box">';
+                html += '<h3>💰 Contest Wallet Balances:</h3>';
+                html += '<p><strong>XRP Balance:</strong> ' + (result.account_data.Balance / 1000000) + ' XRP</p>';
+                
+                if (nutsTrustline) {
+                    html += '<p><strong>NUTS Balance:</strong> ' + nutsTrustline.balance + ' NUTS</p>';
+                } else {
+                    html += '<p class="error"><strong>NUTS Balance:</strong> No trustline (cannot hold NUTS)</p>';
+                }
+                
+                html += '<h4>Account Details:</h4>';
+                html += '<pre>' + JSON.stringify(result.account_data, null, 2) + '</pre>';
+                html += '</div>';
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="info-box error">
+                    <h3>❌ Failed to check balance:</h3>
+                    <p>${error.message}</p>
+                </div>`;
+            }
+        }
+
+        async function checkIssuerInfo() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="info-box"><p>Checking NUTS issuer...</p></div>';
+            
+            try {
+                // Get issuer account info
+                const result = await xrplRequest('account_info', {
+                    account: NUTS_ISSUER,
+                    ledger_index: 'validated'
+                });
+                
+                console.log('Issuer info result:', result);
+                
+                if (result.error) {
+                    resultsDiv.innerHTML = `<div class="info-box error">
+                        <h3>❌ Error checking issuer:</h3>
+                        <p>${result.error_message || result.error}</p>
+                    </div>`;
+                    return;
+                }
+                
+                // Get currencies issued
+                const currenciesResult = await xrplRequest('account_currencies', {
+                    account: NUTS_ISSUER,
+                    ledger_index: 'validated'
+                });
+                
+                let html = '<div class="info-box">';
+                html += '<h3>🏦 NUTS Token Issuer Info:</h3>';
+                html += '<p><strong>Account:</strong> ' + NUTS_ISSUER + '</p>';
+                html += '<p><strong>XRP Balance:</strong> ' + (result.account_data.Balance / 1000000) + ' XRP</p>';
+                
+                if (currenciesResult.send_currencies?.includes('NUTS')) {
+                    html += '<p class="success">✅ Account issues NUTS token</p>';
+                } else {
+                    html += '<p class="warning">⚠️ NUTS not found in issued currencies</p>';
+                }
+                
+                html += '<h4>Issued Currencies:</h4>';
+                html += '<pre>' + JSON.stringify(currenciesResult.send_currencies || [], null, 2) + '</pre>';
+                
+                html += '<h4>Account Details:</h4>';
+                html += '<pre>' + JSON.stringify(result.account_data, null, 2) + '</pre>';
+                html += '</div>';
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="info-box error">
+                    <h3>❌ Failed to check issuer:</h3>
+                    <p>${error.message}</p>
+                </div>`;
+            }
+        }
+
+        // Check trustline on page load
+        window.addEventListener('load', () => {
+            checkTrustline();
+        });
+    </script>
+</body>
+</html>

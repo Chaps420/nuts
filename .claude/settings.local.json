@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(npm install)",
+      "Bash(npm start)",
+      "Bash(curl:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:docs.xaman.dev)",
+      "Bash(mkdir:*)",
+      "Bash(firebase:*)",
+      "Bash(npm install:*)",
+      "Bash(touch:*)",
+      "Bash(chmod:*)",
+      "Bash(npx firebase deploy:*)",
+      "Bash(command -v:*)",
+      "Bash(./deploy-firebase.sh:*)",
+      "Bash(python3:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(pkill:*)",
+      "Bash(XUMM_API_SECRET=7bdae91f-17cc-4d0b-b883-7c21628df06e node xumm-server.js)",
+      "Bash(node:*)",
+      "Bash(git clone:*)",
+      "WebFetch(domain:xrpl.org)",
+      "Bash(kill:*)",
+      "Bash(true)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": []
+  }
+}

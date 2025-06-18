@@ -1,0 +1,83 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection - users can read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow admins to read all user data (add admin check here)
+      allow read: if request.auth != null; // TODO: Add admin role check
+    }
+    
+    // Bets collection - users can create their own bets, read their own, admins can read/update all
+    match /bets/{betId} {
+      // Users can create new bets
+      allow create: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // Users can read their own bets
+      allow read: if request.auth != null 
+        && (request.auth.uid == resource.data.userId || isAdmin());
+      
+      // Only admins can update bets (for resolving contests)
+      allow update: if request.auth != null && isAdmin();
+      
+      // No one can delete bets
+      allow delete: if false;
+    }
+    
+    // Contests collection - read-only for users, admin-managed
+    match /contests/{contestId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && isAdmin();
+    }
+    
+    // Payouts collection - read-only for authenticated users, admin-managed
+    match /payouts/{payoutId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && isAdmin();
+    }
+    
+    // Payment requests collection - allow creating for payment processing
+    match /payment_requests/{paymentId} {
+      allow create: if true; // Allow anonymous payment requests
+      allow read: if request.auth != null;
+      allow update: if request.auth != null && isAdmin();
+      allow delete: if false;
+    }
+    
+    // Contest entries collection
+    match /contest_entries/{entryId} {
+      allow create: if true; // Allow anonymous entries (payment verified server-side)
+      allow read: if request.auth != null;
+      allow update: if request.auth != null && isAdmin();
+      allow delete: if false;
+    }
+    
+    // Admin portal data - admin only
+    match /admin/{document=**} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      // TODO: Implement proper admin checking
+      // For now, return true for testing
+      // In production, check custom claims or admin user list
+      return request.auth != null;
+    }
+  }
+}
+
+// Additional rules for Firebase Storage (if used for images, etc.)
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        resource.size < 5 * 1024 * 1024; // 5MB limit
+    }
+  }
+}

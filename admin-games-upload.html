@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Upload Games</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #ffa500;
+            text-align: center;
+        }
+        
+        .upload-section {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            background: #252525;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        .example {
+            background: #252525;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #4CAF50;
+            color: white;
+            display: block;
+        }
+        
+        .status.error {
+            background: #f44336;
+            color: white;
+            display: block;
+        }
+        
+        .date-selector {
+            margin-bottom: 20px;
+        }
+        
+        select {
+            background: #252525;
+            color: #fff;
+            border: 1px solid #444;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏆 Admin - Upload Game Schedule</h1>
+    
+    <div class="upload-section">
+        <h2>Manual Game Upload</h2>
+        <p>Upload games for a specific date. Games can be in CSV format or JSON.</p>
+        
+        <div class="date-selector">
+            <label for="contest-date">Contest Date: </label>
+            <select id="contest-date">
+                <!-- Will be populated with dates -->
+            </select>
+        </div>
+        
+        <h3>Option 1: CSV Format</h3>
+        <textarea id="csv-input" placeholder="Away Team, Home Team, Time
+Yankees, Red Sox, 7:10 PM
+Dodgers, Giants, 10:10 PM
+..."></textarea>
+        
+        <div class="example">
+            <strong>Example CSV:</strong><br>
+            Yankees, Red Sox, 7:10 PM<br>
+            Dodgers, Giants, 10:10 PM<br>
+            Astros, Rangers, 8:10 PM<br>
+            Braves, Phillies, 7:20 PM<br>
+            Cubs, Cardinals, 8:15 PM
+        </div>
+        
+        <button onclick="uploadCSV()">Upload CSV Games</button>
+        
+        <h3>Option 2: Copy from ESPN/MLB.com</h3>
+        <textarea id="paste-input" placeholder="Paste game schedule text here..."></textarea>
+        <button onclick="parseAndUpload()">Parse & Upload</button>
+        
+        <div id="status" class="status"></div>
+    </div>
+    
+    <div class="upload-section">
+        <h2>Current Games</h2>
+        <div id="current-games"></div>
+    </div>
+    
+    <script>
+        // Populate date selector
+        function populateDates() {
+            const select = document.getElementById('contest-date');
+            const today = new Date();
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(today);
+                date.setDate(today.getDate() + i);
+                
+                const option = document.createElement('option');
+                option.value = date.toISOString().split('T')[0];
+                option.textContent = date.toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                
+                if (i === 0) option.textContent += ' (Today)';
+                if (i === 1) option.textContent += ' (Tomorrow)';
+                
+                select.appendChild(option);
+            }
+        }
+        
+        // Upload CSV format
+        function uploadCSV() {
+            const csvText = document.getElementById('csv-input').value.trim();
+            const selectedDate = document.getElementById('contest-date').value;
+            
+            if (!csvText) {
+                showStatus('Please enter game data', 'error');
+                return;
+            }
+            
+            const games = [];
+            const lines = csvText.split('\n');
+            
+            lines.forEach((line, index) => {
+                const parts = line.split(',').map(p => p.trim());
+                if (parts.length >= 3) {
+                    const [awayTeam, homeTeam, time] = parts;
+                    
+                    // Create game time
+                    const gameDate = new Date(selectedDate);
+                    const [hourMin, ampm] = time.split(' ');
+                    let [hour, min] = hourMin.split(':').map(Number);
+                    
+                    if (ampm === 'PM' && hour !== 12) hour += 12;
+                    if (ampm === 'AM' && hour === 12) hour = 0;
+                    
+                    gameDate.setHours(hour, min || 0, 0, 0);
+                    
+                    games.push({
+                        id: `game_${selectedDate}_${index + 1}`,
+                        awayTeam: awayTeam,
+                        homeTeam: homeTeam,
+                        gameTime: gameDate.toISOString(),
+                        gameTimeFormatted: time
+                    });
+                }
+            });
+            
+            saveGames(selectedDate, games);
+        }
+        
+        // Parse pasted text
+        function parseAndUpload() {
+            const pasteText = document.getElementById('paste-input').value.trim();
+            const selectedDate = document.getElementById('contest-date').value;
+            
+            if (!pasteText) {
+                showStatus('Please paste game data', 'error');
+                return;
+            }
+            
+            // Simple parser - looks for patterns like "Team @ Team time"
+            const games = [];
+            const lines = pasteText.split('\n');
+            let gameIndex = 0;
+            
+            lines.forEach(line => {
+                // Look for @ symbol (common in game listings)
+                if (line.includes('@') || line.includes('at')) {
+                    const match = line.match(/(.+?)\s*[@at]\s*(.+?)\s+(\d{1,2}:\d{2}\s*[APap][Mm])/);
+                    if (match) {
+                        const [_, away, home, time] = match;
+                        const gameDate = new Date(selectedDate);
+                        
+                        // Parse time
+                        const [hourMin, ampm] = time.split(/\s+/);
+                        let [hour, min] = hourMin.split(':').map(Number);
+                        
+                        if (ampm.toUpperCase().includes('P') && hour !== 12) hour += 12;
+                        if (ampm.toUpperCase().includes('A') && hour === 12) hour = 0;
+                        
+                        gameDate.setHours(hour, min, 0, 0);
+                        
+                        games.push({
+                            id: `game_${selectedDate}_${++gameIndex}`,
+                            awayTeam: away.trim(),
+                            homeTeam: home.trim(),
+                            gameTime: gameDate.toISOString(),
+                            gameTimeFormatted: time
+                        });
+                    }
+                }
+            });
+            
+            if (games.length > 0) {
+                saveGames(selectedDate, games);
+            } else {
+                showStatus('Could not parse any games. Try CSV format.', 'error');
+            }
+        }
+        
+        // Save games to localStorage
+        function saveGames(date, games) {
+            const storageKey = `mlb_games_${date}`;
+            localStorage.setItem(storageKey, JSON.stringify({
+                date: date,
+                games: games,
+                uploadedAt: new Date().toISOString()
+            }));
+            
+            showStatus(`Saved ${games.length} games for ${date}`, 'success');
+            displayCurrentGames();
+            
+            // Clear inputs
+            document.getElementById('csv-input').value = '';
+            document.getElementById('paste-input').value = '';
+        }
+        
+        // Display current games
+        function displayCurrentGames() {
+            const container = document.getElementById('current-games');
+            const selectedDate = document.getElementById('contest-date').value;
+            const storageKey = `mlb_games_${selectedDate}`;
+            const stored = localStorage.getItem(storageKey);
+            
+            if (stored) {
+                const data = JSON.parse(stored);
+                let html = `<h3>Games for ${selectedDate} (${data.games.length} games)</h3>`;
+                html += '<table style="width: 100%; border-collapse: collapse;">';
+                html += '<tr style="border-bottom: 1px solid #444;"><th>Away</th><th></th><th>Home</th><th>Time</th></tr>';
+                
+                data.games.forEach(game => {
+                    html += `<tr style="border-bottom: 1px solid #333;">
+                        <td style="padding: 8px;">${game.awayTeam}</td>
+                        <td style="text-align: center;">@</td>
+                        <td style="padding: 8px;">${game.homeTeam}</td>
+                        <td style="padding: 8px;">${game.gameTimeFormatted}</td>
+                    </tr>`;
+                });
+                
+                html += '</table>';
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<p>No games uploaded for this date.</p>';
+            }
+        }
+        
+        // Show status message
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            
+            setTimeout(() => {
+                status.className = 'status';
+            }, 3000);
+        }
+        
+        // Initialize
+        populateDates();
+        displayCurrentGames();
+        
+        // Update display when date changes
+        document.getElementById('contest-date').addEventListener('change', displayCurrentGames);
+    </script>
+</body>
+</html>
