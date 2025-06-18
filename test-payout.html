@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Payout System</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #1a1a1a; color: white; }
+        .test-section { margin: 20px 0; padding: 20px; background: #2a2a2a; border-radius: 8px; }
+        button { background: #ff6b00; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #ff5500; }
+        .result { margin-top: 10px; padding: 10px; background: #333; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Test Payout System</h1>
+    
+    <div class="test-section">
+        <h2>1. Test Wallet Address Capture</h2>
+        <p>This will simulate a contest entry payment and verify wallet address is captured.</p>
+        <button onclick="testPayment()">Test Payment</button>
+        <div id="payment-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Test Payout QR Generation</h2>
+        <p>Enter a wallet address to test payout QR generation:</p>
+        <input type="text" id="test-wallet" placeholder="rXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" style="width: 400px; padding: 5px;">
+        <button onclick="testPayoutQR()">Generate Payout QR</button>
+        <div id="payout-result" class="result"></div>
+    </div>
+
+    <script>
+        async function testPayment() {
+            const resultDiv = document.getElementById('payment-result');
+            resultDiv.innerHTML = 'Creating test payment...';
+            
+            try {
+                const response = await fetch('http://localhost:3001/create-nuts-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: '50',
+                        memo: 'Test Contest Entry'
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <p>✅ Payment created successfully!</p>
+                        <p>UUID: ${data.payload.uuid}</p>
+                        <p>QR URL: <a href="${data.payload.refs.qr_png}" target="_blank">View QR</a></p>
+                        <p>Status will be checked when payment is made...</p>
+                    `;
+                    
+                    // Start checking status
+                    checkStatus(data.payload.uuid);
+                } else {
+                    resultDiv.innerHTML = `❌ Error: ${data.error}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+        
+        async function checkStatus(uuid) {
+            const resultDiv = document.getElementById('payment-result');
+            let attempts = 0;
+            
+            const poll = async () => {
+                if (attempts > 60) return;
+                
+                try {
+                    const response = await fetch(`http://localhost:3001/payload-status/${uuid}`);
+                    const data = await response.json();
+                    
+                    if (data.meta?.resolved) {
+                        if (data.meta.signed) {
+                            resultDiv.innerHTML += `
+                                <p>✅ Payment completed!</p>
+                                <p>Transaction: ${data.response?.txid}</p>
+                                <p>Wallet Address: ${data.response?.account}</p>
+                            `;
+                        } else {
+                            resultDiv.innerHTML += '<p>❌ Payment cancelled/rejected</p>';
+                        }
+                        return;
+                    }
+                    
+                    attempts++;
+                    setTimeout(poll, 5000);
+                } catch (error) {
+                    console.error('Poll error:', error);
+                }
+            };
+            
+            setTimeout(poll, 3000);
+        }
+        
+        async function testPayoutQR() {
+            const wallet = document.getElementById('test-wallet').value;
+            const resultDiv = document.getElementById('payout-result');
+            
+            if (!wallet) {
+                resultDiv.innerHTML = '❌ Please enter a wallet address';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Creating payout QR...';
+            
+            try {
+                const response = await fetch('http://localhost:3001/create-nuts-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        destination: wallet,
+                        amount: '100',
+                        memo: 'Test Payout'
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <p>✅ Payout QR created!</p>
+                        <p>Amount: 100 NUTS</p>
+                        <p>To: ${wallet}</p>
+                        <img src="${data.payload.refs.qr_png}" width="200">
+                    `;
+                } else {
+                    resultDiv.innerHTML = `❌ Error: ${data.error}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

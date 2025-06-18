@@ -30,11 +30,11 @@ echo ""
 echo -e "${BLUE}🔥 Firebase Status:${NC}"
 
 # Check Firebase project
-if firebase use | grep -q "nuts-7b133"; then
-    echo -e "${GREEN}✅ Using correct Firebase project: nuts-7b133${NC}"
+if firebase use | grep -q "nuts-sports-pickem"; then
+    echo -e "${GREEN}✅ Using correct Firebase project: nuts-sports-pickem${NC}"
 else
     echo -e "${RED}❌ Wrong Firebase project selected${NC}"
-    echo "   Run: firebase use nuts-7b133"
+    echo "   Run: firebase use nuts-sports-pickem"
 fi
 
 # Check if functions config is set
@@ -51,8 +51,8 @@ echo -e "${BLUE}📋 Quick Links:${NC}"
 echo "• Live Site: https://chaps420.github.io/nuts/"
 echo "• GitHub Repo: https://github.com/Chaps420/nuts"
 echo "• GitHub Pages Settings: https://github.com/Chaps420/nuts/settings/pages"
-echo "• Firebase Console: https://console.firebase.google.com/project/nuts-7b133"
-echo "• Firebase Upgrade: https://console.firebase.google.com/project/nuts-7b133/usage/details"
+echo "• Firebase Console: https://console.firebase.google.com/project/nuts-sports-pickem"
+echo "• Firebase Upgrade: https://console.firebase.google.com/project/nuts-sports-pickem/usage/details"
 
 echo ""
 echo -e "${YELLOW}📝 Next Steps:${NC}"

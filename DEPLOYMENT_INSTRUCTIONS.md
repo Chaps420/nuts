@@ -20,7 +20,7 @@
 
 ### 2. Upgrade Firebase to Blaze Plan (Required for Backend)
 
-1. Visit: https://console.firebase.google.com/project/nuts-7b133/usage/details
+1. Visit: https://console.firebase.google.com/project/nuts-sports-pickem/usage/details
 2. Click "Upgrade to Blaze"
 3. Add billing information (you only pay for usage above free tier)
 4. Free tier includes:
@@ -52,7 +52,7 @@ This will deploy:
 
 - **Live Site**: https://chaps420.github.io/nuts/
 - **GitHub Repo**: https://github.com/Chaps420/nuts
-- **Firebase Console**: https://console.firebase.google.com/project/nuts-7b133
+- **Firebase Console**: https://console.firebase.google.com/project/nuts-sports-pickem
 - **GitHub Pages Settings**: https://github.com/Chaps420/nuts/settings/pages
 
 ## Temporary Solution (Without Firebase)

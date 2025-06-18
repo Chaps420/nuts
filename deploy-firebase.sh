@@ -19,7 +19,7 @@ fi
 
 echo -e "${YELLOW}📋 Pre-deployment Checklist:${NC}"
 echo "1. Have you upgraded to Firebase Blaze plan? (Required)"
-echo "   Visit: https://console.firebase.google.com/project/nuts-7b133/usage/details"
+echo "   Visit: https://console.firebase.google.com/project/nuts-sports-pickem/usage/details"
 echo ""
 echo "2. Are you logged in to Firebase CLI?"
 echo "   If not, run: firebase login"
@@ -54,8 +54,8 @@ firebase deploy --only functions
 # Get the function URLs
 echo -e "\n${GREEN}✅ Deployment complete!${NC}"
 echo -e "\n${YELLOW}📝 Your Firebase Function URLs:${NC}"
-echo "https://us-central1-nuts-7b133.cloudfunctions.net/createNutsPayment"
-echo "https://us-central1-nuts-7b133.cloudfunctions.net/payloadStatus"
+echo "https://us-central1-nuts-sports-pickem.cloudfunctions.net/createNutsPayment"
+echo "https://us-central1-nuts-sports-pickem.cloudfunctions.net/payloadStatus"
 
 echo -e "\n${YELLOW}🧪 Test your deployment:${NC}"
 echo "1. Visit: https://chaps420.github.io/nuts/"
