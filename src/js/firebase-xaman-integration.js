@@ -281,6 +281,24 @@ class FirebaseXamanIntegration {
                     localStorage.removeItem(oldDateKey);
                 }
                 
+                // Migrate data format for any entries with old games structure
+                entries = entries.map(entry => {
+                    if (typeof entry.games === 'number' && entry.picks) {
+                        console.log(`🔄 Migrating entry ${entry.id} to new games format`);
+                        return {
+                            ...entry,
+                            totalGames: entry.games,
+                            games: Object.keys(entry.picks).map(gameId => ({
+                                gameId: gameId,
+                                pickedTeam: entry.picks[gameId],
+                                result: null,
+                                actualWinner: null
+                            }))
+                        };
+                    }
+                    return entry;
+                });
+                
                 return entries;
             }
         } catch (error) {

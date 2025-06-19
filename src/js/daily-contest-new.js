@@ -1042,7 +1042,13 @@ class DailyContestManager {
                 entryFee: 50,
                 contestDay: this.formatDate(this.contestDays[this.currentDay].date),
                 timestamp: new Date().toISOString(),
-                games: this.selectedGames.length
+                totalGames: this.selectedGames.length,
+                games: Object.keys(this.userPicks).map(gameId => ({
+                    gameId: gameId,
+                    pickedTeam: this.userPicks[gameId],
+                    result: null, // win, loss, or pending
+                    actualWinner: null
+                }))
             };
             
             let result;

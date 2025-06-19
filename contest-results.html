@@ -350,12 +350,25 @@
                 const rank = index + 1;
                 const isWinner = entry.status === 'won';
                 
-                // Create game results indicators
-                const gameResults = entry.games ? entry.games.map(game => {
-                    const result = game.result || 'pending';
-                    const symbol = result === 'win' ? '✓' : result === 'loss' ? '✗' : '?';
-                    return `<span class="game-result ${result}">${symbol}</span>`;
-                }).join('') : '';
+                // Create game results indicators - handle both old and new data formats
+                let gameResults = '';
+                if (entry.games && Array.isArray(entry.games)) {
+                    // New format: games is an array
+                    gameResults = entry.games.map(game => {
+                        const result = game.result || 'pending';
+                        const symbol = result === 'win' ? '✓' : result === 'loss' ? '✗' : '?';
+                        return `<span class="game-result ${result}">${symbol}</span>`;
+                    }).join('');
+                } else if (entry.picks && typeof entry.games === 'number') {
+                    // Old format: games is a number, use picks to create indicators
+                    gameResults = Object.keys(entry.picks).map(gameId => {
+                        return `<span class="game-result pending">?</span>`;
+                    }).join('');
+                } else {
+                    // Fallback: show pending for totalGames count
+                    const gameCount = entry.totalGames || entry.games || 0;
+                    gameResults = Array(gameCount).fill('<span class="game-result pending">?</span>').join('');
+                }
                 
                 const isHighlighted = window.highlightEntryId === entry.id;
                 
