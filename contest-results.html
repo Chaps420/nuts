@@ -219,6 +219,7 @@
     <script src="config/config-browser.js"></script>
     <script src="config/environment.js"></script>
     <script src="src/js/firebase-integration.js"></script>
+    <script src="src/js/firebase-xaman-integration.js"></script>
     <script src="src/js/contest-backend.js"></script>
     
     <script>
@@ -282,8 +283,25 @@
             try {
                 console.log('Loading results for', contestDate);
                 
-                // Get entries
-                const entries = await backend.getContestEntries(contestDate);
+                // Get entries from backend
+                let entries = await backend.getContestEntries(contestDate);
+                
+                // Also check FirebaseXamanIntegration if available
+                if (window.FirebaseXamanIntegration) {
+                    console.log('Checking FirebaseXamanIntegration for entries...');
+                    const integration = new FirebaseXamanIntegration();
+                    const integrationEntries = await integration.getContestEntries(contestDate);
+                    
+                    // Merge entries, avoiding duplicates
+                    const entryIds = new Set(entries.map(e => e.id));
+                    integrationEntries.forEach(entry => {
+                        if (!entryIds.has(entry.id)) {
+                            entries.push(entry);
+                        }
+                    });
+                    
+                    console.log(`Found ${entries.length} total entries (${integrationEntries.length} from integration)`);
+                }
                 
                 if (entries.length === 0) {
                     document.getElementById('results-tbody').innerHTML = `

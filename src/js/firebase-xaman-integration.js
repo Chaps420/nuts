@@ -233,8 +233,8 @@ class FirebaseXamanIntegration {
             entries.push(entry);
             localStorage.setItem('contest_entries', JSON.stringify(entries));
             
-            // Also store by date
-            const dateKey = `entries_${entryData.contestDay}`;
+            // Also store by date - using same key pattern as ContestBackend
+            const dateKey = `contest_entries_${entryData.contestDay}`;
             const dateEntries = JSON.parse(localStorage.getItem(dateKey) || '[]');
             dateEntries.push(entry);
             localStorage.setItem(dateKey, JSON.stringify(dateEntries));
@@ -263,9 +263,25 @@ class FirebaseXamanIntegration {
                 
                 return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             } else {
-                // Fallback to local storage
-                const dateKey = `entries_${contestDate}`;
-                return JSON.parse(localStorage.getItem(dateKey) || '[]');
+                // Fallback to local storage - check both key patterns for compatibility
+                const newDateKey = `contest_entries_${contestDate}`;
+                const oldDateKey = `entries_${contestDate}`;
+                
+                // Try new key pattern first
+                let entries = JSON.parse(localStorage.getItem(newDateKey) || '[]');
+                
+                // Also check old key pattern and merge if found
+                const oldEntries = JSON.parse(localStorage.getItem(oldDateKey) || '[]');
+                if (oldEntries.length > 0) {
+                    console.log(`📦 Found ${oldEntries.length} entries with old key pattern, merging...`);
+                    entries = [...entries, ...oldEntries];
+                    // Migrate old entries to new key
+                    localStorage.setItem(newDateKey, JSON.stringify(entries));
+                    // Clean up old key
+                    localStorage.removeItem(oldDateKey);
+                }
+                
+                return entries;
             }
         } catch (error) {
             console.error('Failed to get entries:', error);

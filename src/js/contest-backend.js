@@ -131,14 +131,38 @@ class ContestBackend {
                 return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             } else {
                 const dateKey = `contest_entries_${contestDate}`;
-                return JSON.parse(this.localStorage.getItem(dateKey) || '[]');
+                let entries = JSON.parse(this.localStorage.getItem(dateKey) || '[]');
+                
+                // Also check old key pattern from FirebaseXamanIntegration
+                const oldDateKey = `entries_${contestDate}`;
+                const oldEntries = JSON.parse(this.localStorage.getItem(oldDateKey) || '[]');
+                
+                if (oldEntries.length > 0) {
+                    console.log(`📦 Found ${oldEntries.length} entries with old key pattern, migrating...`);
+                    // Merge entries, avoiding duplicates
+                    const entryIds = new Set(entries.map(e => e.id));
+                    oldEntries.forEach(entry => {
+                        if (!entryIds.has(entry.id)) {
+                            entries.push(entry);
+                        }
+                    });
+                    
+                    // Save merged entries to new key
+                    this.localStorage.setItem(dateKey, JSON.stringify(entries));
+                    // Remove old key
+                    this.localStorage.removeItem(oldDateKey);
+                }
+                
+                return entries;
             }
         } catch (error) {
             // Don't log permission errors as they're expected for non-authenticated users
             if (error.code !== 'permission-denied' && !error.message?.includes('permissions')) {
                 console.error('Failed to get contest entries:', error);
             }
-            return [];
+            // Fall back to localStorage on any Firebase error
+            const dateKey = `contest_entries_${contestDate}`;
+            return JSON.parse(this.localStorage.getItem(dateKey) || '[]');
         }
     }
 
