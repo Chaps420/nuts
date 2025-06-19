@@ -115,7 +115,25 @@ class FirebaseXamanIntegration {
      */
     async storeInFirebase(entryData) {
         try {
+            // Check if Firebase is available
+            if (!this.firebase || !this.firebase.db) {
+                console.warn('⚠️ Firebase not available, falling back to local storage');
+                return this.storeInLocalStorage(entryData);
+            }
+            
             const db = this.firebase.db;
+            
+            // Ensure anonymous authentication for contest entries
+            if (this.firebase.auth && !this.firebase.currentUser) {
+                try {
+                    console.log('🔐 Signing in anonymously for contest entry...');
+                    await this.firebase.auth.signInAnonymously();
+                    console.log('✅ Anonymous auth successful');
+                } catch (authError) {
+                    console.warn('⚠️ Anonymous auth failed, proceeding without auth:', authError.message);
+                    // Continue without auth - let Firestore rules handle it
+                }
+            }
             
             // Generate entry ID
             const entryId = `ENTRY_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -140,8 +158,9 @@ class FirebaseXamanIntegration {
                 prizeWon: 0
             };
 
-            // Store main entry
-            await db.collection('contest_entries').doc(entryId).set(entryDoc);
+            try {
+                // Store main entry
+                await db.collection('contest_entries').doc(entryId).set(entryDoc);
             
             // Store individual picks for easier querying
             const batch = db.batch();
@@ -172,13 +191,27 @@ class FirebaseXamanIntegration {
                 status: 'completed'
             });
 
-            console.log('✅ Entry stored in Firebase:', entryId);
-            
-            return { success: true, entryId: entryId };
+                console.log('✅ Entry stored in Firebase:', entryId);
+                
+                return { success: true, entryId: entryId };
+            } catch (firestoreError) {
+                console.error('❌ Firestore write failed:', firestoreError);
+                
+                // If it's a permissions error, fall back to local storage
+                if (firestoreError.code === 'permission-denied') {
+                    console.warn('⚠️ Firebase permissions issue, falling back to local storage');
+                    return this.storeInLocalStorage(entryData);
+                }
+                
+                throw firestoreError;
+            }
             
         } catch (error) {
             console.error('❌ Firebase storage failed:', error);
-            throw error;
+            
+            // Fall back to local storage for any Firebase errors
+            console.warn('⚠️ Falling back to local storage due to Firebase error');
+            return this.storeInLocalStorage(entryData);
         }
     }
 

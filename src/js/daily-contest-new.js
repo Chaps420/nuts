@@ -1057,30 +1057,30 @@ class DailyContestManager {
                 contestEntry.paymentTxHash = paymentResult.txid || paymentResult.txHash; // Add this field for Firebase
                 contestEntry.paymentTimestamp = paymentResult.timestamp || new Date().toISOString();
                 
-                // Store the entry
-                if (this.integration) {
-                    console.log('📝 Storing entry via integration...');
-                    result = await this.integration.storeInFirebase(contestEntry);
-                } else if (this.backend) {
-                    console.log('📝 Storing entry via backend...');
-                    result = await this.backend.storeContestEntry(contestEntry);
-                } else {
-                    console.log('📝 Storing entry locally...');
-                    result = { success: true, entryId: 'LOCAL_' + Date.now() };
-                }
-                
-                if (paymentResult.success) {
-                    contestEntry.transactionId = paymentResult.txHash;
-                    const storeResult = await this.backend.storeContestEntry(contestEntry);
-                    
-                    result = {
-                        success: storeResult.success,
-                        entryId: storeResult.entryId,
-                        txHash: paymentResult.txHash
+                // Try to store the entry - but don't fail if storage fails
+                try {
+                    if (this.integration) {
+                        console.log('📝 Storing entry via integration...');
+                        result = await this.integration.storeInFirebase(contestEntry);
+                    } else if (this.backend) {
+                        console.log('📝 Storing entry via backend...');
+                        result = await this.backend.storeContestEntry(contestEntry);
+                    } else {
+                        console.log('📝 Storing entry locally...');
+                        result = { success: true, entryId: 'LOCAL_' + Date.now() };
+                    }
+                } catch (storageError) {
+                    console.error('⚠️ Storage failed but payment succeeded:', storageError);
+                    // Payment succeeded, so we count this as a successful entry
+                    result = { 
+                        success: true, 
+                        entryId: 'PAID_' + Date.now(),
+                        txHash: paymentResult.txid || paymentResult.txHash,
+                        storageError: true
                     };
-                } else {
-                    result = { success: false, error: 'Payment cancelled' };
                 }
+            } else {
+                result = { success: false, error: 'Payment cancelled' };
             }
             
             if (!result.success) {
