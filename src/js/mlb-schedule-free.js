@@ -65,14 +65,13 @@ class MLBScheduleFree {
                 games.hasGamesInProgress = true;
             }
             
-            // If no games found, check if we're in off-season or there's an API issue
+            // If no games found, just return empty array
             if (games.length === 0) {
                 const month = date.getMonth(); // 0-11
                 const isOffseason = month === 11 || month === 0 || month === 1; // Dec, Jan, Feb
                 
                 if (isOffseason) {
-                    console.log('⚾ MLB is in off-season, using mock games');
-                    return this.getMockGamesForDate(date);
+                    console.log('⚾ MLB is in off-season, no games scheduled');
                 } else {
                     console.log('📅 No games scheduled for this date');
                 }
@@ -89,7 +88,7 @@ class MLBScheduleFree {
             
         } catch (error) {
             console.error('❌ Failed to fetch MLB games:', error);
-            return this.getMockGamesForDate(date);
+            return []; // Return empty array instead of mock games
         }
     }
     

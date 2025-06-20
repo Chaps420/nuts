@@ -234,15 +234,11 @@ class DailyContestManager {
                 // Calculate contest deadline (30 min before first game)
                 this.calculateContestDeadline(mlbGames);
             } else {
-                // Fallback to mock games
-                console.log(`⚠️ No real games found, using mock games for ${contestDay.dateString}`);
-                const mockGames = this.getMockGamesForDate(contestDay.date);
-                this.availableGames = mockGames;
-                this.selectedGames = mockGames;  // Show all games
-                contestDay.games = mockGames;
-                
-                // Calculate deadline for mock games
-                this.calculateContestDeadline(mockGames);
+                // No games found for this date
+                console.log(`📅 No games scheduled for ${contestDay.dateString}`);
+                this.availableGames = [];
+                this.selectedGames = [];
+                contestDay.games = [];
             }
 
             contestDay.isLoaded = true;
@@ -253,11 +249,10 @@ class DailyContestManager {
             
         } catch (error) {
             console.error(`❌ Error loading games for day ${dayIndex}:`, error);
-            // Use mock games as fallback
-            const mockGames = this.getMockGamesForDate(contestDay.date);
-            this.availableGames = mockGames;
-            this.selectedGames = mockGames;
-            contestDay.games = mockGames;
+            // No games on error
+            this.availableGames = [];
+            this.selectedGames = [];
+            contestDay.games = [];
             contestDay.isLoaded = true;
             this.updateTabIndicators();
             this.displayGames();
@@ -455,38 +450,9 @@ class DailyContestManager {
     }
     
     updateContestInfo() {
-        // Update contest stats with dynamic data
-        const prizePoolElement = document.getElementById('prize-pool');
-        const entryCountElement = document.getElementById('entry-count');
-        const timeRemainingElement = document.getElementById('time-remaining');
-        
-        // Calculate dynamic contest stats
-        const baseEntries = 25;
-        const randomEntries = Math.floor(Math.random() * 50);
-        const totalEntries = baseEntries + randomEntries;
-        const prizePool = totalEntries * 50; // 50 $NUTS entry fee
-        
-        // Calculate time remaining until contest deadline (assume 8 PM today)
-        const now = new Date();
-        const deadline = new Date();
-        deadline.setHours(20, 0, 0, 0); // 8 PM today
-        
-        if (now > deadline) {
-            deadline.setDate(deadline.getDate() + 1); // Next day if past deadline
-        }
-        
-        const timeRemaining = deadline - now;
-        const hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60));
-        const minutesRemaining = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-        
-        if (prizePoolElement) prizePoolElement.textContent = `${prizePool.toLocaleString()} $NUTS`;
-        if (entryCountElement) entryCountElement.textContent = totalEntries.toString();        if (timeRemainingElement) {
-            if (timeRemaining > 0) {
-                timeRemainingElement.textContent = `${hoursRemaining}h ${minutesRemaining}m`;
-            } else {
-                timeRemainingElement.textContent = 'Contest Closed';
-            }
-        }
+        // This function no longer overrides real database stats
+        // The real stats are handled by loadContestStats()
+        console.log('📊 updateContestInfo called - real stats are loaded by loadContestStats()');
     }
     
     // displayGames - Main function to display all available games for the current day
@@ -501,6 +467,9 @@ class DailyContestManager {
         const currentDayGames = this.contestDays[this.currentDay]?.games || [];
         
         if (currentDayGames.length === 0) {
+            const currentDate = this.contestDays[this.currentDay]?.date;
+            const isToday = currentDate && currentDate.toDateString() === new Date().toDateString();
+            
             gamesContainer.innerHTML = `
                 <div class="no-games" style="
                     text-align: center; 
@@ -510,8 +479,9 @@ class DailyContestManager {
                     border: 2px dashed #333;
                     color: #888;
                 ">
-                    <h3>🔄 Loading Games...</h3>
-                    <p>Loading available games for this day.</p>
+                    <h3>📅 No Games Scheduled</h3>
+                    <p>${isToday ? "No games are scheduled for today's contest." : `No games scheduled for ${currentDate ? currentDate.toLocaleDateString() : 'this date'}.`}</p>
+                    <p style="margin-top: 10px; font-size: 0.9em;">Check back later or try another day.</p>
                 </div>
             `;
             return;
@@ -752,21 +722,6 @@ class DailyContestManager {
             return this.contestDeadline;
         }
         
-        // Manual override: If it's past 6:00 PM local time, force contest closure
-        // This handles cases where API data might be delayed or incorrect
-        const now = new Date();
-        const cutoffTime = new Date();
-        cutoffTime.setHours(18, 0, 0, 0); // 6:00 PM local time
-        
-        // TEMPORARILY DISABLED FOR DEBUGGING
-        /*
-        if (now > cutoffTime) {
-            console.log('🚨 Manual override: Past 6:00 PM local time - forcing contest closure!');
-            console.log(`Current time: ${now.toLocaleString()}, Cutoff: ${cutoffTime.toLocaleString()}`);
-            this.contestDeadline = new Date(Date.now() - 1000); // 1 second ago
-            return this.contestDeadline;
-        }
-        */
         
         // Find the earliest game time
         const earliestGame = games.reduce((earliest, game) => {
@@ -775,9 +730,8 @@ class DailyContestManager {
             return gameTime < earlyTime ? game : earliest;
         });
         
-        // Set deadline to 30 minutes before earliest game
+        // Set deadline to when the first game starts
         const deadline = new Date(earliestGame.gameTime);
-        deadline.setMinutes(deadline.getMinutes() - 30);
         
         // Log timezone information for debugging
         console.log(`⏰ Timezone debug: earliestGame=${earliestGame.gameTime}, now=${now.toISOString()}, deadline=${deadline.toISOString()}`);
@@ -1164,10 +1118,10 @@ class DailyContestManager {
                 return;
             }
             
-            // Check if contest is still open (30 min before first game)
+            // Check if contest is still open (when first game starts)
             const contestDeadline = this.calculateContestDeadline(this.selectedGames);
             if (contestDeadline && new Date() > contestDeadline) {
-                this.showError('Contest entries have closed. Entries close 30 minutes before the first game.');
+                this.showError('Contest entries have closed. The first game has started.');
                 return;
             }
             
@@ -1712,19 +1666,13 @@ class DailyContestManager {
             
             console.log(`📊 Loading contest stats - Today: ${todayFormatted}, Selected: ${currentDate}`);
             
-            // Only show entries if viewing today's contest
-            if (currentDate !== todayFormatted) {
-                console.log('📅 Viewing future/past date - showing 0 entries');
-                this.updateContestStats(0, 0);
-                document.getElementById('prize-pool').textContent = '0 NUTS';
-                document.getElementById('entry-count').textContent = '0';
-                return;
-            }
+            // Load entries for the selected date (not just today)
+            console.log(`📅 Loading entries for selected date: ${currentDate}`);
             
             if (this.backend) {
                 console.log(`🔍 Backend type: Firebase enabled = ${this.backend.firebaseEnabled}`);
-                console.log(`🔍 Looking for entries on date: ${todayFormatted}`);
-                const entries = await this.backend.getContestEntries(todayFormatted);
+                console.log(`🔍 Looking for entries on date: ${currentDate}`);
+                const entries = await this.backend.getContestEntries(currentDate);
                 
                 console.log(`📊 Raw entries returned (${entries.length}):`, entries);
                 
@@ -1750,14 +1698,14 @@ class DailyContestManager {
                     // Only require userName - transactionId can be pending for demo/testing
                     const hasRequiredFields = entry.userName;
                     
-                    // Check if entry is for today's contest based on contestDate field
-                    let isForToday = true;
+                    // Check if entry is for the selected contest date
+                    let isForSelectedDate = true;
                     if (entry.contestDate) {
-                        isForToday = entry.contestDate === todayFormatted;
-                        console.log(`📅 Date comparison: entry.contestDate="${entry.contestDate}" vs todayFormatted="${todayFormatted}" = ${isForToday}`);
+                        isForSelectedDate = entry.contestDate === currentDate;
+                        console.log(`📅 Date comparison: entry.contestDate="${entry.contestDate}" vs currentDate="${currentDate}" = ${isForSelectedDate}`);
                     } else if (entry.contestDay) {
-                        isForToday = entry.contestDay === todayFormatted;
-                        console.log(`📅 Date comparison: entry.contestDay="${entry.contestDay}" vs todayFormatted="${todayFormatted}" = ${isForToday}`);
+                        isForSelectedDate = entry.contestDay === currentDate;
+                        console.log(`📅 Date comparison: entry.contestDay="${entry.contestDay}" vs currentDate="${currentDate}" = ${isForSelectedDate}`);
                     }
                     
                     // Check if active
@@ -1766,14 +1714,14 @@ class DailyContestManager {
                     // Additional validation - filter out test entries (but allow demo entries)
                     const isNotTest = !entry.id?.toLowerCase().includes('test');
                     
-                    // Entry must have basic required fields and be for today's contest
-                    const isValid = hasRequiredFields && isForToday && isActive && isNotTest;
+                    // Entry must have basic required fields and be for the selected contest date
+                    const isValid = hasRequiredFields && isForSelectedDate && isActive && isNotTest;
                     
                     console.log(`Entry ${entry.id}: ` +
                         `contestStatus=${entry.contestStatus}, ` +
                         `hasReqFields=${hasRequiredFields}, ` +
                         `contestDate=${entry.contestDate}, ` +
-                        `isForToday=${isForToday}, ` +
+                        `isForSelectedDate=${isForSelectedDate}, ` +
                         `isActive=${isActive}, ` +
                         `isNotTest=${isNotTest}, ` +
                         `isValid=${isValid}`);
@@ -1784,7 +1732,7 @@ class DailyContestManager {
                             contestDate: entry.contestDate,
                             transactionId: entry.transactionId ? 'present' : 'missing',
                             reason: !hasRequiredFields ? 'missing userName' :
-                                   !isForToday ? 'not for today' :
+                                   !isForSelectedDate ? 'not for selected date' :
                                    !isActive ? 'not active' :
                                    !isNotTest ? 'test entry' : 'unknown'
                         })}`);
