@@ -126,29 +126,30 @@
             position: relative;
         }
         
-        /* Ensure games section scrolls as a whole */
+        /* Remove any scrolling from inner containers */
         .games-display {
-            max-height: calc(100vh - 450px);
+            overflow: visible !important;
+            max-height: none !important;
+        }
+        
+        .games-list {
+            overflow: visible !important;
+            max-height: none !important;
+        }
+        
+        .games-grid {
+            overflow: visible !important;
+            max-height: none !important;
+        }
+        
+        /* Ensure only the main page scrolls */
+        body {
+            overflow-x: hidden;
             overflow-y: auto;
         }
         
-        /* Games display scrollbar styling */
-        .games-display::-webkit-scrollbar {
-            width: 10px;
-        }
-        
-        .games-display::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.05);
-            border-radius: 5px;
-        }
-        
-        .games-display::-webkit-scrollbar-thumb {
-            background: #ff6b00;
-            border-radius: 5px;
-        }
-        
-        .games-display::-webkit-scrollbar-thumb:hover {
-            background: #ff8833;
+        main {
+            overflow: visible;
         }
         
         @media (max-width: 768px) {

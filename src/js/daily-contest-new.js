@@ -519,12 +519,6 @@ class DailyContestManager {
         console.log(`🎮 Displaying ${currentDayGames.length} games for day ${this.currentDay}`);
         
         // Render all available games
-        const gamesDisplayContainer = document.getElementById('games-section');
-        if (gamesDisplayContainer) {
-            // Update the outer container's overflow style
-            gamesDisplayContainer.style.maxHeight = 'calc(100vh - 450px)';
-            gamesDisplayContainer.style.overflowY = 'auto';
-        }
         
         gamesContainer.innerHTML = `
             <div class="games-content-wrapper">
