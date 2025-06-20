@@ -126,20 +126,25 @@
             position: relative;
         }
         
-        /* Remove any scrolling from inner containers */
-        .games-display {
+        /* Remove ALL inner scrollbars */
+        .games-display, .games-list, .games-grid, 
+        .games-content-wrapper, .contest-entry,
+        .entry-container, .games-section,
+        #games-section, #games-grid {
             overflow: visible !important;
+            max-height: none !important;
+            height: auto !important;
+        }
+        
+        /* Ensure containers don't restrict height */
+        .container, .entry-container, .games-display {
+            min-height: auto !important;
             max-height: none !important;
         }
         
-        .games-list {
+        /* Remove scrolling from any flex containers */
+        div[style*="overflow"] {
             overflow: visible !important;
-            max-height: none !important;
-        }
-        
-        .games-grid {
-            overflow: visible !important;
-            max-height: none !important;
         }
         
         /* Ensure only the main page scrolls */
@@ -183,9 +188,9 @@
             
             /* Responsive contest rules */
             .contest-rules-horizontal > div > div {
-                flex-direction: row !important;
-                overflow-x: auto !important;
-                -webkit-overflow-scrolling: touch !important;
+                flex-direction: column !important;
+                flex-wrap: wrap !important;
+                overflow: visible !important;
             }
         }
         
