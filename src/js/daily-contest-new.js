@@ -518,31 +518,38 @@ class DailyContestManager {
 
         console.log(`🎮 Displaying ${currentDayGames.length} games for day ${this.currentDay}`);
         
-        // Render all available games in a compact grid
+        // Render all available games
+        const gamesDisplayContainer = document.getElementById('games-section');
+        if (gamesDisplayContainer) {
+            // Update the outer container's overflow style
+            gamesDisplayContainer.style.maxHeight = 'calc(100vh - 450px)';
+            gamesDisplayContainer.style.overflowY = 'auto';
+        }
+        
         gamesContainer.innerHTML = `
-            <div class="games-header" style="
-                margin-bottom: 15px; 
-                padding: 15px;
-                background: #1a1a1a;
-                border-radius: 8px;
-                border: 1px solid #333;
-            ">
-                <h3 style="color: #ffa500; margin-bottom: 5px; font-size: 1.2em;">
-                    ${currentDayGames.length} MLB Games Available
-                </h3>
-                <p style="color: #888; margin: 0; font-size: 0.9em;">
-                    Pick ALL ${currentDayGames.length} game winners • ${Object.keys(this.userPicks).length}/${currentDayGames.length} selected
-                </p>
-            </div>
-            <div class="games-list" style="
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                padding: 10px;
-                background: rgba(0,0,0,0.3);
-                border-radius: 8px;
-            ">
-                ${currentDayGames.map((game, index) => this.renderGameCard(game, index)).join('')}
+            <div class="games-content-wrapper">
+                <div class="games-header" style="
+                    margin-bottom: 15px; 
+                    padding: 15px;
+                    background: #1a1a1a;
+                    border-radius: 8px;
+                    border: 1px solid #333;
+                ">
+                    <h3 style="color: #ffa500; margin-bottom: 5px; font-size: 1.2em;">
+                        ${currentDayGames.length} MLB Games Available
+                    </h3>
+                    <p style="color: #888; margin: 0; font-size: 0.9em;">
+                        Pick ALL ${currentDayGames.length} game winners • ${Object.keys(this.userPicks).length}/${currentDayGames.length} selected
+                    </p>
+                </div>
+                <div class="games-list" style="
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0;
+                    padding: 5px;
+                ">
+                    ${currentDayGames.map((game, index) => this.renderGameCard(game, index)).join('')}
+                </div>
             </div>
         `;
 
@@ -598,33 +605,31 @@ class DailyContestManager {
             <div class="game-card" data-game-id="${game.id}" style="
                 background: ${isPicked ? 'linear-gradient(135deg, #1a3d1a, #1e1e1e)' : '#1e1e1e'};
                 border: 2px solid ${isPicked ? '#4CAF50' : '#333'};
-                border-radius: 10px;
-                padding: 15px;
-                margin-bottom: 12px;
+                border-radius: 8px;
+                padding: 12px;
+                margin-bottom: 8px;
                 transition: all 0.2s ease;
-                box-shadow: ${isPicked ? '0 4px 12px rgba(76, 175, 80, 0.4)' : '0 2px 4px rgba(0,0,0,0.2)'};
+                box-shadow: ${isPicked ? '0 2px 8px rgba(76, 175, 80, 0.3)' : 'none'};
                 display: flex;
                 align-items: center;
-                gap: 15px;
-                min-height: 80px;
+                gap: 12px;
             ">
                 <!-- Game Time -->
                 <div class="game-time" style="
                     color: #ffa500;
-                    font-size: 0.85em;
-                    width: 60px;
+                    font-size: 0.8em;
+                    min-width: 55px;
                     text-align: center;
                     flex-shrink: 0;
                     font-weight: 600;
                 ">${timeStr}</div>
                 
                 <!-- Team Selection -->
-                <div class="matchup-compact" style="
+                <div class="matchup" style="
                     flex: 1;
                     display: flex;
-                    align-items: stretch;
+                    align-items: center;
                     gap: 8px;
-                    height: 55px;
                 ">
                     <!-- Away Team Button -->
                     <button class="team-btn ${pickedTeam === 'away' ? 'selected' : ''}" 
@@ -635,8 +640,8 @@ class DailyContestManager {
                         background: ${pickedTeam === 'away' ? '#4CAF50' : '#2a2a2a'};
                         color: ${pickedTeam === 'away' ? '#000' : '#fff'};
                         border: 2px solid ${pickedTeam === 'away' ? '#4CAF50' : '#444'};
-                        border-radius: 8px;
-                        padding: 10px 15px;
+                        border-radius: 6px;
+                        padding: 10px;
                         cursor: pointer;
                         transition: all 0.2s ease;
                         display: flex;
@@ -645,12 +650,12 @@ class DailyContestManager {
                         justify-content: center;
                         font-family: inherit;
                         position: relative;
-                        min-width: 120px;
+                        min-height: 50px;
                     " 
                     onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#666'; this.style.background='#333'; }"
                     onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#444'; this.style.background='#2a2a2a'; }">
-                        <span style="font-weight: bold; font-size: 1.4em; letter-spacing: 1px;">${awayAbbr || 'AWAY'}</span>
-                        <span style="font-size: 0.85em; opacity: 0.8; margin-top: 2px;">${game.awayOdds || '+100'}</span>
+                        <span style="font-weight: bold; font-size: 1.1em;">${awayAbbr || 'AWAY'}</span>
+                        <span style="font-size: 0.75em; opacity: 0.8; margin-top: 2px;">${game.awayOdds || '+100'}</span>
                         ${pickedTeam === 'away' ? '<div style="position: absolute; top: 2px; right: 2px; font-size: 0.7em;">✓</div>' : ''}
                     </button>
                     
@@ -673,8 +678,8 @@ class DailyContestManager {
                         background: ${pickedTeam === 'home' ? '#4CAF50' : '#2a2a2a'};
                         color: ${pickedTeam === 'home' ? '#000' : '#fff'};
                         border: 2px solid ${pickedTeam === 'home' ? '#4CAF50' : '#444'};
-                        border-radius: 8px;
-                        padding: 10px 15px;
+                        border-radius: 6px;
+                        padding: 10px;
                         cursor: pointer;
                         transition: all 0.2s ease;
                         display: flex;
@@ -683,12 +688,12 @@ class DailyContestManager {
                         justify-content: center;
                         font-family: inherit;
                         position: relative;
-                        min-width: 120px;
+                        min-height: 50px;
                     "
                     onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#666'; this.style.background='#333'; }"
                     onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#444'; this.style.background='#2a2a2a'; }">
-                        <span style="font-weight: bold; font-size: 1.4em; letter-spacing: 1px;">${homeAbbr || 'HOME'}</span>
-                        <span style="font-size: 0.85em; opacity: 0.8; margin-top: 2px;">${game.homeOdds || '-120'}</span>
+                        <span style="font-weight: bold; font-size: 1.1em;">${homeAbbr || 'HOME'}</span>
+                        <span style="font-size: 0.75em; opacity: 0.8; margin-top: 2px;">${game.homeOdds || '-120'}</span>
                         ${pickedTeam === 'home' ? '<div style="position: absolute; top: 2px; right: 2px; font-size: 0.7em;">✓</div>' : ''}
                     </button>
                 </div>
