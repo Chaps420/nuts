@@ -561,6 +561,18 @@ class DailyContestManager {
     }
 
     renderGameCard(game, index) {
+        // Debug first game to see structure
+        if (index === 0) {
+            console.log('🎮 First game structure:', {
+                awayTeam: game.awayTeam,
+                homeTeam: game.homeTeam,
+                awayTeamFull: game.awayTeamFull,
+                homeTeamFull: game.homeTeamFull,
+                awayOdds: game.awayOdds,
+                homeOdds: game.homeOdds
+            });
+        }
+        
         const gameDate = new Date(game.gameTime);
         const timeStr = gameDate.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'});
         
@@ -581,8 +593,9 @@ class DailyContestManager {
             return abbreviations[teamName] || teamName.substring(0, 3).toUpperCase();
         };
         
-        const awayAbbr = getTeamAbbr(game.awayTeam);
-        const homeAbbr = getTeamAbbr(game.homeTeam);
+        // Handle both formats - if awayTeam is already an abbreviation (3 chars or less), use it directly
+        const awayAbbr = (game.awayTeam && game.awayTeam.length <= 3) ? game.awayTeam : getTeamAbbr(game.awayTeamFull || game.awayTeam);
+        const homeAbbr = (game.homeTeam && game.homeTeam.length <= 3) ? game.homeTeam : getTeamAbbr(game.homeTeamFull || game.homeTeam);
         const isPicked = this.userPicks[game.id];
         const pickedTeam = this.userPicks[game.id];
         
@@ -645,8 +658,8 @@ class DailyContestManager {
                     " 
                     onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#666'; this.style.background='#333'; }"
                     onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#444'; this.style.background='#2a2a2a'; }">
-                        <span style="font-weight: bold; font-size: 1.1em;">${awayAbbr}</span>
-                        <span style="font-size: 0.7em; opacity: 0.7;">${game.awayOdds}</span>
+                        <span style="font-weight: bold; font-size: 1.1em;">${awayAbbr || 'AWAY'}</span>
+                        <span style="font-size: 0.7em; opacity: 0.7;">${game.awayOdds || '+100'}</span>
                         ${pickedTeam === 'away' ? '<div style="position: absolute; top: 2px; right: 2px; font-size: 0.7em;">✓</div>' : ''}
                     </button>
                     
@@ -683,8 +696,8 @@ class DailyContestManager {
                     "
                     onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#666'; this.style.background='#333'; }"
                     onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#444'; this.style.background='#2a2a2a'; }">
-                        <span style="font-weight: bold; font-size: 1.1em;">${homeAbbr}</span>
-                        <span style="font-size: 0.7em; opacity: 0.7;">${game.homeOdds}</span>
+                        <span style="font-weight: bold; font-size: 1.1em;">${homeAbbr || 'HOME'}</span>
+                        <span style="font-size: 0.7em; opacity: 0.7;">${game.homeOdds || '-120'}</span>
                         ${pickedTeam === 'home' ? '<div style="position: absolute; top: 2px; right: 2px; font-size: 0.7em;">✓</div>' : ''}
                     </button>
                 </div>
