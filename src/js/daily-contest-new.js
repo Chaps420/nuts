@@ -1608,19 +1608,10 @@ class DailyContestManager {
                     // Only require transactionId and userName - walletAddress is optional for demo/testing
                     const hasRequiredFields = entry.transactionId && entry.userName;
                     
-                    // Check if entry has a valid timestamp
-                    const hasTimestamp = entry.timestamp && entry.timestamp !== '';
-                    
-                    // Check if timestamp is from today (if it exists)
-                    let isToday = true;
-                    if (hasTimestamp) {
-                        try {
-                            const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
-                            isToday = entryDate === todayFormatted;
-                        } catch (e) {
-                            console.warn(`Invalid timestamp for entry ${entry.id}:`, entry.timestamp);
-                            isToday = false;
-                        }
+                    // Check if entry is for today's contest based on contestDate field
+                    let isForToday = true;
+                    if (entry.contestDate) {
+                        isForToday = entry.contestDate === todayFormatted;
                     }
                     
                     // Check if active
@@ -1629,14 +1620,14 @@ class DailyContestManager {
                     // Additional validation - filter out test entries (but allow demo entries)
                     const isNotTest = !entry.id?.toLowerCase().includes('test');
                     
-                    // Entry must have basic required fields, valid timestamp, and be from today
-                    const isValid = hasRequiredFields && hasTimestamp && isToday && isActive && isNotTest;
+                    // Entry must have basic required fields and be for today's contest
+                    const isValid = hasRequiredFields && isForToday && isActive && isNotTest;
                     
                     console.log(`Entry ${entry.id}: ` +
                         `contestStatus=${entry.contestStatus}, ` +
                         `hasReqFields=${hasRequiredFields}, ` +
-                        `hasTimestamp=${hasTimestamp}, ` +
-                        `isToday=${isToday}, ` +
+                        `contestDate=${entry.contestDate}, ` +
+                        `isForToday=${isForToday}, ` +
                         `isActive=${isActive}, ` +
                         `isNotTest=${isNotTest}, ` +
                         `isValid=${isValid}`);
@@ -1644,12 +1635,10 @@ class DailyContestManager {
                     if (!isValid && entry.id) {
                         console.log(`🚫 Filtered out entry ${entry.id}: ${JSON.stringify({
                             userName: entry.userName,
-                            timestamp: entry.timestamp,
                             contestDate: entry.contestDate,
                             transactionId: entry.transactionId ? 'present' : 'missing',
                             reason: !hasRequiredFields ? 'missing required fields' :
-                                   !hasTimestamp ? 'missing timestamp' :
-                                   !isToday ? 'not from today' :
+                                   !isForToday ? 'not for today' :
                                    !isActive ? 'not active' :
                                    !isNotTest ? 'test entry' : 'unknown'
                         })}`);

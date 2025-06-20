@@ -140,7 +140,8 @@ class ContestBackend {
                     const data = doc.data();
                     
                     // Only include entries with valid payment data
-                    if (data.transactionId && data.walletAddress && data.userName) {
+                    // walletAddress is optional since some entries may use userName only
+                    if (data.transactionId && data.userName) {
                         firestoreEntries.push({ id: doc.id, ...data });
                     } else {
                         console.warn(`🚫 Skipping invalid entry ${doc.id}: missing payment data`, {
