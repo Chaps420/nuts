@@ -279,6 +279,9 @@
             <button onclick="calculateWinners()" class="btn btn-primary" style="margin-right: 10px;">
                 Calculate Winners
             </button>
+            <button onclick="completeContest()" class="btn btn-primary" style="margin-right: 10px; background: #ff9900;">
+                Complete Contest
+            </button>
             <button onclick="exportData()" class="btn btn-secondary">
                 Export to CSV
             </button>
@@ -426,6 +429,9 @@
                         }">
                             ${entry.status || 'pending'}
                         </span>
+                        ${entry.contestStatus === 'completed' ? 
+                            '<br><small style="color: #ff9900;">Completed</small>' : 
+                            ''}
                         ${entry.status === 'won' && entry.prizeWon > 0 ? `
                             <div style="margin-top: 5px;">
                                 <button onclick="showPayoutOptions('${entry.id}')" 
@@ -759,6 +765,41 @@
                 
                 alert(`Cleared all contest data (${keys.length} keys removed)`);
                 loadContestData(); // Reload the page data
+            }
+        }
+        
+        async function completeContest() {
+            const dateInput = document.getElementById('contest-date');
+            const contestDate = dateInput.value;
+            
+            if (!contestDate) {
+                alert('Please select a contest date first');
+                return;
+            }
+            
+            if (!confirm(`Complete contest for ${contestDate}? This will mark all entries as completed and prevent new entries.`)) {
+                return;
+            }
+            
+            try {
+                console.log(`🏁 Completing contest for ${contestDate}`);
+                
+                if (backend) {
+                    const result = await backend.completeContest(contestDate);
+                    
+                    if (result.success) {
+                        alert(`Contest completed! ${result.entriesCompleted} entries marked as completed.`);
+                        loadContestData(); // Reload to show updated status
+                    } else {
+                        alert('Failed to complete contest: ' + result.error);
+                    }
+                } else {
+                    alert('Backend not initialized');
+                }
+                
+            } catch (error) {
+                console.error('Failed to complete contest:', error);
+                alert('Error completing contest: ' + error.message);
             }
         }
 

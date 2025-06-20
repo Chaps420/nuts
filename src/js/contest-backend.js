@@ -35,6 +35,7 @@ class ContestBackend {
             transactionId: entryData.transactionId,
             timestamp: new Date().toISOString(),
             status: 'pending', // pending, active, completed, won, lost
+            contestStatus: 'active', // active, completed, cancelled
             score: 0,
             prizeWon: 0,
             totalGames: Object.keys(entryData.picks).length, // Track total games picked
@@ -195,6 +196,52 @@ class ContestBackend {
             // Fall back to localStorage on any Firebase error
             const dateKey = `contest_entries_${contestDate}`;
             return JSON.parse(this.localStorage.getItem(dateKey) || '[]');
+        }
+    }
+
+    /**
+     * Complete a contest (mark all entries as completed)
+     */
+    async completeContest(contestDate) {
+        console.log(`🏁 Completing contest for ${contestDate}`);
+        
+        try {
+            const entries = await this.getContestEntries(contestDate);
+            
+            if (this.firebaseEnabled) {
+                const db = window.firebase.firestore();
+                const batch = db.batch();
+                
+                entries.forEach(entry => {
+                    if (entry.contestStatus === 'active') {
+                        const ref = db.collection('contest_entries').doc(entry.id);
+                        batch.update(ref, { 
+                            contestStatus: 'completed',
+                            completedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                });
+                
+                await batch.commit();
+                console.log(`✅ Marked ${entries.length} entries as completed in Firebase`);
+            } else {
+                // Update localStorage entries
+                const dateKey = `contest_entries_${contestDate}`;
+                const updatedEntries = entries.map(entry => ({
+                    ...entry,
+                    contestStatus: 'completed',
+                    completedAt: new Date().toISOString()
+                }));
+                
+                this.localStorage.setItem(dateKey, JSON.stringify(updatedEntries));
+                console.log(`✅ Marked ${entries.length} entries as completed in localStorage`);
+            }
+            
+            return { success: true, entriesCompleted: entries.length };
+            
+        } catch (error) {
+            console.error('Failed to complete contest:', error);
+            return { success: false, error: error.message };
         }
     }
 

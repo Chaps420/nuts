@@ -154,6 +154,7 @@ class FirebaseXamanIntegration {
                 paymentTimestamp: entryData.paymentTimestamp,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                 status: 'active',
+                contestStatus: 'active', // New field to track contest state
                 score: 0,
                 prizeWon: 0
             };
@@ -225,6 +226,7 @@ class FirebaseXamanIntegration {
             const entry = {
                 id: entryId,
                 ...entryData,
+                contestStatus: 'active',
                 timestamp: new Date().toISOString()
             };
 

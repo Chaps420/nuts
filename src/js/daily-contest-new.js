@@ -1536,13 +1536,34 @@ class DailyContestManager {
     
     async loadContestStats() {
         try {
+            // Always use today's date for the contest stats, not the selected day
+            const today = new Date();
+            const todayFormatted = this.formatDate(today);
             const currentDate = this.formatDate(this.contestDays[this.currentDay].date);
             
+            console.log(`📊 Loading contest stats - Today: ${todayFormatted}, Selected: ${currentDate}`);
+            
+            // Only show entries if viewing today's contest
+            if (currentDate !== todayFormatted) {
+                console.log('📅 Viewing future/past date - showing 0 entries');
+                this.updateContestStats(0, 0);
+                document.getElementById('prize-pool').textContent = '0 NUTS';
+                document.getElementById('entry-count').textContent = '0';
+                return;
+            }
+            
             if (this.backend) {
-                const entries = await this.backend.getContestEntries(currentDate);
+                const entries = await this.backend.getContestEntries(todayFormatted);
+                
+                // Filter for active entries only (backward compatible - if no status, assume active)
+                const activeEntries = entries.filter(entry => 
+                    !entry.contestStatus || entry.contestStatus === 'active'
+                );
+                
+                console.log(`📊 Found ${entries.length} total entries, ${activeEntries.length} active`);
                 
                 // Calculate stats
-                const totalEntries = entries.length;
+                const totalEntries = activeEntries.length;
                 const prizePool = totalEntries * 50; // 50 NUTS per entry
                 
                 // Update the display
