@@ -133,10 +133,28 @@ class ContestBackend {
                     .get();
                 
                 console.log(`🔥 Firebase query returned ${snapshot.size} documents`);
-                const firestoreEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Filter out entries without proper payment data at the backend level
+                const firestoreEntries = [];
+                snapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    
+                    // Only include entries with valid payment data
+                    if (data.transactionId && data.walletAddress && data.userName) {
+                        firestoreEntries.push({ id: doc.id, ...data });
+                    } else {
+                        console.warn(`🚫 Skipping invalid entry ${doc.id}: missing payment data`, {
+                            hasTransactionId: !!data.transactionId,
+                            hasWalletAddress: !!data.walletAddress,
+                            hasUserName: !!data.userName
+                        });
+                    }
+                });
+                
+                console.log(`🔥 After filtering: ${firestoreEntries.length} valid entries from ${snapshot.size} total`);
                 
                 if (firestoreEntries.length > 0) {
-                    console.log('🔥 Sample Firebase entry:', firestoreEntries[0]);
+                    console.log('🔥 Sample valid Firebase entry:', firestoreEntries[0]);
                 }
                 
                 return firestoreEntries;

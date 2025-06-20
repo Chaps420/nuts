@@ -1566,6 +1566,21 @@ class DailyContestManager {
                     // Check if entry has required fields to be valid
                     const hasRequiredFields = entry.transactionId && entry.userName && entry.walletAddress;
                     
+                    // Check if entry has a valid timestamp
+                    const hasTimestamp = entry.timestamp && entry.timestamp !== '';
+                    
+                    // Check if timestamp is from today (if it exists)
+                    let isToday = true;
+                    if (hasTimestamp) {
+                        try {
+                            const entryDate = new Date(entry.timestamp).toISOString().split('T')[0];
+                            isToday = entryDate === todayFormatted;
+                        } catch (e) {
+                            console.warn(`Invalid timestamp for entry ${entry.id}:`, entry.timestamp);
+                            isToday = false;
+                        }
+                    }
+                    
                     // Check if active
                     const isActive = !entry.contestStatus || entry.contestStatus === 'active';
                     
@@ -1573,14 +1588,26 @@ class DailyContestManager {
                     const isNotTest = !entry.userName?.toLowerCase().includes('test') && 
                                      !entry.id?.toLowerCase().includes('test');
                     
-                    const isValid = hasRequiredFields && isActive && isNotTest;
+                    // Entry must have all required fields, valid timestamp, and be from today
+                    const isValid = hasRequiredFields && hasTimestamp && isToday && isActive && isNotTest;
                     
                     console.log(`Entry ${entry.id}: ` +
                         `contestStatus=${entry.contestStatus}, ` +
                         `hasReqFields=${hasRequiredFields}, ` +
+                        `hasTimestamp=${hasTimestamp}, ` +
+                        `isToday=${isToday}, ` +
                         `isActive=${isActive}, ` +
                         `isNotTest=${isNotTest}, ` +
                         `isValid=${isValid}`);
+                    
+                    if (!isValid && entry.id) {
+                        console.log(`🚫 Filtered out entry ${entry.id}: ${JSON.stringify({
+                            userName: entry.userName,
+                            timestamp: entry.timestamp,
+                            contestDate: entry.contestDate,
+                            transactionId: entry.transactionId ? 'present' : 'missing'
+                        })}`);
+                    }
                     
                     return isValid;
                 });
