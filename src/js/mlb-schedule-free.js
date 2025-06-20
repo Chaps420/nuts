@@ -51,7 +51,19 @@ class MLBScheduleFree {
             const data = await response.json();
             console.log('🔍 API Response:', data);
             
+            // Check for games in progress
+            if (data.totalGamesInProgress > 0) {
+                console.log(`🚨 MLB API reports ${data.totalGamesInProgress} games in progress - contest should be closed!`);
+                // Add a flag to the data so the contest manager knows games are in progress
+                data.hasGamesInProgress = true;
+            }
+            
             const games = this.parseGames(data, date);
+            
+            // Pass the hasGamesInProgress flag to the games array
+            if (data.hasGamesInProgress) {
+                games.hasGamesInProgress = true;
+            }
             
             // If no games found, check if we're in off-season or there's an API issue
             if (games.length === 0) {

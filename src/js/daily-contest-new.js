@@ -745,6 +745,26 @@ class DailyContestManager {
     calculateContestDeadline(games) {
         if (!games || games.length === 0) return null;
         
+        // Check if MLB API reported games in progress
+        if (games.hasGamesInProgress) {
+            console.log('🚨 MLB API reports games in progress - contest must be closed!');
+            this.contestDeadline = new Date(Date.now() - 1000); // 1 second ago
+            return this.contestDeadline;
+        }
+        
+        // Manual override: If it's past 6:00 PM local time, force contest closure
+        // This handles cases where API data might be delayed or incorrect
+        const now = new Date();
+        const cutoffTime = new Date();
+        cutoffTime.setHours(18, 0, 0, 0); // 6:00 PM local time
+        
+        if (now > cutoffTime) {
+            console.log('🚨 Manual override: Past 6:00 PM local time - forcing contest closure!');
+            console.log(`Current time: ${now.toLocaleString()}, Cutoff: ${cutoffTime.toLocaleString()}`);
+            this.contestDeadline = new Date(Date.now() - 1000); // 1 second ago
+            return this.contestDeadline;
+        }
+        
         // Find the earliest game time
         const earliestGame = games.reduce((earliest, game) => {
             const gameTime = new Date(game.gameTime);
@@ -762,6 +782,13 @@ class DailyContestManager {
         console.log(`⏰ Local times: now=${now.toLocaleString()}, deadline=${deadline.toLocaleString()}, earliestGame=${new Date(earliestGame.gameTime).toLocaleString()}`);
         
         // Check if any game has already started
+        console.log('🔍 Checking all games for start times:');
+        games.forEach((game, index) => {
+            const gameTime = new Date(game.gameTime);
+            const started = now > gameTime;
+            console.log(`Game ${index + 1}: ${game.awayTeam} @ ${game.homeTeam} - ${gameTime.toLocaleString()} (Started: ${started})`);
+        });
+        
         const hasStartedGame = games.some(game => {
             const gameTime = new Date(game.gameTime);
             return now > gameTime;
@@ -772,6 +799,7 @@ class DailyContestManager {
             // Set deadline to now to force contest closure
             this.contestDeadline = new Date(now.getTime() - 1000); // 1 second ago
         } else {
+            console.log('✅ No games have started yet - contest remains open');
             this.contestDeadline = deadline; // Store the deadline
         }
         
