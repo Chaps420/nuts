@@ -126,22 +126,28 @@
             position: relative;
         }
         
-        /* Games list scrollbar styling */
-        .games-list::-webkit-scrollbar {
-            width: 8px;
+        /* Ensure games section scrolls as a whole */
+        .games-display {
+            max-height: calc(100vh - 450px);
+            overflow-y: auto;
         }
         
-        .games-list::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.1);
-            border-radius: 4px;
+        /* Games display scrollbar styling */
+        .games-display::-webkit-scrollbar {
+            width: 10px;
         }
         
-        .games-list::-webkit-scrollbar-thumb {
+        .games-display::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+            border-radius: 5px;
+        }
+        
+        .games-display::-webkit-scrollbar-thumb {
             background: #ff6b00;
-            border-radius: 4px;
+            border-radius: 5px;
         }
         
-        .games-list::-webkit-scrollbar-thumb:hover {
+        .games-display::-webkit-scrollbar-thumb:hover {
             background: #ff8833;
         }
         

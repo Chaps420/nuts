@@ -537,15 +537,10 @@ class DailyContestManager {
             <div class="games-list" style="
                 display: flex;
                 flex-direction: column;
-                gap: 0;
-                max-height: calc(100vh - 400px);
-                min-height: 400px;
-                overflow-y: auto;
+                gap: 8px;
                 padding: 10px;
                 background: rgba(0,0,0,0.3);
                 border-radius: 8px;
-                -webkit-overflow-scrolling: touch;
-                scroll-behavior: smooth;
             ">
                 ${currentDayGames.map((game, index) => this.renderGameCard(game, index)).join('')}
             </div>
@@ -600,27 +595,24 @@ class DailyContestManager {
         const pickedTeam = this.userPicks[game.id];
         
         return `
-            <div class="game-card ultra-compact" data-game-id="${game.id}" style="
+            <div class="game-card" data-game-id="${game.id}" style="
                 background: ${isPicked ? 'linear-gradient(135deg, #1a3d1a, #1e1e1e)' : '#1e1e1e'};
                 border: 2px solid ${isPicked ? '#4CAF50' : '#333'};
-                border-radius: 8px;
-                padding: 10px;
-                margin-bottom: 8px;
+                border-radius: 10px;
+                padding: 15px;
+                margin-bottom: 12px;
                 transition: all 0.2s ease;
-                box-shadow: ${isPicked ? '0 2px 8px rgba(76, 175, 80, 0.3)' : 'none'};
-                cursor: pointer;
+                box-shadow: ${isPicked ? '0 4px 12px rgba(76, 175, 80, 0.4)' : '0 2px 4px rgba(0,0,0,0.2)'};
                 display: flex;
                 align-items: center;
-                gap: 12px;
-                height: 60px;
-                position: relative;
-                overflow: hidden;
+                gap: 15px;
+                min-height: 80px;
             ">
                 <!-- Game Time -->
                 <div class="game-time" style="
                     color: #ffa500;
-                    font-size: 0.75em;
-                    width: 50px;
+                    font-size: 0.85em;
+                    width: 60px;
                     text-align: center;
                     flex-shrink: 0;
                     font-weight: 600;
@@ -631,9 +623,8 @@ class DailyContestManager {
                     flex: 1;
                     display: flex;
                     align-items: stretch;
-                    gap: 2px;
-                    height: 40px;
-                    position: relative;
+                    gap: 8px;
+                    height: 55px;
                 ">
                     <!-- Away Team Button -->
                     <button class="team-btn ${pickedTeam === 'away' ? 'selected' : ''}" 
@@ -644,8 +635,8 @@ class DailyContestManager {
                         background: ${pickedTeam === 'away' ? '#4CAF50' : '#2a2a2a'};
                         color: ${pickedTeam === 'away' ? '#000' : '#fff'};
                         border: 2px solid ${pickedTeam === 'away' ? '#4CAF50' : '#444'};
-                        border-radius: 6px;
-                        padding: 8px;
+                        border-radius: 8px;
+                        padding: 10px 15px;
                         cursor: pointer;
                         transition: all 0.2s ease;
                         display: flex;
@@ -654,12 +645,12 @@ class DailyContestManager {
                         justify-content: center;
                         font-family: inherit;
                         position: relative;
-                        overflow: hidden;
+                        min-width: 120px;
                     " 
                     onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#666'; this.style.background='#333'; }"
                     onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#444'; this.style.background='#2a2a2a'; }">
-                        <span style="font-weight: bold; font-size: 1.1em;">${awayAbbr || 'AWAY'}</span>
-                        <span style="font-size: 0.7em; opacity: 0.7;">${game.awayOdds || '+100'}</span>
+                        <span style="font-weight: bold; font-size: 1.4em; letter-spacing: 1px;">${awayAbbr || 'AWAY'}</span>
+                        <span style="font-size: 0.85em; opacity: 0.8; margin-top: 2px;">${game.awayOdds || '+100'}</span>
                         ${pickedTeam === 'away' ? '<div style="position: absolute; top: 2px; right: 2px; font-size: 0.7em;">✓</div>' : ''}
                     </button>
                     
@@ -667,9 +658,9 @@ class DailyContestManager {
                     <div style="
                         display: flex;
                         align-items: center;
-                        padding: 0 8px;
-                        color: #666;
-                        font-size: 0.7em;
+                        padding: 0 10px;
+                        color: #888;
+                        font-size: 0.9em;
                         font-weight: bold;
                     ">VS</div>
                     
@@ -682,8 +673,8 @@ class DailyContestManager {
                         background: ${pickedTeam === 'home' ? '#4CAF50' : '#2a2a2a'};
                         color: ${pickedTeam === 'home' ? '#000' : '#fff'};
                         border: 2px solid ${pickedTeam === 'home' ? '#4CAF50' : '#444'};
-                        border-radius: 6px;
-                        padding: 8px;
+                        border-radius: 8px;
+                        padding: 10px 15px;
                         cursor: pointer;
                         transition: all 0.2s ease;
                         display: flex;
@@ -692,12 +683,12 @@ class DailyContestManager {
                         justify-content: center;
                         font-family: inherit;
                         position: relative;
-                        overflow: hidden;
+                        min-width: 120px;
                     "
                     onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#666'; this.style.background='#333'; }"
                     onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#444'; this.style.background='#2a2a2a'; }">
-                        <span style="font-weight: bold; font-size: 1.1em;">${homeAbbr || 'HOME'}</span>
-                        <span style="font-size: 0.7em; opacity: 0.7;">${game.homeOdds || '-120'}</span>
+                        <span style="font-weight: bold; font-size: 1.4em; letter-spacing: 1px;">${homeAbbr || 'HOME'}</span>
+                        <span style="font-size: 0.85em; opacity: 0.8; margin-top: 2px;">${game.homeOdds || '-120'}</span>
                         ${pickedTeam === 'home' ? '<div style="position: absolute; top: 2px; right: 2px; font-size: 0.7em;">✓</div>' : ''}
                     </button>
                 </div>
@@ -710,15 +701,17 @@ class DailyContestManager {
                         background: #ff4444;
                         color: white;
                         border: none;
-                        border-radius: 4px;
-                        padding: 6px 10px;
-                        font-size: 0.7em;
+                        border-radius: 6px;
+                        padding: 8px 14px;
+                        font-size: 0.8em;
                         cursor: pointer;
                         transition: all 0.2s ease;
-                        opacity: 0.8;
+                        opacity: 0.9;
+                        font-weight: 500;
+                        flex-shrink: 0;
                     "
-                    onmouseover="this.style.opacity='1'"
-                    onmouseout="this.style.opacity='0.8'">
+                    onmouseover="this.style.opacity='1'; this.style.background='#ff5555';"
+                    onmouseout="this.style.opacity='0.9'; this.style.background='#ff4444';">
                         Clear
                     </button>
                 ` : ''}
