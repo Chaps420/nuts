@@ -346,14 +346,29 @@
                 const hasWinners = entries.some(e => e.status === 'won');
                 const minimumEntries = window.config?.contest?.minimumEntries || 4;
                 
-                if (entries.length < minimumEntries) {
-                    // Contest cancelled due to insufficient entries
+                // Only show cancellation if contest is completed AND has insufficient entries
+                const isContestCompleted = entries.some(e => e.contestStatus === 'completed') || hasWinners;
+                const shouldShowCancellation = isContestCompleted && entries.length < minimumEntries;
+                
+                if (shouldShowCancellation) {
+                    // Contest cancelled due to insufficient entries AFTER deadline
                     document.getElementById('winner-section').style.display = 'block';
                     document.getElementById('winner-section').innerHTML = `
                         <div style="background: #ff6b00; color: white; padding: 20px; border-radius: 8px; text-align: center;">
                             <h2>⚠️ Contest Cancelled</h2>
                             <p>This contest was cancelled due to insufficient entries (${entries.length}/${minimumEntries} minimum).</p>
                             <p>All entry fees will be refunded to participants.</p>
+                        </div>
+                    `;
+                } else if (!isContestCompleted) {
+                    // Contest is still active - show status
+                    document.getElementById('winner-section').style.display = 'block';
+                    document.getElementById('winner-section').innerHTML = `
+                        <div style="background: #2a2a2a; border: 2px solid #4CAF50; padding: 20px; border-radius: 8px; text-align: center;">
+                            <h2 style="color: #4CAF50;">🏃‍♂️ Contest Active</h2>
+                            <p style="color: #ccc;">This contest is currently accepting entries.</p>
+                            <p style="color: #ffa500;">Current entries: ${entries.length} (Minimum ${minimumEntries} required)</p>
+                            <p style="color: #888; font-size: 0.9em;">Results will be available after the contest deadline.</p>
                         </div>
                     `;
                 } else if (hasWinners) {

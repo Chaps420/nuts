@@ -324,15 +324,28 @@ class ContestBackend {
             }
         }
 
-        // Calculate winners
-        return this.calculateWinners(updatedEntries);
+        // Calculate winners (force calculation since admin is processing results)
+        return this.calculateWinners(updatedEntries, true);
     }
 
     /**
      * Calculate contest winners
      */
-    calculateWinners(entries) {
+    calculateWinners(entries, forceCalculation = false) {
         const minimumEntries = window.config?.contest?.minimumEntries || 4;
+        
+        // Only allow winner calculation if forced (admin action) or contest is completed
+        if (!forceCalculation) {
+            const isContestCompleted = entries.some(e => e.contestStatus === 'completed');
+            if (!isContestCompleted) {
+                console.log('⚠️ Cannot calculate winners - contest is still active');
+                return {
+                    status: 'active',
+                    totalEntries: entries.length,
+                    allEntries: entries
+                };
+            }
+        }
         
         if (entries.length < minimumEntries) {
             console.log(`⚠️ Not enough entries for contest. Required: ${minimumEntries}, Got: ${entries.length}`);
