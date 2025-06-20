@@ -10,6 +10,7 @@ class DailyContestManager {
         this.dayTabs = [];
         this.backend = null;
         this.integration = null; // Will be initialized in init()
+        this.contestDeadline = null; // Store the contest deadline
         console.log('🎮 Initializing Multi-Day Contest Manager...');
     }    async init() {
         try {
@@ -539,6 +540,9 @@ class DailyContestManager {
         // Add enter button if not already present
         this.addEnterButton();
         
+        // Check if contest is closed and update UI accordingly
+        this.updateContestClosedUI();
+        
         console.log(`✅ Displayed ${currentDayGames.length} games with ${Object.keys(this.userPicks).length} picks`);
     }
 
@@ -753,10 +757,76 @@ class DailyContestManager {
         deadline.setMinutes(deadline.getMinutes() - 30);
         
         console.log(`⏰ Contest deadline set to: ${deadline.toLocaleString()}`);
+        this.contestDeadline = deadline; // Store the deadline
         return deadline;
     }
 
+    isContestClosed() {
+        if (!this.contestDeadline) return false;
+        return new Date() > this.contestDeadline;
+    }
+
+    updateContestClosedUI() {
+        if (!this.isContestClosed()) return;
+        
+        console.log('🚫 Contest is closed - updating UI');
+        
+        // Disable all team buttons
+        document.querySelectorAll('.team-btn').forEach(btn => {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+        });
+        
+        // Update entry status
+        const statusCard = document.querySelector('.status-card');
+        if (statusCard) {
+            const statusIcon = statusCard.querySelector('.status-icon');
+            const statusTitle = statusCard.querySelector('h3');
+            const statusDescription = statusCard.querySelector('p');
+            
+            if (statusIcon) statusIcon.textContent = '🚫';
+            if (statusTitle) statusTitle.textContent = 'Contest Closed';
+            if (statusDescription) statusDescription.textContent = 'Today\'s contest entry period has ended. Games have started.';
+            
+            statusCard.style.background = 'linear-gradient(135deg, #ff4444, #cc3333)';
+        }
+        
+        // Hide submit section
+        const submitSection = document.getElementById('submit-section');
+        if (submitSection) {
+            submitSection.style.display = 'none';
+        }
+        
+        // Show closed message in games section
+        const gamesGrid = document.getElementById('games-grid');
+        if (gamesGrid) {
+            const closedMessage = document.createElement('div');
+            closedMessage.style.cssText = `
+                background: #ff4444;
+                color: white;
+                padding: 20px;
+                border-radius: 8px;
+                text-align: center;
+                margin: 20px 0;
+                font-weight: bold;
+            `;
+            closedMessage.innerHTML = `
+                <h3>🚫 Contest Closed</h3>
+                <p>Entry period has ended. The first game has started.</p>
+                <p>Come back tomorrow for the next daily contest!</p>
+            `;
+            gamesGrid.insertBefore(closedMessage, gamesGrid.firstChild);
+        }
+    }
+
     makePickForGame(gameId, team) {
+        // Check if contest is closed
+        if (this.isContestClosed()) {
+            console.log('🚫 Cannot make pick - contest is closed');
+            return;
+        }
+        
         // Store the pick
         this.userPicks[gameId] = team;
         

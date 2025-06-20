@@ -526,21 +526,65 @@
                 }
             }
             
-            // Update time remaining countdown
+            // Update time remaining countdown to contest deadline
             function updateTimeRemaining() {
                 const timeElement = document.getElementById('time-remaining');
                 if (!timeElement) return;
                 
-                const now = new Date();
-                const midnight = new Date();
-                midnight.setDate(midnight.getDate() + 1);
-                midnight.setHours(0, 0, 0, 0);
-                
-                const diff = midnight - now;
-                const hours = Math.floor(diff / (1000 * 60 * 60));
-                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                
-                timeElement.textContent = `${hours}h ${minutes}m`;
+                // Get the contest deadline from the daily contest manager
+                if (window.dailyContestManager && window.dailyContestManager.contestDeadline) {
+                    const now = new Date();
+                    const deadline = window.dailyContestManager.contestDeadline;
+                    
+                    const diff = deadline - now;
+                    
+                    if (diff <= 0) {
+                        timeElement.textContent = 'CLOSED';
+                        timeElement.style.color = '#ff4444';
+                        timeElement.style.fontWeight = 'bold';
+                        
+                        // Also update the contest status to show it's closed
+                        const statusCard = document.querySelector('.status-card');
+                        if (statusCard) {
+                            const statusIcon = statusCard.querySelector('.status-icon');
+                            const statusTitle = statusCard.querySelector('h3');
+                            const statusDescription = statusCard.querySelector('p');
+                            
+                            if (statusIcon) statusIcon.textContent = '🚫';
+                            if (statusTitle) statusTitle.textContent = 'Contest Closed';
+                            if (statusDescription) statusDescription.textContent = 'Today\'s contest entry period has ended. Games have started.';
+                        }
+                        
+                        // Disable entry button
+                        const enterBtn = document.getElementById('submit-picks-btn');
+                        if (enterBtn) {
+                            enterBtn.disabled = true;
+                            enterBtn.textContent = 'Contest Closed - Games Started';
+                            enterBtn.style.background = '#666';
+                        }
+                        
+                        return;
+                    }
+                    
+                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    
+                    timeElement.textContent = `${hours}h ${minutes}m`;
+                    timeElement.style.color = '';
+                    timeElement.style.fontWeight = '';
+                } else {
+                    // Fallback to midnight countdown if contest manager not ready
+                    const now = new Date();
+                    const midnight = new Date();
+                    midnight.setDate(midnight.getDate() + 1);
+                    midnight.setHours(0, 0, 0, 0);
+                    
+                    const diff = midnight - now;
+                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    
+                    timeElement.textContent = `${hours}h ${minutes}m`;
+                }
             }
             
             // Update immediately and then every minute
