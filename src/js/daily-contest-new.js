@@ -14,6 +14,8 @@ class DailyContestManager {
     }    async init() {
         try {
             console.log('🚀 Loading multi-day contest data...');
+            console.log('📅 Current date:', new Date().toISOString());
+            console.log('📅 Today formatted:', this.formatDate(new Date()));
             
             // Ensure DOM is ready
             if (document.readyState === 'loading') {
@@ -1559,10 +1561,28 @@ class DailyContestManager {
                 console.log(`📊 Raw entries returned:`, entries);
                 
                 // Filter for active entries only (backward compatible - if no status, assume active)
+                // Also filter out phantom entries missing required fields
                 const activeEntries = entries.filter(entry => {
+                    // Check if entry has required fields to be valid
+                    const hasRequiredFields = entry.transactionId && entry.userName && entry.walletAddress;
+                    
+                    // Check if active
                     const isActive = !entry.contestStatus || entry.contestStatus === 'active';
-                    console.log(`Entry ${entry.id}: contestStatus=${entry.contestStatus}, isActive=${isActive}`);
-                    return isActive;
+                    
+                    // Additional validation - filter out test entries
+                    const isNotTest = !entry.userName?.toLowerCase().includes('test') && 
+                                     !entry.id?.toLowerCase().includes('test');
+                    
+                    const isValid = hasRequiredFields && isActive && isNotTest;
+                    
+                    console.log(`Entry ${entry.id}: ` +
+                        `contestStatus=${entry.contestStatus}, ` +
+                        `hasReqFields=${hasRequiredFields}, ` +
+                        `isActive=${isActive}, ` +
+                        `isNotTest=${isNotTest}, ` +
+                        `isValid=${isValid}`);
+                    
+                    return isValid;
                 });
                 
                 console.log(`📊 Found ${entries.length} total entries, ${activeEntries.length} active`);
