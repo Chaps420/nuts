@@ -81,6 +81,25 @@
             background: rgba(0,0,0,0.2) !important;
         }
         
+        /* Closed contest styling */
+        .day-tab.closed {
+            background: #ff4444 !important;
+            border-color: #ff4444 !important;
+            cursor: not-allowed !important;
+            opacity: 0.9 !important;
+        }
+        
+        .day-tab.closed:hover {
+            background: #cc3333 !important;
+            transform: none !important;
+        }
+        
+        .day-tab.closed .tab-indicator {
+            color: #fff !important;
+            font-weight: bold !important;
+            background: rgba(0,0,0,0.3) !important;
+        }
+        
         /* Hide any conflicting layouts */
         .contest-days-sidebar {
             display: none !important;
@@ -90,6 +109,40 @@
         .games-section {
             display: block !important;
             width: 100% !important;
+        }
+        
+        /* Games display styling */
+        .games-display {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            position: relative;
+        }
+        
+        /* Ensure games container has proper height */
+        .games-grid {
+            min-height: 300px;
+            position: relative;
+        }
+        
+        /* Games list scrollbar styling */
+        .games-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .games-list::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+        
+        .games-list::-webkit-scrollbar-thumb {
+            background: #ff6b00;
+            border-radius: 4px;
+        }
+        
+        .games-list::-webkit-scrollbar-thumb:hover {
+            background: #ff8833;
         }
         
         @media (max-width: 768px) {

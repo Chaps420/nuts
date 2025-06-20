@@ -114,18 +114,32 @@ class DailyContestManager {
         this.renderTabs(tabsContainer);
     }    renderTabs(tabsContainer) {
         const days = ['Today', 'Tomorrow', 'Day 3', 'Day 4', 'Day 5'];
+        const now = new Date();
         
         tabsContainer.innerHTML = this.contestDays.map((contestDay, index) => {
             const date = contestDay.date;
             const dayName = days[index];
             const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             
+            // Check if contest is closed for today
+            let isClosed = false;
+            let closedStyle = '';
+            if (index === 0) { // Today's tab
+                const deadline = this.calculateContestDeadline(contestDay.games);
+                if (deadline && now > deadline) {
+                    isClosed = true;
+                    closedStyle = 'background: #ff4444 !important; border-color: #ff4444 !important;';
+                }
+            }
+            
             return `
-                <div class="day-tab ${index === this.currentDay ? 'active' : ''}" 
-                     data-day="${index}" onclick="window.switchToDay(${index})">
-                    <div class="tab-day">${dayName}</div>
+                <div class="day-tab ${index === this.currentDay ? 'active' : ''} ${isClosed ? 'closed' : ''}" 
+                     data-day="${index}" 
+                     onclick="window.switchToDay(${index})"
+                     style="${closedStyle}">
+                    <div class="tab-day">${dayName}${isClosed ? ' ❌' : ''}</div>
                     <div class="tab-date">${dateStr}</div>
-                    <div class="tab-indicator">0 games</div>
+                    <div class="tab-indicator">${isClosed ? 'CLOSED' : '0 games'}</div>
                 </div>
             `;
         }).join('');        
@@ -134,20 +148,40 @@ class DailyContestManager {
     }
 
     updateTabIndicators() {
+        const now = new Date();
+        
         this.contestDays.forEach((day, index) => {
+            const tab = document.querySelector(`[data-day="${index}"]`);
             const tabIndicator = document.querySelector(`[data-day="${index}"] .tab-indicator`);
+            const tabDay = document.querySelector(`[data-day="${index}"] .tab-day`);
+            
             if (tabIndicator) {
                 const gameCount = day.games ? day.games.length : 0;
-                if (gameCount > 0) {
-                    tabIndicator.textContent = `${gameCount} games`;
-                } else {
-                    tabIndicator.textContent = 'Loading...';
+                
+                // Check if contest is closed (for today only)
+                let isClosed = false;
+                if (index === 0 && day.games && day.games.length > 0) {
+                    const deadline = this.calculateContestDeadline(day.games);
+                    if (deadline && now > deadline) {
+                        isClosed = true;
+                    }
                 }
                 
-                // Update color based on whether games are loaded
-                if (gameCount > 0) {
+                if (isClosed) {
+                    tabIndicator.textContent = 'CLOSED';
+                    tabIndicator.style.color = '#fff';
+                    if (tab) {
+                        tab.style.background = '#ff4444';
+                        tab.style.borderColor = '#ff4444';
+                    }
+                    if (tabDay && !tabDay.textContent.includes('❌')) {
+                        tabDay.textContent = tabDay.textContent.replace('Today', 'Today ❌');
+                    }
+                } else if (gameCount > 0) {
+                    tabIndicator.textContent = `${gameCount} games`;
                     tabIndicator.style.color = '#4CAF50';
                 } else {
+                    tabIndicator.textContent = 'Loading...';
                     tabIndicator.style.color = '#666';
                 }
             }
@@ -504,12 +538,14 @@ class DailyContestManager {
                 display: flex;
                 flex-direction: column;
                 gap: 0;
-                max-height: 70vh;
+                max-height: calc(100vh - 400px);
+                min-height: 400px;
                 overflow-y: auto;
                 padding: 10px;
                 background: rgba(0,0,0,0.3);
                 border-radius: 8px;
                 -webkit-overflow-scrolling: touch;
+                scroll-behavior: smooth;
             ">
                 ${currentDayGames.map((game, index) => this.renderGameCard(game, index)).join('')}
             </div>
@@ -812,11 +848,24 @@ class DailyContestManager {
             text-align: center;
         `;
 
+        // Check if contest is closed
+        const now = new Date();
+        const deadline = this.calculateContestDeadline(this.selectedGames);
+        const isClosed = deadline && now > deadline;
+
         // Create picks summary
         const picksCount = Object.keys(this.userPicks).length;
         const totalGames = this.selectedGames.length;
 
-        buttonContainer.innerHTML = `
+        if (isClosed) {
+            buttonContainer.innerHTML = `
+                <div style="background: #ff4444; color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                    <h3 style="margin: 0 0 10px 0;">❌ Contest Closed</h3>
+                    <p style="margin: 0;">Entry deadline has passed. Check back tomorrow!</p>
+                </div>
+            `;
+        } else {
+            buttonContainer.innerHTML = `
             <div class="picks-summary" style="margin-bottom: 15px;">
                 <h3 style="color: #ffa500; margin-bottom: 10px; font-size: 1.1em;">Your Contest Entry</h3>
                 <div class="picks-progress" style="
@@ -923,9 +972,10 @@ class DailyContestManager {
             </button>
             
             <div class="entry-info" style="margin-top: 10px; font-size: 0.8em; color: #666;">
-                💰 Entry fee: 50 $NUTS • 🏆 Winner takes all
+                💰 Entry fee: 50 $NUTS • 🏆 Top 3 win (50%/30%/20%)
             </div>
         `;
+        }
 
         // Add the button container after the games grid
         const gamesGrid = document.getElementById('games-grid');
