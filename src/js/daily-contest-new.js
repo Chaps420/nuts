@@ -1621,8 +1621,8 @@ class DailyContestManager {
                 // Also filter out phantom entries missing required fields
                 const activeEntries = entries.filter(entry => {
                     // Check if entry has required fields to be valid
-                    // Only require transactionId and userName - walletAddress is optional for demo/testing
-                    const hasRequiredFields = entry.transactionId && entry.userName;
+                    // Only require userName - transactionId can be pending for demo/testing
+                    const hasRequiredFields = entry.userName;
                     
                     // Check if entry is for today's contest based on contestDate field
                     let isForToday = true;
@@ -1657,7 +1657,7 @@ class DailyContestManager {
                             userName: entry.userName,
                             contestDate: entry.contestDate,
                             transactionId: entry.transactionId ? 'present' : 'missing',
-                            reason: !hasRequiredFields ? 'missing required fields' :
+                            reason: !hasRequiredFields ? 'missing userName' :
                                    !isForToday ? 'not for today' :
                                    !isActive ? 'not active' :
                                    !isNotTest ? 'test entry' : 'unknown'

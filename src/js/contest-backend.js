@@ -139,12 +139,15 @@ class ContestBackend {
                 snapshot.docs.forEach(doc => {
                     const data = doc.data();
                     
-                    // Only include entries with valid payment data
-                    // walletAddress is optional since some entries may use userName only
-                    if (data.transactionId && data.userName) {
+                    // Include entries with userName - transactionId can be pending
+                    // This allows entries that are in process or demo entries
+                    if (data.userName) {
                         firestoreEntries.push({ id: doc.id, ...data });
+                        if (!data.transactionId) {
+                            console.log(`📝 Including entry ${doc.id} without transactionId (may be demo/pending)`);
+                        }
                     } else {
-                        console.warn(`🚫 Skipping invalid entry ${doc.id}: missing payment data`, {
+                        console.warn(`🚫 Skipping invalid entry ${doc.id}: missing userName`, {
                             hasTransactionId: !!data.transactionId,
                             hasWalletAddress: !!data.walletAddress,
                             hasUserName: !!data.userName
