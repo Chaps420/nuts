@@ -125,16 +125,34 @@ class ContestBackend {
         
         try {
             if (this.firebaseEnabled) {
+                console.log('🔥 Using Firebase to get entries for:', contestDate);
                 const db = window.firebase.firestore();
                 const snapshot = await db.collection('contest_entries')
                     .where('contestDate', '==', contestDate)
                     .orderBy('timestamp', 'desc')
                     .get();
                 
-                return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                console.log(`🔥 Firebase query returned ${snapshot.size} documents`);
+                const firestoreEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                if (firestoreEntries.length > 0) {
+                    console.log('🔥 Sample Firebase entry:', firestoreEntries[0]);
+                }
+                
+                return firestoreEntries;
             } else {
                 const dateKey = `contest_entries_${contestDate}`;
-                let entries = JSON.parse(this.localStorage.getItem(dateKey) || '[]');
+                console.log(`🔍 Checking localStorage key: ${dateKey}`);
+                
+                const rawData = this.localStorage.getItem(dateKey);
+                console.log(`📦 Raw localStorage data for ${dateKey}:`, rawData ? `Found ${rawData.length} chars` : 'NULL');
+                
+                let entries = JSON.parse(rawData || '[]');
+                console.log(`📋 Parsed entries count: ${entries.length}`);
+                
+                if (entries.length > 0) {
+                    console.log('🔍 First entry sample:', entries[0]);
+                }
                 
                 // Double-check that entries are actually for the requested date
                 entries = entries.filter(entry => {
@@ -146,7 +164,7 @@ class ContestBackend {
                     return matches;
                 });
                 
-                console.log(`📊 Found ${entries.length} entries for ${contestDate}`);
+                console.log(`📊 After date filtering: ${entries.length} entries for ${contestDate}`);
                 
                 // Also check old key pattern from FirebaseXamanIntegration
                 const oldDateKey = `entries_${contestDate}`;

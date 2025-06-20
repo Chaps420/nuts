@@ -1553,12 +1553,17 @@ class DailyContestManager {
             }
             
             if (this.backend) {
+                console.log(`🔍 Backend type: Firebase enabled = ${this.backend.firebaseEnabled}`);
                 const entries = await this.backend.getContestEntries(todayFormatted);
                 
+                console.log(`📊 Raw entries returned:`, entries);
+                
                 // Filter for active entries only (backward compatible - if no status, assume active)
-                const activeEntries = entries.filter(entry => 
-                    !entry.contestStatus || entry.contestStatus === 'active'
-                );
+                const activeEntries = entries.filter(entry => {
+                    const isActive = !entry.contestStatus || entry.contestStatus === 'active';
+                    console.log(`Entry ${entry.id}: contestStatus=${entry.contestStatus}, isActive=${isActive}`);
+                    return isActive;
+                });
                 
                 console.log(`📊 Found ${entries.length} total entries, ${activeEntries.length} active`);
                 

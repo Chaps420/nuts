@@ -255,22 +255,30 @@ class FirebaseXamanIntegration {
      * Get contest entries for a specific date
      */
     async getContestEntries(contestDate) {
+        console.log(`🔥 FirebaseXamanIntegration.getContestEntries called for date: ${contestDate}`);
         try {
             if (this.firebase && this.firebase.initialized) {
+                console.log('🔥 Attempting to get entries from Firebase...');
                 const db = this.firebase.db;
                 const snapshot = await db.collection('contest_entries')
                     .where('contestDate', '==', contestDate)
                     .orderBy('timestamp', 'desc')
                     .get();
                 
-                return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const firebaseEntries = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                console.log(`🔥 Found ${firebaseEntries.length} entries in Firebase`);
+                return firebaseEntries;
             } else {
+                console.log('⚠️ Firebase not initialized, falling back to localStorage');
                 // Fallback to local storage - check both key patterns for compatibility
                 const newDateKey = `contest_entries_${contestDate}`;
                 const oldDateKey = `entries_${contestDate}`;
                 
+                console.log(`🔍 Checking localStorage keys: ${newDateKey} and ${oldDateKey}`);
+                
                 // Try new key pattern first
                 let entries = JSON.parse(localStorage.getItem(newDateKey) || '[]');
+                console.log(`📦 Found ${entries.length} entries with new key pattern`);
                 
                 // Also check old key pattern and merge if found
                 const oldEntries = JSON.parse(localStorage.getItem(oldDateKey) || '[]');
