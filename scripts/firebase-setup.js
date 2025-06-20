@@ -33,11 +33,11 @@ console.log('2️⃣  FIRESTORE DATABASE SETUP:');
 console.log('   - Go to Firestore Database → Create database');
 console.log('   - Choose "Start in test mode" (for now)');
 console.log('   - Select region: us-central1 (recommended)');
-console.log('   - The app will automatically create these collections:');
+console.log('   - The app will create these collections:');
 console.log('     * users (user profiles and stats)');
 console.log('     * bets (individual user bets)');
 console.log('     * contests (contest metadata)');
-console.log('     * payouts (payout records)\n');
+console.log('     * payouts (manual payout records)\n');
 
 console.log('3️⃣  CLOUD FUNCTIONS SETUP (Optional for MVP):');
 console.log('   - Go to Functions → Get Started');

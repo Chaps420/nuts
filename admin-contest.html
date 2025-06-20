@@ -293,7 +293,11 @@
         <div style="background: #1a1a1a; border: 2px solid #ff6b00; border-radius: 12px; padding: 30px; margin: 50px auto; max-width: 600px; position: relative;">
             <button onclick="closePayoutModal()" style="position: absolute; top: 10px; right: 10px; background: #ff6b00; border: none; color: white; width: 30px; height: 30px; border-radius: 50%; cursor: pointer;">×</button>
             
-            <h2 style="color: #ff6b00; margin-bottom: 20px;">Process Winner Payout</h2>
+            <h2 style="color: #ff6b00; margin-bottom: 20px;">Manual Payout Process</h2>
+            
+            <div style="background: #ff3333; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                <strong>⚠️ IMPORTANT: All payouts must be sent manually through your Xaman wallet</strong>
+            </div>
             
             <div id="payout-details" style="margin-bottom: 20px;">
                 <!-- Details will be populated dynamically -->
@@ -497,7 +501,7 @@
                             winnerMessage += `   Prize: ${winner.prize} NUTS\n\n`;
                         });
                         
-                        winnerMessage += '\nProcess payouts now?';
+                        winnerMessage += '\n\n📋 NOTE: All payouts are MANUAL\nClick OK to view payout details for each winner.';
                         
                         if (confirm(winnerMessage)) {
                             await processAllPayouts(result.winners);

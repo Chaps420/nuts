@@ -1,7 +1,7 @@
 # Admin Payout System Guide
 
 ## Overview
-The admin payout system allows contest administrators to pay winners their prizes in NUTS tokens. The system provides both manual and automated (QR code) payout options.
+The admin payout system allows contest administrators to manually pay winners their prizes in NUTS tokens. The system provides both manual payment instructions and QR code generation for easier payout processing.
 
 ## Features Implemented
 
@@ -90,7 +90,7 @@ A test page is available at `/test-payout.html` to:
 - Manual payout tracking
 
 ## Future Enhancements:
-- Automated payout scheduling
 - Batch payouts for multiple winners
 - Payout history/audit trail
 - Email notifications to winners
+- Enhanced manual payout tracking and reporting

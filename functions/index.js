@@ -13,6 +13,6 @@ exports.checkXummPayment = require('./xummPayment').checkXummPayment;
 exports.xummWebhook = require('./xummPayment').xummWebhook;
 exports.getNutsTokenInfo = require('./xummPayment').getNutsTokenInfo;
 
-// Export contest payout functions
-exports.processContestPayouts = require('./processContestPayouts').processContestPayouts;
-exports.scheduledPayoutCheck = require('./processContestPayouts').scheduledPayoutCheck;
+// Export contest payout functions (commented out for manual payouts only)
+// exports.processContestPayouts = require('./processContestPayouts').processContestPayouts;
+// exports.scheduledPayoutCheck = require('./processContestPayouts').scheduledPayoutCheck;

@@ -5,7 +5,7 @@ A daily sports pick'em platform powered by $NUTS token on the XRP Ledger.
 ## Features
 
 - 🏆 Daily sports contests with NUTS token entry fees
-- 💰 Automated prize distribution to winners
+- 💰 Manual prize distribution to winners by administrators
 - 🎫 Free weekly contests for NFT holders
 - 📱 Xaman/XUMM wallet integration
 - 📊 Real-time leaderboards

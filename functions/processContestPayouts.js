@@ -10,7 +10,8 @@ const xumm = new XummSdk(
 
 /**
  * Process contest payouts for winners
- * Can be triggered manually or via scheduled function
+ * MANUAL PAYOUTS ONLY - This function is disabled for automated use
+ * Can only be triggered manually by admins
  */
 exports.processContestPayouts = functions.https.onCall(async (data, context) => {
     console.log('🏆 Processing contest payouts...');
@@ -237,8 +238,14 @@ function generateTransactionHash() {
 }
 
 /**
+ * DISABLED - Manual payouts only
+ * This scheduled function is disabled and should not be deployed
+ * All payouts must be processed manually by admins
+ * 
  * Scheduled function to check for contests that need payouts
  */
+// DISABLED FOR MANUAL PAYOUTS ONLY
+/*
 exports.scheduledPayoutCheck = functions.pubsub
     .schedule('0 1 * * *') // Run at 1 AM daily
     .timeZone('America/New_York')
@@ -273,3 +280,4 @@ exports.scheduledPayoutCheck = functions.pubsub
             return null;
         }
     });
+*/
