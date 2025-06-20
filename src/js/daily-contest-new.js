@@ -758,6 +758,12 @@ class DailyContestManager {
         
         console.log(`⏰ Contest deadline set to: ${deadline.toLocaleString()}`);
         this.contestDeadline = deadline; // Store the deadline
+        
+        // Trigger immediate time update in HTML
+        if (typeof updateTimeRemaining === 'function') {
+            updateTimeRemaining();
+        }
+        
         return deadline;
     }
 
@@ -767,6 +773,10 @@ class DailyContestManager {
     }
 
     updateContestClosedUI() {
+        const now = new Date();
+        const deadline = this.contestDeadline;
+        console.log(`🕐 Checking contest status: now=${now.toLocaleString()}, deadline=${deadline ? deadline.toLocaleString() : 'null'}, closed=${this.isContestClosed()}`);
+        
         if (!this.isContestClosed()) return;
         
         console.log('🚫 Contest is closed - updating UI');

@@ -533,6 +533,7 @@
                 
                 // Get the contest deadline from the daily contest manager
                 if (window.dailyContestManager && window.dailyContestManager.contestDeadline) {
+                    console.log('⏰ Updating time remaining - checking deadline...');
                     const now = new Date();
                     const deadline = window.dailyContestManager.contestDeadline;
                     
