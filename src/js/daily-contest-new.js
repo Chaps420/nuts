@@ -1692,63 +1692,17 @@ class DailyContestManager {
     }
     
     updateContestStats(entries, prizePool) {
-        // Update the prize section in the rules - find div containing Prize h4
-        const allDivs = document.querySelectorAll('.contest-rules-horizontal > div > div');
-        let prizeSection = null;
-        allDivs.forEach(div => {
-            const h4 = div.querySelector('h4');
-            if (h4 && h4.textContent.includes('Prize')) {
-                prizeSection = div;
-            }
-        });
+        // Only update the main header stats - remove redundant displays
+        console.log(`📊 Updating contest stats: ${entries} entries, ${prizePool} NUTS prize pool`);
         
-        if (prizeSection) {
-            const prizeText = prizeSection.querySelector('p');
-            if (prizeText) {
-                prizeText.innerHTML = `<strong>${prizePool} NUTS</strong> (${entries} entries)`;
-            }
+        // Remove any existing live stats banner to prevent duplicates
+        const existingBanner = document.getElementById('live-stats-banner');
+        if (existingBanner) {
+            existingBanner.remove();
         }
         
-        // Add or update live stats banner
-        let banner = document.getElementById('live-stats-banner');
-        if (!banner) {
-            banner = document.createElement('div');
-            banner.id = 'live-stats-banner';
-            banner.style.cssText = `
-                background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
-                border: 2px solid #ff6b00;
-                border-radius: 12px;
-                padding: 20px;
-                margin: 20px auto 30px;
-                max-width: 800px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            `;
-            
-            const contestEntry = document.querySelector('.contest-entry .container');
-            if (contestEntry) {
-                contestEntry.insertBefore(banner, contestEntry.firstChild);
-            }
-        }
-        
-        banner.innerHTML = `
-            <h3 style="text-align: center; color: #ff6b00; margin-bottom: 20px;">
-                🏆 Today's Contest Stats
-            </h3>
-            <div style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 20px;">
-                <div style="text-align: center;">
-                    <div style="color: #888; font-size: 0.9em; margin-bottom: 5px;">Total Entries</div>
-                    <div style="color: #4CAF50; font-size: 2em; font-weight: bold;">${entries}</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="color: #888; font-size: 0.9em; margin-bottom: 5px;">Prize Pool</div>
-                    <div style="color: #ff6b00; font-size: 2em; font-weight: bold;">${prizePool} NUTS</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="color: #888; font-size: 0.9em; margin-bottom: 5px;">Entry Fee</div>
-                    <div style="color: #4CAF50; font-size: 2em; font-weight: bold;">50 NUTS</div>
-                </div>
-            </div>
-        `;
+        // The main header stats are updated in loadContestStats() directly
+        // We don't need additional stats displays here
     }
 }
 
