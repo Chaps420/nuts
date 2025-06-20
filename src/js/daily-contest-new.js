@@ -758,12 +758,15 @@ class DailyContestManager {
         const cutoffTime = new Date();
         cutoffTime.setHours(18, 0, 0, 0); // 6:00 PM local time
         
+        // TEMPORARILY DISABLED FOR DEBUGGING
+        /*
         if (now > cutoffTime) {
             console.log('🚨 Manual override: Past 6:00 PM local time - forcing contest closure!');
             console.log(`Current time: ${now.toLocaleString()}, Cutoff: ${cutoffTime.toLocaleString()}`);
             this.contestDeadline = new Date(Date.now() - 1000); // 1 second ago
             return this.contestDeadline;
         }
+        */
         
         // Find the earliest game time
         const earliestGame = games.reduce((earliest, game) => {
