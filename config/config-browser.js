@@ -65,10 +65,11 @@ window.config = {
     dailyEntryFee: 50,
     maxPicks: 10,
     lockTimeBuffer: 5, // minutes before first game
+    minimumEntries: 4, // Minimum players required to run contest
     prizeDistribution: {
-      first: 0.7,   // 70% to 1st place
-      second: 0.2,  // 20% to 2nd place
-      third: 0.1    // 10% to 3rd place
+      first: 0.5,   // 50% to 1st place
+      second: 0.3,  // 30% to 2nd place
+      third: 0.2    // 20% to 3rd place
     }
   },
   // Firebase configuration

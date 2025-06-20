@@ -321,6 +321,7 @@
     <script src="config/environment.js"></script>
     <script src="src/js/firebase-integration.js"></script>
     <script src="src/js/firebase-xaman-integration.js"></script>
+    <script src="src/js/contest-backend.js"></script>
     
     <script>
         let integration;
@@ -450,8 +451,18 @@
         }
         
         async function calculateWinners() {
-            if (currentEntries.length < 2) {
-                alert('Need at least 2 entries to calculate winners');
+            const minimumEntries = window.config?.contest?.minimumEntries || 4;
+            
+            if (currentEntries.length < minimumEntries) {
+                const confirmRefund = confirm(
+                    `Only ${currentEntries.length} entries (minimum ${minimumEntries} required).\n\n` +
+                    `The contest will be cancelled and all entry fees will be refunded.\n\n` +
+                    `Process refunds?`
+                );
+                
+                if (confirmRefund) {
+                    await processRefunds();
+                }
                 return;
             }
             
@@ -470,12 +481,103 @@
                     mockGameResults
                 );
                 
-                if (result && result.winner) {
-                    alert(`Winner: ${result.winner.userName} with ${result.winner.score} correct picks!\nPrize: ${result.prizePool} NUTS`);
+                if (result) {
+                    if (result.status === 'cancelled') {
+                        alert(`Contest cancelled: ${result.reason}\nRefunds required for ${result.totalEntries} entries.`);
+                        await processRefunds();
+                    } else if (result.winners) {
+                        // Show winners
+                        let winnerMessage = '🏆 CONTEST RESULTS 🏆\n\n';
+                        winnerMessage += `Total Prize Pool: ${result.prizePool} NUTS\n\n`;
+                        
+                        result.winners.forEach(winner => {
+                            const placeEmoji = winner.place === 1 ? '🥇' : winner.place === 2 ? '🥈' : '🥉';
+                            winnerMessage += `${placeEmoji} ${winner.place === 1 ? '1st' : winner.place === 2 ? '2nd' : '3rd'} Place: ${winner.entry.userName}\n`;
+                            winnerMessage += `   Score: ${winner.entry.score} correct picks\n`;
+                            winnerMessage += `   Prize: ${winner.prize} NUTS\n\n`;
+                        });
+                        
+                        winnerMessage += '\nProcess payouts now?';
+                        
+                        if (confirm(winnerMessage)) {
+                            await processAllPayouts(result.winners);
+                        }
+                    }
+                    
                     loadContestData(); // Reload to show updated data
                 }
             } catch (error) {
                 alert('Failed to calculate winners: ' + error.message);
+            }
+        }
+        
+        async function processRefunds() {
+            try {
+                const contestDate = document.getElementById('contest-date').value;
+                
+                // Use the backend's refund method
+                if (window.ContestBackend) {
+                    const backend = new ContestBackend();
+                    await backend.init();
+                    
+                    const result = await backend.processRefunds(contestDate);
+                    
+                    if (result.success) {
+                        alert(
+                            `✅ Refunds Processed!\n\n` +
+                            `Entries refunded: ${result.entriesRefunded}\n` +
+                            `Total refund amount: ${result.totalRefundAmount} NUTS\n\n` +
+                            `Please process the refunds manually through Xaman wallet.`
+                        );
+                    } else {
+                        alert('Failed to process refunds: ' + result.error);
+                    }
+                } else {
+                    alert('Contest backend not available');
+                }
+                
+                loadContestData(); // Reload data
+                
+            } catch (error) {
+                console.error('Failed to process refunds:', error);
+                alert('Error processing refunds: ' + error.message);
+            }
+        }
+        
+        async function processAllPayouts(winners) {
+            try {
+                let successCount = 0;
+                
+                for (const winner of winners) {
+                    const entry = winner.entry;
+                    
+                    if (!entry.walletAddress) {
+                        alert(`⚠️ No wallet address for ${entry.userName}. Please process manually.`);
+                        continue;
+                    }
+                    
+                    // Show payout modal for each winner
+                    showPayoutOptions(entry.id);
+                    
+                    // Wait for user to process this payout before continuing
+                    await new Promise(resolve => {
+                        const checkInterval = setInterval(() => {
+                            if (!document.getElementById('payout-modal').style.display || 
+                                document.getElementById('payout-modal').style.display === 'none') {
+                                clearInterval(checkInterval);
+                                resolve();
+                            }
+                        }, 1000);
+                    });
+                    
+                    successCount++;
+                }
+                
+                alert(`✅ Processed ${successCount} payouts!`);
+                
+            } catch (error) {
+                console.error('Failed to process payouts:', error);
+                alert('Error processing payouts: ' + error.message);
             }
         }
         

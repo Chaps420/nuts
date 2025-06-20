@@ -339,59 +339,146 @@ class FirebaseXamanIntegration {
         try {
             console.log('📊 Updating game results for', contestDate);
             
-            const entries = await this.getContestEntries(contestDate);
-            const updatedEntries = [];
-
-            // Calculate scores for each entry
-            for (const entry of entries) {
-                let score = 0;
+            // Use ContestBackend for consistent winner calculation
+            if (window.ContestBackend) {
+                const backend = new ContestBackend();
+                await backend.init();
                 
-                Object.keys(entry.picks).forEach(gameId => {
-                    if (gameResults[gameId] && entry.picks[gameId] === gameResults[gameId].winner) {
-                        score++;
+                // Update game results and get winners
+                const result = await backend.updateGameResults(contestDate, gameResults);
+                
+                // Handle cancelled contest (< 4 entries)
+                if (result && result.status === 'cancelled') {
+                    console.log('⚠️ Contest cancelled:', result.reason);
+                    return result;
+                }
+                
+                // Handle successful contest with winners
+                if (result && result.winners) {
+                    // Update winners in Firebase if available
+                    if (this.firebase && this.firebase.initialized) {
+                        for (const winner of result.winners) {
+                            await this.updateWinnerInFirebase(winner.entry, winner.prize, winner.place);
+                        }
                     }
+                    
+                    return result;
+                }
+                
+                return null;
+            } else {
+                // Fallback to legacy calculation if backend not available
+                console.warn('ContestBackend not available, using legacy calculation');
+                
+                const entries = await this.getContestEntries(contestDate);
+                const updatedEntries = [];
+
+                // Calculate scores for each entry
+                for (const entry of entries) {
+                    let score = 0;
+                    
+                    Object.keys(entry.picks).forEach(gameId => {
+                        if (gameResults[gameId] && entry.picks[gameId] === gameResults[gameId].winner) {
+                            score++;
+                        }
+                    });
+
+                    entry.score = score;
+                    updatedEntries.push(entry);
+                }
+
+                // Check minimum entries
+                const minimumEntries = window.config?.contest?.minimumEntries || 4;
+                if (updatedEntries.length < minimumEntries) {
+                    return {
+                        status: 'cancelled',
+                        reason: 'insufficient_entries',
+                        totalEntries: updatedEntries.length,
+                        minimumRequired: minimumEntries,
+                        refundRequired: true,
+                        allEntries: updatedEntries
+                    };
+                }
+
+                // Sort by score and tiebreaker
+                const lastGameRuns = gameResults.lastGameRuns || 0;
+                
+                updatedEntries.sort((a, b) => {
+                    if (b.score !== a.score) {
+                        return b.score - a.score;
+                    }
+                    // Tiebreaker: closest to actual runs
+                    const aDiff = Math.abs(a.tiebreakerRuns - lastGameRuns);
+                    const bDiff = Math.abs(b.tiebreakerRuns - lastGameRuns);
+                    return aDiff - bDiff;
                 });
 
-                entry.score = score;
-                updatedEntries.push(entry);
-            }
+                // Calculate prizes for top 3
+                const totalPrizePool = updatedEntries.length * 50;
+                const distribution = window.config?.contest?.prizeDistribution || {
+                    first: 0.5,
+                    second: 0.3,
+                    third: 0.2
+                };
 
-            // Sort by score and tiebreaker
-            const lastGameRuns = gameResults.lastGameRuns || 0;
-            
-            updatedEntries.sort((a, b) => {
-                if (b.score !== a.score) {
-                    return b.score - a.score;
+                const prizes = {
+                    first: Math.floor(totalPrizePool * distribution.first),
+                    second: Math.floor(totalPrizePool * distribution.second),
+                    third: Math.floor(totalPrizePool * distribution.third)
+                };
+
+                const winners = [];
+
+                // Assign prizes to top 3
+                if (updatedEntries[0]) {
+                    updatedEntries[0].prizeWon = prizes.first;
+                    updatedEntries[0].status = 'won';
+                    updatedEntries[0].place = 1;
+                    winners.push({
+                        place: 1,
+                        entry: updatedEntries[0],
+                        prize: prizes.first
+                    });
                 }
-                // Tiebreaker: closest to actual runs
-                const aDiff = Math.abs(a.tiebreakerRuns - lastGameRuns);
-                const bDiff = Math.abs(b.tiebreakerRuns - lastGameRuns);
-                return aDiff - bDiff;
-            });
 
-            // Winner takes all
-            if (updatedEntries.length >= 2) {
-                const winner = updatedEntries[0];
-                const prizePool = updatedEntries.length * 50;
-                
-                winner.prizeWon = prizePool;
-                winner.status = 'won';
+                if (updatedEntries[1]) {
+                    updatedEntries[1].prizeWon = prizes.second;
+                    updatedEntries[1].status = 'won';
+                    updatedEntries[1].place = 2;
+                    winners.push({
+                        place: 2,
+                        entry: updatedEntries[1],
+                        prize: prizes.second
+                    });
+                }
 
-                // Update in Firebase if available
+                if (updatedEntries[2]) {
+                    updatedEntries[2].prizeWon = prizes.third;
+                    updatedEntries[2].status = 'won';
+                    updatedEntries[2].place = 3;
+                    winners.push({
+                        place: 3,
+                        entry: updatedEntries[2],
+                        prize: prizes.third
+                    });
+                }
+
+                // Update winners in Firebase if available
                 if (this.firebase && this.firebase.initialized) {
-                    await this.updateWinnerInFirebase(winner, prizePool);
+                    for (const winner of winners) {
+                        await this.updateWinnerInFirebase(winner.entry, winner.prize, winner.place);
+                    }
                 }
-
-                console.log('🏆 Winner:', winner.userName, 'Score:', winner.score, 'Prize:', prizePool);
                 
                 return {
-                    winner: winner,
+                    status: 'completed',
+                    winners: winners,
                     totalEntries: updatedEntries.length,
-                    prizePool: prizePool
+                    prizePool: totalPrizePool,
+                    prizes: prizes,
+                    allEntries: updatedEntries
                 };
             }
-
-            return null;
             
         } catch (error) {
             console.error('Failed to update results:', error);
@@ -402,7 +489,7 @@ class FirebaseXamanIntegration {
     /**
      * Update winner in Firebase
      */
-    async updateWinnerInFirebase(winner, prizeAmount) {
+    async updateWinnerInFirebase(winner, prizeAmount, place = 1) {
         try {
             const db = this.firebase.db;
             
@@ -411,6 +498,7 @@ class FirebaseXamanIntegration {
                 score: winner.score,
                 status: 'won',
                 prizeWon: prizeAmount,
+                place: place,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
@@ -419,14 +507,16 @@ class FirebaseXamanIntegration {
                 entryId: winner.id,
                 userId: winner.userId,
                 userName: winner.userName,
+                walletAddress: winner.walletAddress,
                 amount: prizeAmount,
                 currency: 'NUTS',
+                place: place,
                 contestDate: winner.contestDate,
                 status: 'pending',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            console.log('✅ Winner updated in Firebase');
+            console.log(`✅ ${place === 1 ? '1st' : place === 2 ? '2nd' : '3rd'} place winner updated in Firebase`);
             
         } catch (error) {
             console.error('Failed to update winner:', error);

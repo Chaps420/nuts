@@ -82,11 +82,29 @@
         }
         
         .rank-1 {
-            background: rgba(76, 175, 80, 0.1);
+            background: rgba(255, 215, 0, 0.1);
         }
         
         .rank-1 td {
-            color: #4CAF50;
+            color: #FFD700;
+            font-weight: bold;
+        }
+        
+        .rank-2 {
+            background: rgba(192, 192, 192, 0.1);
+        }
+        
+        .rank-2 td {
+            color: #C0C0C0;
+            font-weight: bold;
+        }
+        
+        .rank-3 {
+            background: rgba(205, 127, 50, 0.1);
+        }
+        
+        .rank-3 td {
+            color: #CD7F32;
             font-weight: bold;
         }
         
@@ -324,12 +342,59 @@
                     return a.tiebreakerRuns - b.tiebreakerRuns;
                 });
                 
-                // Display winner if contest is complete
-                if (entries[0].status === 'won') {
+                // Check if contest has winners or was cancelled
+                const hasWinners = entries.some(e => e.status === 'won');
+                const minimumEntries = window.config?.contest?.minimumEntries || 4;
+                
+                if (entries.length < minimumEntries) {
+                    // Contest cancelled due to insufficient entries
                     document.getElementById('winner-section').style.display = 'block';
-                    document.getElementById('winner-name').textContent = entries[0].userName;
-                    document.getElementById('winner-score').textContent = entries[0].score || 0;
-                    document.getElementById('prize-amount').textContent = entries[0].prizeWon + ' NUTS';
+                    document.getElementById('winner-section').innerHTML = `
+                        <div style="background: #ff6b00; color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                            <h2>⚠️ Contest Cancelled</h2>
+                            <p>This contest was cancelled due to insufficient entries (${entries.length}/${minimumEntries} minimum).</p>
+                            <p>All entry fees will be refunded to participants.</p>
+                        </div>
+                    `;
+                } else if (hasWinners) {
+                    // Display top 3 winners
+                    const winners = entries.filter(e => e.status === 'won' && e.place <= 3).sort((a, b) => a.place - b.place);
+                    
+                    document.getElementById('winner-section').style.display = 'block';
+                    document.getElementById('winner-section').innerHTML = `
+                        <div style="background: #2a2a2a; padding: 20px; border-radius: 8px;">
+                            <h2 style="color: #ff6b00; text-align: center; margin-bottom: 20px;">🏆 Contest Winners 🏆</h2>
+                            <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                                ${winners.map(winner => {
+                                    const placeEmoji = winner.place === 1 ? '🥇' : winner.place === 2 ? '🥈' : '🥉';
+                                    const placeText = winner.place === 1 ? '1st Place' : winner.place === 2 ? '2nd Place' : '3rd Place';
+                                    const borderColor = winner.place === 1 ? '#FFD700' : winner.place === 2 ? '#C0C0C0' : '#CD7F32';
+                                    
+                                    return `
+                                        <div style="
+                                            background: #1a1a1a;
+                                            border: 2px solid ${borderColor};
+                                            padding: 20px;
+                                            border-radius: 8px;
+                                            text-align: center;
+                                            min-width: 200px;
+                                        ">
+                                            <div style="font-size: 2em; margin-bottom: 10px;">${placeEmoji}</div>
+                                            <h3 style="color: ${borderColor}; margin: 10px 0;">${placeText}</h3>
+                                            <p style="color: white; font-size: 1.2em; font-weight: bold;">${winner.userName}</p>
+                                            <p style="color: #ccc;">Score: ${winner.score}/${winner.totalGames || winner.games || 0}</p>
+                                            <p style="color: #4CAF50; font-size: 1.3em; font-weight: bold; margin-top: 10px;">
+                                                ${winner.prizeWon} NUTS
+                                            </p>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            <div style="text-align: center; margin-top: 20px; color: #888;">
+                                Total Prize Pool: ${entries.length * 50} NUTS
+                            </div>
+                        </div>
+                    `;
                 } else {
                     document.getElementById('winner-section').style.display = 'none';
                 }
@@ -349,6 +414,21 @@
             tbody.innerHTML = entries.map((entry, index) => {
                 const rank = index + 1;
                 const isWinner = entry.status === 'won';
+                const place = entry.place;
+                
+                // Determine rank class and emoji
+                let rankClass = '';
+                let placeEmoji = '';
+                if (place === 1) {
+                    rankClass = 'rank-1';
+                    placeEmoji = '🥇 ';
+                } else if (place === 2) {
+                    rankClass = 'rank-2';
+                    placeEmoji = '🥈 ';
+                } else if (place === 3) {
+                    rankClass = 'rank-3';
+                    placeEmoji = '🥉 ';
+                }
                 
                 // Create game results indicators - handle both old and new data formats
                 let gameResults = '';
@@ -373,9 +453,9 @@
                 const isHighlighted = window.highlightEntryId === entry.id;
                 
                 return `
-                    <tr class="${isWinner ? 'rank-1' : ''}" 
+                    <tr class="${rankClass}" 
                         ${isHighlighted ? 'style="background: rgba(76, 175, 80, 0.2); animation: pulse 2s ease-in-out;"' : ''}>
-                        <td>${rank}</td>
+                        <td>${placeEmoji}${rank}</td>
                         <td>
                             ${entry.userName}
                             ${entry.twitterHandle ? 

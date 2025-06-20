@@ -332,9 +332,18 @@ class ContestBackend {
      * Calculate contest winners
      */
     calculateWinners(entries) {
-        if (entries.length < 2) {
-            console.log('⚠️ Not enough entries for contest');
-            return null;
+        const minimumEntries = window.config?.contest?.minimumEntries || 4;
+        
+        if (entries.length < minimumEntries) {
+            console.log(`⚠️ Not enough entries for contest. Required: ${minimumEntries}, Got: ${entries.length}`);
+            return {
+                status: 'cancelled',
+                reason: 'insufficient_entries',
+                totalEntries: entries.length,
+                minimumRequired: minimumEntries,
+                refundRequired: true,
+                allEntries: entries
+            };
         }
 
         // Sort by score (descending), then by tiebreaker difference
@@ -353,25 +362,79 @@ class ContestBackend {
             return aDiff - bDiff;
         });
 
-        // Winner takes all
+        // Calculate prize pool and distribution
         const totalPrizePool = entries.length * 50; // 50 NUTS per entry
-        const winner = entries[0];
+        const distribution = window.config?.contest?.prizeDistribution || {
+            first: 0.5,
+            second: 0.3,
+            third: 0.2
+        };
+
+        // Calculate prizes
+        const prizes = {
+            first: Math.floor(totalPrizePool * distribution.first),
+            second: Math.floor(totalPrizePool * distribution.second),
+            third: Math.floor(totalPrizePool * distribution.third)
+        };
+
+        // Assign prizes to top 3
+        const winners = [];
         
-        winner.prizeWon = totalPrizePool;
-        winner.status = 'won';
+        // 1st place
+        if (entries[0]) {
+            entries[0].prizeWon = prizes.first;
+            entries[0].status = 'won';
+            entries[0].place = 1;
+            winners.push({
+                place: 1,
+                entry: entries[0],
+                prize: prizes.first
+            });
+        }
+        
+        // 2nd place
+        if (entries[1]) {
+            entries[1].prizeWon = prizes.second;
+            entries[1].status = 'won';
+            entries[1].place = 2;
+            winners.push({
+                place: 2,
+                entry: entries[1],
+                prize: prizes.second
+            });
+        }
+        
+        // 3rd place
+        if (entries[2]) {
+            entries[2].prizeWon = prizes.third;
+            entries[2].status = 'won';
+            entries[2].place = 3;
+            winners.push({
+                place: 3,
+                entry: entries[2],
+                prize: prizes.third
+            });
+        }
 
         // Mark others as lost
-        entries.slice(1).forEach(entry => {
+        entries.slice(3).forEach(entry => {
             entry.status = 'lost';
             entry.prizeWon = 0;
+            entry.place = null;
         });
 
-        console.log('🏆 Contest winner:', winner.userName, 'Score:', winner.score, 'Prize:', totalPrizePool);
+        console.log('🏆 Contest winners calculated:');
+        winners.forEach(w => {
+            console.log(`   ${w.place}st place: ${w.entry.userName} - ${w.prize} NUTS (Score: ${w.entry.score})`);
+        });
+        console.log(`💰 Total prize pool: ${totalPrizePool} NUTS`);
         
         return {
-            winner: winner,
+            status: 'completed',
+            winners: winners,
             totalEntries: entries.length,
             prizePool: totalPrizePool,
+            prizes: prizes,
             allEntries: entries
         };
     }
@@ -379,17 +442,18 @@ class ContestBackend {
     /**
      * Process payouts to winners
      */
-    async processPayout(winnerId, amount, walletAddress) {
-        console.log('💰 Processing payout:', amount, 'NUTS to', walletAddress);
+    async processPayout(winnerId, amount, walletAddress, place = 1) {
+        console.log(`💰 Processing ${place === 1 ? '1st' : place === 2 ? '2nd' : '3rd'} place payout:`, amount, 'NUTS to', walletAddress);
         
         // In production, this would trigger an XRPL transaction
         // For now, we'll just record the payout
         const payout = {
-            id: `PAYOUT_${Date.now()}`,
+            id: `PAYOUT_${Date.now()}_${winnerId}`,
             winnerId: winnerId,
             amount: amount,
             currency: 'NUTS',
             walletAddress: walletAddress,
+            place: place,
             status: 'pending',
             timestamp: new Date().toISOString()
         };
@@ -406,6 +470,77 @@ class ContestBackend {
         }
 
         return payout;
+    }
+
+    /**
+     * Process refunds for cancelled contest
+     */
+    async processRefunds(contestDate) {
+        console.log(`💸 Processing refunds for cancelled contest on ${contestDate}`);
+        
+        try {
+            const entries = await this.getContestEntries(contestDate);
+            const refunds = [];
+            
+            for (const entry of entries) {
+                if (entry.walletAddress && entry.transactionId) {
+                    const refund = {
+                        id: `REFUND_${Date.now()}_${entry.id}`,
+                        entryId: entry.id,
+                        userId: entry.userId,
+                        userName: entry.userName,
+                        walletAddress: entry.walletAddress,
+                        amount: entry.entryFee || 50,
+                        currency: 'NUTS',
+                        reason: 'insufficient_entries',
+                        originalTxId: entry.transactionId,
+                        contestDate: contestDate,
+                        status: 'pending',
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    refunds.push(refund);
+                    
+                    // Store refund record
+                    if (this.firebaseEnabled) {
+                        await window.firebase.firestore()
+                            .collection('refunds')
+                            .doc(refund.id)
+                            .set(refund);
+                    } else {
+                        const storedRefunds = JSON.parse(this.localStorage.getItem('refunds') || '[]');
+                        storedRefunds.push(refund);
+                        this.localStorage.setItem('refunds', JSON.stringify(storedRefunds));
+                    }
+                    
+                    // Update entry status
+                    entry.status = 'refunded';
+                    entry.refundId = refund.id;
+                    
+                    if (this.firebaseEnabled) {
+                        await this.updateFirebaseEntry(entry);
+                    } else {
+                        this.updateLocalStorageEntry(entry);
+                    }
+                }
+            }
+            
+            console.log(`✅ Created ${refunds.length} refund records`);
+            
+            return {
+                success: true,
+                refunds: refunds,
+                totalRefundAmount: refunds.length * 50,
+                entriesRefunded: refunds.length
+            };
+            
+        } catch (error) {
+            console.error('❌ Failed to process refunds:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
     }
 
     /**
