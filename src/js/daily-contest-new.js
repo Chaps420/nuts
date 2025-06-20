@@ -756,15 +756,31 @@ class DailyContestManager {
         const deadline = new Date(earliestGame.gameTime);
         deadline.setMinutes(deadline.getMinutes() - 30);
         
-        console.log(`⏰ Contest deadline set to: ${deadline.toLocaleString()}`);
-        this.contestDeadline = deadline; // Store the deadline
+        // Log timezone information for debugging
+        const now = new Date();
+        console.log(`⏰ Timezone debug: earliestGame=${earliestGame.gameTime}, now=${now.toISOString()}, deadline=${deadline.toISOString()}`);
+        console.log(`⏰ Local times: now=${now.toLocaleString()}, deadline=${deadline.toLocaleString()}, earliestGame=${new Date(earliestGame.gameTime).toLocaleString()}`);
+        
+        // Check if any game has already started
+        const hasStartedGame = games.some(game => {
+            const gameTime = new Date(game.gameTime);
+            return now > gameTime;
+        });
+        
+        if (hasStartedGame) {
+            console.log('🚨 At least one game has already started - contest should be closed!');
+            // Set deadline to now to force contest closure
+            this.contestDeadline = new Date(now.getTime() - 1000); // 1 second ago
+        } else {
+            this.contestDeadline = deadline; // Store the deadline
+        }
         
         // Trigger immediate time update in HTML
         if (typeof updateTimeRemaining === 'function') {
             updateTimeRemaining();
         }
         
-        return deadline;
+        return this.contestDeadline;
     }
 
     isContestClosed() {
