@@ -1633,9 +1633,56 @@ class DailyContestManager {
     }
 }
 
+// Utility function to clear contest data
+window.clearContestData = function(date) {
+    if (!date) {
+        console.log('Usage: clearContestData("YYYY-MM-DD") or clearContestData("all")');
+        return;
+    }
+    
+    if (date === 'all') {
+        // Clear all contest data
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('contest_entries_') || key.startsWith('entries_') || key === 'contest_entries')) {
+                keys.push(key);
+            }
+        }
+        
+        keys.forEach(key => {
+            console.log(`🗑️ Removing ${key}`);
+            localStorage.removeItem(key);
+        });
+        
+        console.log(`✅ Cleared all contest data (${keys.length} keys)`);
+    } else {
+        // Clear specific date
+        const keys = [
+            `contest_entries_${date}`,
+            `entries_${date}`
+        ];
+        
+        keys.forEach(key => {
+            if (localStorage.getItem(key)) {
+                console.log(`🗑️ Removing ${key}`);
+                localStorage.removeItem(key);
+            }
+        });
+        
+        console.log(`✅ Cleared contest data for ${date}`);
+    }
+    
+    // Reload stats if on contest page
+    if (window.dailyContestManager) {
+        window.dailyContestManager.loadContestStats();
+    }
+};
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('📄 DOM Content Loaded');
+    console.log('💡 Tip: Use clearContestData("YYYY-MM-DD") or clearContestData("all") to clear old contest entries');
     
     // Wait a bit to ensure all scripts are loaded
     setTimeout(() => {

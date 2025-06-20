@@ -222,6 +222,8 @@
             <label style="margin-right: 10px;">Contest Date:</label>
             <input type="date" id="contest-date" class="date-selector">
             <button onclick="loadContestData()" class="refresh-btn">Load Data</button>
+            <button onclick="clearSelectedDateData()" class="refresh-btn" style="background: #ff4444; margin-left: 10px;">Clear Data</button>
+            <button onclick="clearAllContestData()" class="refresh-btn" style="background: #ff6600; margin-left: 5px;">Clear All</button>
         </div>
         
         <!-- Statistics -->
@@ -711,6 +713,55 @@
             setTimeout(checkStatus, 3000);
         }
         
+        function clearSelectedDateData() {
+            const dateInput = document.getElementById('contest-date');
+            const contestDate = dateInput.value;
+            
+            if (!contestDate) {
+                alert('Please select a date first');
+                return;
+            }
+            
+            if (confirm(`Are you sure you want to clear all contest data for ${contestDate}?`)) {
+                // Clear contest entries for this date
+                const keys = [
+                    `contest_entries_${contestDate}`,
+                    `entries_${contestDate}`
+                ];
+                
+                keys.forEach(key => {
+                    if (localStorage.getItem(key)) {
+                        console.log(`🗑️ Removing ${key}`);
+                        localStorage.removeItem(key);
+                    }
+                });
+                
+                alert(`Cleared contest data for ${contestDate}`);
+                loadContestData(); // Reload the page data
+            }
+        }
+        
+        function clearAllContestData() {
+            if (confirm('Are you sure you want to clear ALL contest data from localStorage? This cannot be undone!')) {
+                // Clear all contest-related keys
+                const keys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && (key.startsWith('contest_entries_') || key.startsWith('entries_') || key === 'contest_entries')) {
+                        keys.push(key);
+                    }
+                }
+                
+                keys.forEach(key => {
+                    console.log(`🗑️ Removing ${key}`);
+                    localStorage.removeItem(key);
+                });
+                
+                alert(`Cleared all contest data (${keys.length} keys removed)`);
+                loadContestData(); // Reload the page data
+            }
+        }
+
         async function markPayoutComplete() {
             if (!currentPayoutEntry) return;
             

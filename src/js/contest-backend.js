@@ -120,6 +120,8 @@ class ContestBackend {
      * Get entries for a specific contest date
      */
     async getContestEntries(contestDate) {
+        console.log(`📊 Getting contest entries for date: ${contestDate}`);
+        
         try {
             if (this.firebaseEnabled) {
                 const db = window.firebase.firestore();
@@ -132,6 +134,18 @@ class ContestBackend {
             } else {
                 const dateKey = `contest_entries_${contestDate}`;
                 let entries = JSON.parse(this.localStorage.getItem(dateKey) || '[]');
+                
+                // Double-check that entries are actually for the requested date
+                entries = entries.filter(entry => {
+                    const entryDate = entry.contestDate || entry.contestDay;
+                    const matches = entryDate === contestDate;
+                    if (!matches) {
+                        console.warn(`⚠️ Filtering out entry with date ${entryDate} (requested ${contestDate})`);
+                    }
+                    return matches;
+                });
+                
+                console.log(`📊 Found ${entries.length} entries for ${contestDate}`);
                 
                 // Also check old key pattern from FirebaseXamanIntegration
                 const oldDateKey = `entries_${contestDate}`;
