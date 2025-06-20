@@ -522,20 +522,6 @@ class DailyContestManager {
         
         gamesContainer.innerHTML = `
             <div class="games-content-wrapper">
-                <div class="games-header" style="
-                    margin-bottom: 15px; 
-                    padding: 15px;
-                    background: #1a1a1a;
-                    border-radius: 8px;
-                    border: 1px solid #333;
-                ">
-                    <h3 style="color: #ffa500; margin-bottom: 5px; font-size: 1.2em;">
-                        ${currentDayGames.length} MLB Games Available
-                    </h3>
-                    <p style="color: #888; margin: 0; font-size: 0.9em;">
-                        Pick ALL ${currentDayGames.length} game winners • ${Object.keys(this.userPicks).length}/${currentDayGames.length} selected
-                    </p>
-                </div>
                 <div class="games-list" style="
                     display: flex;
                     flex-direction: column;
@@ -1619,7 +1605,8 @@ class DailyContestManager {
                 // Also filter out phantom entries missing required fields
                 const activeEntries = entries.filter(entry => {
                     // Check if entry has required fields to be valid
-                    const hasRequiredFields = entry.transactionId && entry.userName && entry.walletAddress;
+                    // Only require transactionId and userName - walletAddress is optional for demo/testing
+                    const hasRequiredFields = entry.transactionId && entry.userName;
                     
                     // Check if entry has a valid timestamp
                     const hasTimestamp = entry.timestamp && entry.timestamp !== '';
@@ -1639,11 +1626,10 @@ class DailyContestManager {
                     // Check if active
                     const isActive = !entry.contestStatus || entry.contestStatus === 'active';
                     
-                    // Additional validation - filter out test entries
-                    const isNotTest = !entry.userName?.toLowerCase().includes('test') && 
-                                     !entry.id?.toLowerCase().includes('test');
+                    // Additional validation - filter out test entries (but allow demo entries)
+                    const isNotTest = !entry.id?.toLowerCase().includes('test');
                     
-                    // Entry must have all required fields, valid timestamp, and be from today
+                    // Entry must have basic required fields, valid timestamp, and be from today
                     const isValid = hasRequiredFields && hasTimestamp && isToday && isActive && isNotTest;
                     
                     console.log(`Entry ${entry.id}: ` +
@@ -1660,7 +1646,12 @@ class DailyContestManager {
                             userName: entry.userName,
                             timestamp: entry.timestamp,
                             contestDate: entry.contestDate,
-                            transactionId: entry.transactionId ? 'present' : 'missing'
+                            transactionId: entry.transactionId ? 'present' : 'missing',
+                            reason: !hasRequiredFields ? 'missing required fields' :
+                                   !hasTimestamp ? 'missing timestamp' :
+                                   !isToday ? 'not from today' :
+                                   !isActive ? 'not active' :
+                                   !isNotTest ? 'test entry' : 'unknown'
                         })}`);
                     }
                     
