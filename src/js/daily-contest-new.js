@@ -1597,9 +1597,25 @@ class DailyContestManager {
             
             if (this.backend) {
                 console.log(`🔍 Backend type: Firebase enabled = ${this.backend.firebaseEnabled}`);
+                console.log(`🔍 Looking for entries on date: ${todayFormatted}`);
                 const entries = await this.backend.getContestEntries(todayFormatted);
                 
-                console.log(`📊 Raw entries returned:`, entries);
+                console.log(`📊 Raw entries returned (${entries.length}):`, entries);
+                
+                // Log each entry in detail
+                entries.forEach((entry, index) => {
+                    console.log(`📋 Entry ${index + 1}:`, {
+                        id: entry.id,
+                        userName: entry.userName,
+                        contestDate: entry.contestDate,
+                        contestDay: entry.contestDay,
+                        timestamp: entry.timestamp,
+                        transactionId: entry.transactionId,
+                        walletAddress: entry.walletAddress,
+                        contestStatus: entry.contestStatus,
+                        status: entry.status
+                    });
+                });
                 
                 // Filter for active entries only (backward compatible - if no status, assume active)
                 // Also filter out phantom entries missing required fields
@@ -1612,6 +1628,10 @@ class DailyContestManager {
                     let isForToday = true;
                     if (entry.contestDate) {
                         isForToday = entry.contestDate === todayFormatted;
+                        console.log(`📅 Date comparison: entry.contestDate="${entry.contestDate}" vs todayFormatted="${todayFormatted}" = ${isForToday}`);
+                    } else if (entry.contestDay) {
+                        isForToday = entry.contestDay === todayFormatted;
+                        console.log(`📅 Date comparison: entry.contestDay="${entry.contestDay}" vs todayFormatted="${todayFormatted}" = ${isForToday}`);
                     }
                     
                     // Check if active
