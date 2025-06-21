@@ -722,6 +722,7 @@ class DailyContestManager {
             return this.contestDeadline;
         }
         
+        const now = new Date();
         
         // Find the earliest game time
         const earliestGame = games.reduce((earliest, game) => {
