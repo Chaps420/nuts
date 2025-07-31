@@ -224,6 +224,7 @@
             <button onclick="loadContestData()" class="refresh-btn">Load Data</button>
             <button onclick="clearSelectedDateData()" class="refresh-btn" style="background: #ff4444; margin-left: 10px;">Clear Data</button>
             <button onclick="clearAllContestData()" class="refresh-btn" style="background: #ff6600; margin-left: 5px;">Clear All</button>
+            <button onclick="clearTestData()" class="refresh-btn" style="background: #ff0000; margin-left: 5px;">Clear Test Data</button>
         </div>
         
         <!-- Statistics -->
@@ -320,6 +321,7 @@
 
     <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="config/config-browser.js"></script>
     <script src="config/environment.js"></script>
@@ -329,6 +331,7 @@
     
     <script>
         let integration;
+        let backend;
         let currentEntries = [];
         
         // Initialize
@@ -337,9 +340,18 @@
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('contest-date').value = today;
             
-            // Initialize Firebase integration
+            // Initialize Firebase integration first
+            console.log('🔥 Setting up Firebase integration...');
+            window.firebaseIntegration = new FirebaseIntegration();
+            await window.firebaseIntegration.initialize();
+            
+            // Initialize Firebase + Xaman integration
             integration = new FirebaseXamanIntegration();
             await integration.init();
+            
+            // Initialize backend
+            backend = new ContestBackend();
+            await backend.init();
             
             // Load today's data
             loadContestData();
@@ -355,10 +367,48 @@
             }
             
             try {
-                console.log('Loading data for', contestDate);
+                console.log('🔄 Loading data for', contestDate);
+                console.log('🔄 Firebase enabled:', integration?.firebase?.initialized);
+                console.log('🔄 Backend enabled:', backend?.firebaseEnabled);
+                
+                // Debug: Show what's in localStorage for ALL possible keys
+                const possibleKeys = [
+                    `contest_entries_${contestDate}`,
+                    `entries_${contestDate}`,
+                    'contest_entries',
+                    'entries'
+                ];
+                
+                console.log('🔍 Checking ALL localStorage keys:');
+                possibleKeys.forEach(key => {
+                    const data = localStorage.getItem(key);
+                    console.log(`  ${key}:`, data ? `${data.length} chars` : 'EMPTY');
+                    if (data) {
+                        try {
+                            const parsed = JSON.parse(data);
+                            console.log(`    Entries count: ${Array.isArray(parsed) ? parsed.length : 'not array'}`);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                                console.log(`    First entry:`, parsed[0]);
+                            }
+                        } catch (e) {
+                            console.log(`    Parse error:`, e.message);
+                        }
+                    }
+                });
+                
+                // Also check ALL localStorage keys
+                console.log('🔍 ALL localStorage keys:');
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && (key.includes('contest') || key.includes('entries'))) {
+                        const data = localStorage.getItem(key);
+                        console.log(`  ${key}: ${data ? data.length + ' chars' : 'EMPTY'}`);
+                    }
+                }
                 
                 // Get entries
                 currentEntries = await integration.getContestEntries(contestDate);
+                console.log('📊 Final loaded entries:', currentEntries.length, currentEntries.length > 0 ? currentEntries[0] : 'none');
                 
                 // Get stats
                 const stats = await integration.getContestStats(contestDate);
@@ -851,6 +901,34 @@
                 alert(`Cleared contest data for ${contestDate}`);
                 loadContestData(); // Reload the page data
             }
+        }
+        
+        function clearTestData() {
+            console.log('🗑️ Clearing all test data...');
+            
+            // Clear all localStorage keys that might contain test data
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (
+                    key.includes('contest_entries_') || 
+                    key.includes('entries_') || 
+                    key.includes('test_') ||
+                    key.includes('mock_') ||
+                    key.includes('demo_')
+                )) {
+                    keysToRemove.push(key);
+                }
+            }
+            
+            console.log('🗑️ Found test data keys:', keysToRemove);
+            
+            keysToRemove.forEach(key => {
+                console.log(`🗑️ Removing ${key}`);
+                localStorage.removeItem(key);
+            });
+            
+            alert(`Cleared ${keysToRemove.length} test data keys. Click Load Data to refresh.`);
         }
         
         function clearAllContestData() {

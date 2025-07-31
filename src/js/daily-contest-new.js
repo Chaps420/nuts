@@ -222,17 +222,25 @@ class DailyContestManager {
         console.log(`📅 Loading contest for ${contestDay.dateString}`);
 
         try {
-            // Load ALL games for this day (no admin selection needed)
-            const mlbGames = await this.loadMLBGamesForDay(contestDay.date);
+            // First try admin-selected games, then fallback to ALL available games
+            let games = this.loadAdminSelectedGamesForDay(contestDay.dateString);
             
-            if (mlbGames && mlbGames.length > 0) {
-                console.log(`✅ Found ${mlbGames.length} MLB games for ${contestDay.dateString}`);
-                this.availableGames = mlbGames; // All games available
-                this.selectedGames = mlbGames;  // Show all games
-                contestDay.games = mlbGames;
+            if (!games || games.length === 0) {
+                // Load ALL available games for this day - no restrictions
+                games = await this.loadMLBGamesForDay(contestDay.date);
+                console.log(`🎮 Loaded ${games?.length || 0} available games (no admin selection)`);
+            } else {
+                console.log(`👨‍💼 Using ${games.length} admin-selected games`);
+            }
+            
+            if (games && games.length > 0) {
+                console.log(`✅ Found ${games.length} games for ${contestDay.dateString}`);
+                this.availableGames = games;
+                this.selectedGames = games;  // Show all available games
+                contestDay.games = games;
                 
                 // Calculate contest deadline (30 min before first game)
-                this.calculateContestDeadline(mlbGames);
+                this.calculateContestDeadline(games);
             } else {
                 // No games found for this date
                 console.log(`📅 No games scheduled for ${contestDay.dateString}`);
@@ -407,13 +415,7 @@ class DailyContestManager {
             });
         }
 
-        // Connect Wallet Button - integrate with enhanced Xaman QR modal
-        const connectWalletBtn = document.getElementById('connect-wallet-btn');
-        if (connectWalletBtn) {
-            connectWalletBtn.addEventListener('click', () => this.handleWalletConnection());
-        }
-
-        // Entry button (will be enabled after wallet connection/authentication)
+        // Entry button
         const enterBtn = document.getElementById('enter-contest-btn');
         if (enterBtn) {
             enterBtn.addEventListener('click', () => this.handleContestEntry());
@@ -479,9 +481,32 @@ class DailyContestManager {
                     border: 2px dashed #333;
                     color: #888;
                 ">
-                    <h3>📅 No Games Scheduled</h3>
-                    <p>${isToday ? "No games are scheduled for today's contest." : `No games scheduled for ${currentDate ? currentDate.toLocaleDateString() : 'this date'}.`}</p>
-                    <p style="margin-top: 10px; font-size: 0.9em;">Check back later or try another day.</p>
+                    <div style="font-size: 3em; margin-bottom: 20px;">�</div>
+                    <h3 style="color: #ffa500; margin-bottom: 15px;">No Games Available</h3>
+                    <p style="margin-bottom: 20px;">
+                        ${isToday ? 
+                            'No games are scheduled for today.' : 
+                            `No games are scheduled for ${currentDate ? currentDate.toDateString() : 'this date'}.`
+                        }
+                    </p>
+                    <div style="margin-top: 20px;">
+                        <button onclick="window.dailyContest.loadContestForDay(${this.currentDay})" style="
+                            background: #4CAF50;
+                            color: white;
+                            border: none;
+                            padding: 12px 24px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            margin: 5px;
+                        ">🔄 Refresh Games</button>
+                        ${isToday ? `
+                            <br><br>
+                            <p style="color: #666; font-size: 0.9em;">
+                                Admins can manually select games via the 
+                                <a href="admin-contest.html" style="color: #ffa500;">Admin Portal</a>
+                            </p>
+                        ` : ''}
+                    </div>
                 </div>
             `;
             return;
@@ -489,9 +514,45 @@ class DailyContestManager {
 
         console.log(`🎮 Displaying ${currentDayGames.length} games for day ${this.currentDay}`);
         
-        // Render all available games
+        // Check if these are admin-selected or auto-loaded games
+        const adminSelectedGames = this.loadAdminSelectedGamesForDay(this.contestDays[this.currentDay].dateString);
+        const isAdminSelected = adminSelectedGames && adminSelectedGames.length > 0;
         
+        // Render all available games with game type indicator
         gamesContainer.innerHTML = `
+            <div class="games-display-header" style="
+                background: #1a1a1a; 
+                padding: 20px; 
+                border-radius: 8px; 
+                margin-bottom: 20px;
+                border: 1px solid #333;
+                text-align: center;
+            ">
+                <h3 style="color: #4CAF50; margin-bottom: 10px;">
+                    📅 ${this.contestDays[this.currentDay].dateString}
+                </h3>
+                <p style="color: #ccc; margin: 0;">
+                    ${currentDayGames.length} games available - Pick your winners!
+                </p>
+                <div style="margin-top: 10px;">
+                    ${isAdminSelected ? 
+                        '<span style="background: #4CAF50; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em;">👨‍💼 Admin Selected Games</span>' : 
+                        '<span style="background: #2196F3; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em;">🤖 All Available Games</span>'
+                    }
+                </div>
+                ${this.isContestClosed() ? `
+                    <div style="
+                        background: #ff4444; 
+                        color: white; 
+                        padding: 10px; 
+                        border-radius: 6px; 
+                        margin-top: 15px;
+                        font-weight: bold;
+                    ">
+                        ⏰ Contest deadline has passed - No more picks allowed
+                    </div>
+                ` : ''}
+            </div>
             <div class="games-content-wrapper">
                 <div class="games-list" style="
                     display: flex;
@@ -676,7 +737,7 @@ class DailyContestManager {
                 ` : ''}
             </div>
         `;
-    }setupGameEventListeners() {
+    }    setupGameEventListeners() {
         // Handle clicks on team buttons
         document.querySelectorAll('.team-btn').forEach(button => {
             button.addEventListener('click', (e) => {
@@ -684,6 +745,12 @@ class DailyContestManager {
                 e.stopPropagation();
                 const gameId = button.dataset.gameId;
                 const team = button.dataset.team;
+                
+                // Check if contest is closed
+                if (this.isContestClosed()) {
+                    this.showError('Contest deadline has passed. No more picks allowed.');
+                    return;
+                }
                 
                 // Add haptic feedback for mobile
                 if ('vibrate' in navigator) {
@@ -701,6 +768,12 @@ class DailyContestManager {
                 e.stopPropagation();
                 const gameId = button.dataset.gameId;
                 
+                // Check if contest is closed
+                if (this.isContestClosed()) {
+                    this.showError('Contest deadline has passed. No changes allowed.');
+                    return;
+                }
+                
                 // Add haptic feedback for mobile
                 if ('vibrate' in navigator) {
                     navigator.vibrate(10);
@@ -708,6 +781,7 @@ class DailyContestManager {
                 
                 delete this.userPicks[gameId];
                 this.displayGames();
+                this.updateEntryButton();
             });
         });
     }
@@ -1043,8 +1117,10 @@ class DailyContestManager {
                 }
             </button>
             
-            <div class="entry-info" style="margin-top: 10px; font-size: 0.8em; color: #666;">
+            <div class="entry-info" style="margin-top: 10px; font-size: 0.8em; color: #666; text-align: center;">
                 💰 Entry fee: 50 $NUTS • 🏆 Top 3 win (50%/30%/20%)
+                <br>
+                <span style="color: #ffa500; font-weight: bold;">🔗 Wallet connection required for contest entry</span>
             </div>
         `;
         }
@@ -1260,243 +1336,6 @@ class DailyContestManager {
         } catch (error) {
             console.error('❌ Contest entry failed:', error);
             this.showError('Failed to enter contest: ' + error.message);
-        }
-    }    // Wallet Connection handler methods
-    async handleWalletConnection() {
-        try {
-            console.log('🔗 Connecting Xaman wallet with enhanced QR modal...');
-            
-            const connectBtn = document.getElementById('connect-wallet-btn');
-            const walletText = document.getElementById('walletText');
-            const walletSpinner = document.getElementById('walletSpinner');
-            
-            // Prevent multiple clicks
-            if (connectBtn && connectBtn.disabled) {
-                console.log('⚠️ Connection already in progress...');
-                return;
-            }
-            
-            // Check if already authenticated
-            if (window.xamanAuth && window.xamanAuth.isUserAuthenticated()) {
-                // Already authenticated, show disconnect option
-                this.handleWalletDisconnection();
-                return;
-            }
-            
-            // Show loading state
-            if (walletText) walletText.textContent = 'Connecting...';
-            if (walletSpinner) walletSpinner.classList.remove('hidden');
-            if (connectBtn) connectBtn.disabled = true;
-            
-            // Use the production Xaman wallet connection
-            if (window.xamanWallet) {
-                console.log('🎨 Using Xaman production wallet connection...');
-                const result = await window.xamanWallet.connect();
-                
-                if (result && result.account) {
-                    console.log('✅ Wallet connected:', result.account);
-                    // Update UI with wallet info
-                    this.onWalletConnected({
-                        user: {
-                            account: result.account,
-                            network: result.network || 'mainnet'
-                        }
-                    });
-                }
-            } else {
-                throw new Error('Xaman wallet integration not loaded');
-            }
-            
-        } catch (error) {
-            console.error('❌ Wallet connection failed:', error);
-            this.showError('Wallet connection failed: ' + error.message);
-            this.resetWalletButton();
-        }
-    }handleWalletDisconnection() {
-        try {
-            console.log('🚪 Disconnecting wallet...');
-            
-            // Clear authentication state
-            if (window.xamanAuth) {
-                window.xamanAuth.user = null;
-                window.xamanAuth.isAuthenticated = false;
-                window.xamanAuth.accessToken = null;
-            }
-            
-            // Trigger disconnect event
-            window.dispatchEvent(new CustomEvent('xamanLogout'));
-            
-            // Update UI immediately
-            this.onWalletDisconnected();
-            
-        } catch (error) {
-            console.error('❌ Wallet disconnection failed:', error);
-            this.showError('Wallet disconnection failed: ' + error.message);
-        }
-    }    onWalletConnected(userInfo) {
-        console.log('✅ Wallet connected successfully:', userInfo);
-        
-        // Update wallet connection UI
-        this.updateWalletUI(true, userInfo);
-        
-        // Update contest status
-        this.updateContestStatus(true, userInfo);
-        
-        // Show success message
-        this.showNotification(`Wallet connected! Welcome ${userInfo.name}`, 'success');
-    }
-
-    onWalletDisconnected() {
-        console.log('🚪 Wallet disconnected');
-        
-        // Update wallet connection UI
-        this.updateWalletUI(false);
-        
-        // Update contest status
-        this.updateContestStatus(false);
-        
-        // Clear any user-specific data
-        this.clearUserData();
-    }    updateWalletUI(isConnected, userInfo = null) {
-        const connectBtn = document.getElementById('connect-wallet-btn');
-        const walletText = document.getElementById('walletText');
-        const walletSpinner = document.getElementById('walletSpinner');
-        const walletInfo = document.getElementById('wallet-info');
-        const walletAddress = document.querySelector('.wallet-address');
-        
-        if (isConnected && userInfo) {
-            // Update connect button to show connected state
-            if (walletText) walletText.textContent = 'Disconnect';
-            if (walletSpinner) walletSpinner.classList.add('hidden');
-            if (connectBtn) {
-                connectBtn.disabled = false;
-                connectBtn.onclick = () => this.handleWalletDisconnection();
-                connectBtn.title = 'Click to disconnect wallet';
-                connectBtn.style.background = 'linear-gradient(135deg, #f44336, #ff6b6b)';
-            }
-            
-            // Show wallet info
-            if (walletInfo) walletInfo.classList.remove('hidden');
-            if (walletAddress) {
-                walletAddress.textContent = userInfo.wallet_address.substring(0, 8) + '...';
-            }
-            
-            // Update user info section
-            const userInfoDiv = document.getElementById('user-info');
-            if (userInfoDiv) {
-                userInfoDiv.innerHTML = `
-                    <div class="user-profile" style="
-                        background: #2a2a2a; 
-                        padding: 15px; 
-                        border-radius: 8px; 
-                        border: 1px solid #4CAF50;
-                        text-align: center;
-                    ">
-                        <div class="user-details">
-                            <div class="user-name" style="color: #4CAF50; font-weight: bold; margin-bottom: 5px;">
-                                🟢 ${userInfo.name}
-                            </div>
-                            <div class="user-wallet" style="color: #ffa500; font-size: 0.9em; font-family: monospace;">
-                                ${userInfo.wallet_address}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                userInfoDiv.style.display = 'block';
-            }
-            
-        } else {
-            // Update connect button to show disconnected state
-            if (walletText) walletText.textContent = 'Connect Wallet';
-            if (walletSpinner) walletSpinner.classList.add('hidden');
-            if (connectBtn) {
-                connectBtn.disabled = false;
-                connectBtn.onclick = () => this.handleWalletConnection();
-                connectBtn.title = 'Connect your Xaman wallet';
-                connectBtn.style.background = 'linear-gradient(135deg, #4CAF50, #00ff88)';
-            }
-            
-            // Hide wallet info
-            if (walletInfo) walletInfo.classList.add('hidden');
-            
-            // Hide user info
-            const userInfoDiv = document.getElementById('user-info');
-            if (userInfoDiv) userInfoDiv.style.display = 'none';
-        }
-    }
-
-    updateContestStatus(isConnected, userInfo = null) {
-        const statusCard = document.querySelector('.status-card');
-        const statusIcon = document.querySelector('.status-icon');
-        const statusTitle = statusCard?.querySelector('h3');
-        const statusDescription = statusCard?.querySelector('p');
-        const enterContestBtn = document.getElementById('enter-contest-btn');
-        
-        if (isConnected && userInfo) {
-            // Update to connected state
-            if (statusIcon) statusIcon.textContent = '🎯';
-            if (statusTitle) statusTitle.textContent = 'Ready to Enter Contest';
-            if (statusDescription) statusDescription.textContent = 'Your wallet is connected and you can enter contests!';
-            
-            // Enable contest entry button
-            if (enterContestBtn) {
-                enterContestBtn.disabled = false;
-                enterContestBtn.innerHTML = '<span>Enter Contest (50 $NUTS)</span><div class="btn-glow"></div>';
-            }
-            
-        } else {
-            // Update to disconnected state
-            if (statusIcon) statusIcon.textContent = '🔗';
-            if (statusTitle) statusTitle.textContent = 'Wallet Connection Required';
-            if (statusDescription) statusDescription.textContent = 'Connect your Xaman wallet to participate in contests';
-            
-            // Disable contest entry button
-            if (enterContestBtn) {
-                enterContestBtn.disabled = true;
-                enterContestBtn.innerHTML = '<span>Connect Wallet to Enter Contest</span><div class="btn-glow"></div>';
-            }
-        }
-    }    clearUserData() {
-        // Clear user picks and contest entry data when wallet is disconnected
-        this.userPicks = {};
-        
-        // Reset any disabled UI elements
-        document.querySelectorAll('.team-option').forEach(team => {
-            team.style.pointerEvents = '';
-            team.style.opacity = '';
-        });
-        
-        // Re-enable entry button if user was in middle of contest entry
-        const entryButton = document.getElementById('enter-contest-btn');
-        if (entryButton && entryButton.textContent.includes('Contest Entered')) {
-            entryButton.disabled = true;
-            entryButton.innerHTML = '<span>Connect Wallet to Enter Contest</span><div class="btn-glow"></div>';
-            entryButton.style.background = '';
-        }
-        
-        // Refresh games display
-        this.displayGames();
-    }    // Update getUserWallet to use authenticated user's wallet
-    getUserWallet() {
-        if (window.xamanAuth && window.xamanAuth.isUserAuthenticated()) {
-            const userInfo = window.xamanAuth.getUserInfo();
-            if (userInfo && userInfo.wallet_address) {
-                return userInfo.wallet_address;
-            }
-        }
-        
-        // Fallback for demo purposes
-        return null;
-    }    resetWalletButton() {
-        const connectBtn = document.getElementById('connect-wallet-btn');
-        const walletText = document.getElementById('walletText');
-        const walletSpinner = document.getElementById('walletSpinner');
-        
-        if (walletText) walletText.textContent = 'Connect Wallet';
-        if (walletSpinner) walletSpinner.classList.add('hidden');
-        if (connectBtn) {
-            connectBtn.disabled = false;
-            connectBtn.onclick = () => this.handleWalletConnection();
         }
     }
 

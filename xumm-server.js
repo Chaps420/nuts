@@ -5,14 +5,14 @@
 
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch');
+// Node.js v18+ has native fetch support
 
 const app = express();
 const port = 3001;
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:8080', 'http://localhost:3000', 'http://127.0.0.1:8080'],
+    origin: ['http://localhost:8080', 'http://localhost:3000', 'http://127.0.0.1:8080', 'http://localhost:8000', 'http://127.0.0.1:8000'],
     credentials: true
 }));
 app.use(express.json());
