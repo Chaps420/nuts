@@ -116,7 +116,6 @@ window.config = {
       'https://nuts-sports-pickem.firebaseapp.com'
     ]
   },
-  },
 
   // NFT Configuration
   nft: {
