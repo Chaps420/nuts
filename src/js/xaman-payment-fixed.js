@@ -386,6 +386,12 @@ ${JSON.stringify(transaction, null, 2)}
 // Create global instance
 window.xamanPaymentFixed = new XamanPaymentFixed();
 
+// Set up all the payment references for compatibility
+window.xamanPayment = window.xamanPaymentFixed;
+window.xamanPaymentAPI = window.xamanPaymentFixed;
+window.xamanPaymentCorrect = window.xamanPaymentFixed;
+window.xamanPaymentWorking = window.xamanPaymentFixed;
+
 // Also expose for contest wallet compatibility
 window.contestWallet = {
     processEntryPayment: async function() {

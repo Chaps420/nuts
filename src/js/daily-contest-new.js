@@ -571,6 +571,9 @@ class DailyContestManager {
         // Add enter button if not already present
         this.addEnterButton();
         
+        // Update entry button state
+        this.updateEntryButton();
+        
         // Check if contest is closed and update UI accordingly
         this.updateContestClosedUI();
         
@@ -592,6 +595,7 @@ class DailyContestManager {
         
         const gameDate = new Date(game.gameTime);
         const timeStr = gameDate.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'});
+        const isGameLocked = this.isGameLocked(game);
         
         // Get team abbreviations
         const getTeamAbbr = (teamName) => {
@@ -617,9 +621,10 @@ class DailyContestManager {
         const pickedTeam = this.userPicks[game.id];
         
         return `
-            <div class="game-card" data-game-id="${game.id}" style="
-                background: ${isPicked ? 'linear-gradient(135deg, #1a3d1a, #1e1e1e)' : '#1e1e1e'};
-                border: 2px solid ${isPicked ? '#4CAF50' : '#333'};
+            <div class="game-card ${isGameLocked ? 'game-locked' : ''}" data-game-id="${game.id}" style="
+                background: ${isGameLocked ? 'linear-gradient(135deg, #2a2a2a, #1a1a1a)' : 
+                            (isPicked ? 'linear-gradient(135deg, #1a3d1a, #1e1e1e)' : '#1e1e1e')};
+                border: 2px solid ${isGameLocked ? '#666' : (isPicked ? '#4CAF50' : '#333')};
                 border-radius: 8px;
                 padding: 12px;
                 margin-bottom: 8px;
@@ -628,16 +633,17 @@ class DailyContestManager {
                 display: flex;
                 align-items: center;
                 gap: 12px;
+                opacity: ${isGameLocked ? '0.7' : '1'};
             ">
                 <!-- Game Time -->
                 <div class="game-time" style="
-                    color: #ffa500;
+                    color: ${isGameLocked ? '#ff6b6b' : '#ffa500'};
                     font-size: 0.8em;
                     min-width: 55px;
                     text-align: center;
                     flex-shrink: 0;
                     font-weight: 600;
-                ">${timeStr}</div>
+                ">${isGameLocked ? 'LOCKED' : timeStr}</div>
                 
                 <!-- Team Selection -->
                 <div class="matchup" style="
@@ -647,17 +653,18 @@ class DailyContestManager {
                     gap: 8px;
                 ">
                     <!-- Away Team Button -->
-                    <button class="team-btn ${pickedTeam === 'away' ? 'selected' : ''}" 
+                    <button class="team-btn ${pickedTeam === 'away' ? 'selected' : ''} ${isGameLocked ? 'locked' : ''}" 
                          data-team="away" 
                          data-game-id="${game.id}" 
+                         ${isGameLocked ? 'disabled' : ''}
                          style="
                         flex: 1;
-                        background: ${pickedTeam === 'away' ? '#4CAF50' : '#2a2a2a'};
-                        color: ${pickedTeam === 'away' ? '#000' : '#fff'};
-                        border: 2px solid ${pickedTeam === 'away' ? '#4CAF50' : '#444'};
+                        background: ${pickedTeam === 'away' ? '#4CAF50' : (isGameLocked ? '#333' : '#2a2a2a')};
+                        color: ${pickedTeam === 'away' ? '#000' : (isGameLocked ? '#888' : '#fff')};
+                        border: 2px solid ${pickedTeam === 'away' ? '#4CAF50' : (isGameLocked ? '#666' : '#444')};
                         border-radius: 6px;
                         padding: 10px;
-                        cursor: pointer;
+                        cursor: ${isGameLocked ? 'not-allowed' : 'pointer'};
                         transition: all 0.2s ease;
                         display: flex;
                         flex-direction: column;
@@ -667,11 +674,12 @@ class DailyContestManager {
                         position: relative;
                         min-height: 50px;
                     " 
-                    onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#666'; this.style.background='#333'; }"
-                    onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#444'; this.style.background='#2a2a2a'; }">
+                    ${!isGameLocked ? `onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#666'; this.style.background='#333'; }"
+                    onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#444'; this.style.background='#2a2a2a'; }"` : ''}>
                         <span style="font-weight: bold; font-size: 1.1em;">${awayAbbr || 'AWAY'}</span>
                         <span style="font-size: 0.75em; opacity: 0.8; margin-top: 2px;">${game.awayOdds || '+100'}</span>
                         ${pickedTeam === 'away' ? '<div style="position: absolute; top: 2px; right: 2px; font-size: 0.7em;">✓</div>' : ''}
+                        ${isGameLocked ? '<div style="position: absolute; top: 2px; left: 2px; font-size: 0.7em; color: #ff6b6b;">🔒</div>' : ''}
                     </button>
                     
                     <!-- VS Separator -->
@@ -679,23 +687,24 @@ class DailyContestManager {
                         display: flex;
                         align-items: center;
                         padding: 0 10px;
-                        color: #888;
+                        color: ${isGameLocked ? '#666' : '#888'};
                         font-size: 0.9em;
                         font-weight: bold;
                     ">VS</div>
                     
                     <!-- Home Team Button -->
-                    <button class="team-btn ${pickedTeam === 'home' ? 'selected' : ''}" 
+                    <button class="team-btn ${pickedTeam === 'home' ? 'selected' : ''} ${isGameLocked ? 'locked' : ''}" 
                          data-team="home" 
                          data-game-id="${game.id}" 
+                         ${isGameLocked ? 'disabled' : ''}
                          style="
                         flex: 1;
-                        background: ${pickedTeam === 'home' ? '#4CAF50' : '#2a2a2a'};
-                        color: ${pickedTeam === 'home' ? '#000' : '#fff'};
-                        border: 2px solid ${pickedTeam === 'home' ? '#4CAF50' : '#444'};
+                        background: ${pickedTeam === 'home' ? '#4CAF50' : (isGameLocked ? '#333' : '#2a2a2a')};
+                        color: ${pickedTeam === 'home' ? '#000' : (isGameLocked ? '#888' : '#fff')};
+                        border: 2px solid ${pickedTeam === 'home' ? '#4CAF50' : (isGameLocked ? '#666' : '#444')};
                         border-radius: 6px;
                         padding: 10px;
-                        cursor: pointer;
+                        cursor: ${isGameLocked ? 'not-allowed' : 'pointer'};
                         transition: all 0.2s ease;
                         display: flex;
                         flex-direction: column;
@@ -705,16 +714,31 @@ class DailyContestManager {
                         position: relative;
                         min-height: 50px;
                     "
-                    onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#666'; this.style.background='#333'; }"
-                    onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#444'; this.style.background='#2a2a2a'; }">
+                    ${!isGameLocked ? `onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#666'; this.style.background='#333'; }"
+                    onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#444'; this.style.background='#2a2a2a'; }"` : ''}>
                         <span style="font-weight: bold; font-size: 1.1em;">${homeAbbr || 'HOME'}</span>
                         <span style="font-size: 0.75em; opacity: 0.8; margin-top: 2px;">${game.homeOdds || '-120'}</span>
                         ${pickedTeam === 'home' ? '<div style="position: absolute; top: 2px; right: 2px; font-size: 0.7em;">✓</div>' : ''}
+                        ${isGameLocked ? '<div style="position: absolute; top: 2px; left: 2px; font-size: 0.7em; color: #ff6b6b;">🔒</div>' : ''}
                     </button>
                 </div>
                 
-                <!-- Clear Pick Button -->
-                ${isPicked ? `
+                <!-- Clear Pick Button or Lock Status -->
+                ${isGameLocked ? `
+                    <div style="
+                        background: #ff6b6b;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        padding: 8px 14px;
+                        font-size: 0.8em;
+                        font-weight: 500;
+                        flex-shrink: 0;
+                        opacity: 0.8;
+                    ">
+                        🔒 Started
+                    </div>
+                ` : (isPicked ? `
                     <button class="clear-pick-btn" 
                          data-game-id="${game.id}"
                          style="
@@ -734,10 +758,12 @@ class DailyContestManager {
                     onmouseout="this.style.opacity='0.9'; this.style.background='#ff4444';">
                         Clear
                     </button>
-                ` : ''}
+                ` : '')}
             </div>
         `;
-    }    setupGameEventListeners() {
+    }
+
+    setupGameEventListeners() {
         // Handle clicks on team buttons
         document.querySelectorAll('.team-btn').forEach(button => {
             button.addEventListener('click', (e) => {
@@ -746,9 +772,16 @@ class DailyContestManager {
                 const gameId = button.dataset.gameId;
                 const team = button.dataset.team;
                 
-                // Check if contest is closed
-                if (this.isContestClosed()) {
-                    this.showError('Contest deadline has passed. No more picks allowed.');
+                // Find the game to check if it's locked
+                const game = this.selectedGames.find(g => g.id === gameId);
+                if (!game) {
+                    console.error('Game not found:', gameId);
+                    return;
+                }
+                
+                // Check if this specific game is locked (started)
+                if (this.isGameLocked(game)) {
+                    this.showError('This game has already started. Picks are locked for this game.');
                     return;
                 }
                 
@@ -768,9 +801,16 @@ class DailyContestManager {
                 e.stopPropagation();
                 const gameId = button.dataset.gameId;
                 
-                // Check if contest is closed
-                if (this.isContestClosed()) {
-                    this.showError('Contest deadline has passed. No changes allowed.');
+                // Find the game to check if it's locked
+                const game = this.selectedGames.find(g => g.id === gameId);
+                if (!game) {
+                    console.error('Game not found:', gameId);
+                    return;
+                }
+                
+                // Check if this specific game is locked (started)
+                if (this.isGameLocked(game)) {
+                    this.showError('This game has already started. No changes allowed.');
                     return;
                 }
                 
@@ -789,30 +829,20 @@ class DailyContestManager {
     calculateContestDeadline(games) {
         if (!games || games.length === 0) return null;
         
-        // Check if MLB API reported games in progress
-        if (games.hasGamesInProgress) {
-            console.log('🚨 MLB API reports games in progress - contest must be closed!');
-            this.contestDeadline = new Date(Date.now() - 1000); // 1 second ago
-            return this.contestDeadline;
-        }
-        
         const now = new Date();
         
-        // Find the earliest game time
-        const earliestGame = games.reduce((earliest, game) => {
+        // Find games that haven't started yet
+        const upcomingGames = games.filter(game => {
             const gameTime = new Date(game.gameTime);
-            const earlyTime = new Date(earliest.gameTime);
-            return gameTime < earlyTime ? game : earliest;
+            return now <= gameTime;
         });
         
-        // Set deadline to when the first game starts
-        const deadline = new Date(earliestGame.gameTime);
+        // Check if MLB API reported games in progress
+        if (games.hasGamesInProgress) {
+            console.log('🚨 MLB API reports games in progress');
+        }
         
-        // Log timezone information for debugging
-        console.log(`⏰ Timezone debug: earliestGame=${earliestGame.gameTime}, now=${now.toISOString()}, deadline=${deadline.toISOString()}`);
-        console.log(`⏰ Local times: now=${now.toLocaleString()}, deadline=${deadline.toLocaleString()}, earliestGame=${new Date(earliestGame.gameTime).toLocaleString()}`);
-        
-        // Check if any game has already started
+        // Log all games and their status
         console.log('🔍 Checking all games for start times:');
         games.forEach((game, index) => {
             const gameTime = new Date(game.gameTime);
@@ -820,18 +850,24 @@ class DailyContestManager {
             console.log(`Game ${index + 1}: ${game.awayTeam} @ ${game.homeTeam} - ${gameTime.toLocaleString()} (Started: ${started})`);
         });
         
-        const hasStartedGame = games.some(game => {
-            const gameTime = new Date(game.gameTime);
-            return now > gameTime;
-        });
-        
-        if (hasStartedGame) {
-            console.log('🚨 At least one game has already started - contest should be closed!');
-            // Set deadline to now to force contest closure
-            this.contestDeadline = new Date(now.getTime() - 1000); // 1 second ago
+        // For multi-day contests, only set deadline if ALL games for current day have started
+        // But individual games will be locked based on their own start time
+        if (upcomingGames.length > 0) {
+            const earliestUpcomingGame = upcomingGames.reduce((earliest, game) => {
+                const gameTime = new Date(game.gameTime);
+                const earlyTime = new Date(earliest.gameTime);
+                return gameTime < earlyTime ? game : earliest;
+            });
+            
+            this.contestDeadline = new Date(earliestUpcomingGame.gameTime);
+            console.log(`✅ ${upcomingGames.length} games still available. Next deadline: ${this.contestDeadline.toLocaleString()}`);
         } else {
-            console.log('✅ No games have started yet - contest remains open');
-            this.contestDeadline = deadline; // Store the deadline
+            // All games for today have started - but user can still pick for future days
+            console.log('ℹ️ All games for today have started - but future days remain available');
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(8, 0, 0, 0); // Set to 8 AM tomorrow
+            this.contestDeadline = tomorrow;
         }
         
         // Trigger immediate time update in HTML
@@ -843,77 +879,54 @@ class DailyContestManager {
     }
 
     isContestClosed() {
-        if (!this.contestDeadline) return false;
-        return new Date() > this.contestDeadline;
+        // For multi-day contests, never fully close - just lock individual games
+        return false;
+    }
+
+    isGameStarted(game) {
+        if (!game || !game.gameTime) return false;
+        const now = new Date();
+        const gameTime = new Date(game.gameTime);
+        return now > gameTime;
+    }
+
+    isGameLocked(game) {
+        // Individual games are locked once they start
+        return this.isGameStarted(game);
     }
 
     updateContestClosedUI() {
-        const now = new Date();
-        const deadline = this.contestDeadline;
-        console.log(`🕐 Checking contest status: now=${now.toLocaleString()}, deadline=${deadline ? deadline.toLocaleString() : 'null'}, closed=${this.isContestClosed()}`);
+        // For multi-day contests, we don't close the entire UI
+        // Individual games are locked when they start, but the contest remains open
+        console.log('ℹ️ Multi-day contest - individual games lock when they start');
         
-        if (!this.isContestClosed()) return;
+        // Count locked games for information
+        const lockedGames = this.selectedGames.filter(game => this.isGameLocked(game));
+        const totalGames = this.selectedGames.length;
         
-        console.log('🚫 Contest is closed - updating UI');
-        
-        // Disable all team buttons
-        document.querySelectorAll('.team-btn').forEach(btn => {
-            btn.disabled = true;
-            btn.style.opacity = '0.5';
-            btn.style.cursor = 'not-allowed';
-        });
-        
-        // Update entry status
-        const statusCard = document.querySelector('.status-card');
-        if (statusCard) {
-            const statusIcon = statusCard.querySelector('.status-icon');
-            const statusTitle = statusCard.querySelector('h3');
-            const statusDescription = statusCard.querySelector('p');
-            
-            if (statusIcon) statusIcon.textContent = '🚫';
-            if (statusTitle) statusTitle.textContent = 'Contest Closed';
-            if (statusDescription) statusDescription.textContent = 'Today\'s contest entry period has ended. Games have started.';
-            
-            statusCard.style.background = 'linear-gradient(135deg, #ff4444, #cc3333)';
-        }
-        
-        // Hide submit section
-        const submitSection = document.getElementById('submit-section');
-        if (submitSection) {
-            submitSection.style.display = 'none';
-        }
-        
-        // Show closed message in games section
-        const gamesGrid = document.getElementById('games-grid');
-        if (gamesGrid) {
-            const closedMessage = document.createElement('div');
-            closedMessage.style.cssText = `
-                background: #ff4444;
-                color: white;
-                padding: 20px;
-                border-radius: 8px;
-                text-align: center;
-                margin: 20px 0;
-                font-weight: bold;
-            `;
-            closedMessage.innerHTML = `
-                <h3>🚫 Contest Closed</h3>
-                <p>Entry period has ended. The first game has started.</p>
-                <p>Come back tomorrow for the next daily contest!</p>
-            `;
-            gamesGrid.insertBefore(closedMessage, gamesGrid.firstChild);
+        if (lockedGames.length > 0) {
+            console.log(`🔒 ${lockedGames.length}/${totalGames} games are locked (started)`);
         }
     }
 
     makePickForGame(gameId, team) {
-        // Check if contest is closed
-        if (this.isContestClosed()) {
-            console.log('🚫 Cannot make pick - contest is closed');
+        // Find the game to check if it's locked
+        const game = this.selectedGames.find(g => g.id === gameId);
+        if (!game) {
+            console.error('Game not found:', gameId);
+            return;
+        }
+        
+        // Check if this specific game is locked (started)
+        if (this.isGameLocked(game)) {
+            console.log('🚫 Cannot make pick - game has started');
             return;
         }
         
         // Store the pick
         this.userPicks[gameId] = team;
+        
+        console.log(`✅ Pick made: Game ${gameId} -> ${team}`);
         
         // Refresh display
         this.displayGames();
@@ -949,23 +962,6 @@ class DailyContestManager {
         const teamName = selectedTeam === 'home' ? game.homeTeam : game.awayTeam;
         gameCard.querySelector('.pick-status').innerHTML = 
             `<span class="picked" style="color: #4CAF50;">✅ ${teamName} selected</span>`;
-    }
-
-    updateEntryButton() {
-        const entryButton = document.getElementById('enter-contest-btn');
-        const picksCount = Object.keys(this.userPicks).length;
-        
-        if (entryButton) {
-            if (picksCount === this.selectedGames.length) {
-                entryButton.disabled = false;
-                entryButton.textContent = `Enter Contest (${picksCount}/${this.selectedGames.length} picks)`;
-                entryButton.classList.add('ready');
-            } else {
-                entryButton.disabled = true;
-                entryButton.textContent = `Make Your Picks (${picksCount}/${this.selectedGames.length})`;
-                entryButton.classList.remove('ready');
-            }
-        }
     }
 
     addEnterButton() {
@@ -1142,10 +1138,18 @@ class DailyContestManager {
         const progressBar = document.querySelector('.progress-bar');
         const picksCountSpan = document.querySelector('.picks-summary span[style*="color: #4CAF50"]');
         const picksCount = Object.keys(this.userPicks).length;
-        const totalGames = this.selectedGames.length;
+        const unlockedGames = this.selectedGames.filter(game => !this.isGameLocked(game));
+        const lockedGames = this.selectedGames.filter(game => this.isGameLocked(game));
+        
+        // Check if user has picks for all unlocked games
+        const unlockedGameIds = unlockedGames.map(g => g.id);
+        const picksForUnlockedGames = Object.keys(this.userPicks).filter(gameId => 
+            unlockedGameIds.includes(gameId)
+        );
         
         if (entryButton) {
-            const isComplete = picksCount === totalGames;
+            const isComplete = picksForUnlockedGames.length === unlockedGames.length && unlockedGames.length > 0;
+            const canSubmit = unlockedGames.length > 0;
             
             // Update button state
             entryButton.disabled = !isComplete;
@@ -1161,25 +1165,43 @@ class DailyContestManager {
                     this.handleContestEntry();
                 };
             }
-            entryButton.style.background = isComplete ? 
-                'linear-gradient(135deg, #4CAF50, #00ff88)' : '#555';
-            entryButton.style.color = isComplete ? '#000' : '#888';
-            entryButton.style.cursor = isComplete ? 'pointer' : 'not-allowed';
-            entryButton.style.boxShadow = isComplete ? 
-                '0 0 20px rgba(76, 175, 80, 0.3)' : 'none';
             
-            entryButton.textContent = isComplete ? 
-                '🎯 Enter Contest (50 $NUTS)' : 
-                `Make All Picks (${totalGames - picksCount} remaining)`;
+            if (!canSubmit) {
+                // No unlocked games available
+                entryButton.style.background = '#ff4444';
+                entryButton.style.color = '#fff';
+                entryButton.style.cursor = 'not-allowed';
+                entryButton.style.boxShadow = 'none';
+                entryButton.textContent = 'All Games Started - Try Another Day!';
+            } else {
+                // Some unlocked games available
+                entryButton.style.background = isComplete ? 
+                    'linear-gradient(135deg, #4CAF50, #00ff88)' : '#555';
+                entryButton.style.color = isComplete ? '#000' : '#888';
+                entryButton.style.cursor = isComplete ? 'pointer' : 'not-allowed';
+                entryButton.style.boxShadow = isComplete ? 
+                    '0 0 20px rgba(76, 175, 80, 0.3)' : 'none';
+                
+                const remainingPicks = unlockedGames.length - picksForUnlockedGames.length;
+                
+                entryButton.textContent = isComplete ? 
+                    `🎯 Enter Contest (50 $NUTS) - ${unlockedGames.length} games` : 
+                    `Make All Available Picks (${remainingPicks} remaining)`;
+            }
             
             // Update progress bar
             if (progressBar) {
-                progressBar.style.width = `${(picksCount / totalGames) * 100}%`;
+                const progress = unlockedGames.length > 0 ? 
+                    (picksForUnlockedGames.length / unlockedGames.length) * 100 : 0;
+                progressBar.style.width = `${progress}%`;
             }
             
             // Update picks count
             if (picksCountSpan) {
-                picksCountSpan.textContent = `${picksCount}/${totalGames}`;
+                const statusText = lockedGames.length > 0 ? 
+                    `${picksForUnlockedGames.length}/${unlockedGames.length} available (${lockedGames.length} started)` :
+                    `${picksForUnlockedGames.length}/${unlockedGames.length}`;
+                picksCountSpan.textContent = statusText;
             }
         }
     }    async handleContestEntry() {
@@ -1188,17 +1210,31 @@ class DailyContestManager {
         
         try {
             const picksCount = Object.keys(this.userPicks).length;
-            console.log('📊 Picks count:', picksCount, 'Games:', this.selectedGames.length);
+            const unlockedGames = this.selectedGames.filter(game => !this.isGameLocked(game));
+            const lockedGames = this.selectedGames.filter(game => this.isGameLocked(game));
             
-            if (picksCount !== this.selectedGames.length) {
-                this.showError(`Please make picks for all ${this.selectedGames.length} games.`);
+            console.log('📊 Games status:', {
+                totalGames: this.selectedGames.length,
+                unlockedGames: unlockedGames.length,
+                lockedGames: lockedGames.length,
+                picksCount: picksCount
+            });
+            
+            // Check if user has picks for all unlocked games
+            const unlockedGameIds = unlockedGames.map(g => g.id);
+            const picksForUnlockedGames = Object.keys(this.userPicks).filter(gameId => 
+                unlockedGameIds.includes(gameId)
+            );
+            
+            if (picksForUnlockedGames.length !== unlockedGames.length) {
+                const missingCount = unlockedGames.length - picksForUnlockedGames.length;
+                this.showError(`Please make picks for all ${unlockedGames.length} available games. You're missing ${missingCount} pick${missingCount !== 1 ? 's' : ''}.`);
                 return;
             }
             
-            // Check if contest is still open (when first game starts)
-            const contestDeadline = this.calculateContestDeadline(this.selectedGames);
-            if (contestDeadline && new Date() > contestDeadline) {
-                this.showError('Contest entries have closed. The first game has started.');
+            // If there are no unlocked games, don't allow entry
+            if (unlockedGames.length === 0) {
+                this.showError('All games have started. No new entries allowed for today. Try another day!');
                 return;
             }
             
@@ -1232,23 +1268,38 @@ class DailyContestManager {
             const twitterHandleInput = document.getElementById('twitter-handle');
             const twitterHandle = twitterHandleInput ? twitterHandleInput.value.trim() : '';
             
-            // Prepare contest entry data
+            // Prepare contest entry data - only include picks for unlocked games
+            const validPicks = {};
+            const validGames = [];
+            
+            unlockedGames.forEach(game => {
+                if (this.userPicks[game.id]) {
+                    validPicks[game.id] = this.userPicks[game.id];
+                    validGames.push({
+                        gameId: game.id,
+                        pickedTeam: this.userPicks[game.id],
+                        result: null, // win, loss, or pending
+                        actualWinner: null,
+                        gameTime: game.gameTime,
+                        awayTeam: game.awayTeam,
+                        homeTeam: game.homeTeam
+                    });
+                }
+            });
+            
             const contestEntry = {
                 userId: 'USER_' + Date.now(),
                 userName: twitterHandle ? `@${twitterHandle}` : 'Player #' + Math.floor(Math.random() * 9999),
                 twitterHandle: twitterHandle ? `@${twitterHandle}` : null,
-                picks: this.userPicks,
+                picks: validPicks,
                 tiebreakerRuns: tiebreakerRuns,
                 entryFee: 50,
                 contestDay: this.formatDate(this.contestDays[this.currentDay].date),
                 timestamp: new Date().toISOString(),
-                totalGames: this.selectedGames.length,
-                games: Object.keys(this.userPicks).map(gameId => ({
-                    gameId: gameId,
-                    pickedTeam: this.userPicks[gameId],
-                    result: null, // win, loss, or pending
-                    actualWinner: null
-                }))
+                totalGames: unlockedGames.length, // Only count unlocked games
+                availableGames: this.selectedGames.length, // Track total games for context
+                lockedGames: lockedGames.length, // Track how many were locked
+                games: validGames
             };
             
             let result;

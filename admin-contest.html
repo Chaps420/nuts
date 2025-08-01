@@ -106,6 +106,32 @@
         .refresh-btn:hover {
             background: #45a049;
         }
+        
+        .contest-tab {
+            background: #2a2a2a;
+            border: 2px solid #444;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .contest-tab:hover {
+            border-color: #ffa500;
+            background: #333;
+        }
+        
+        .contest-tab.active-tab {
+            background: #ffa500;
+            color: #000;
+            border-color: #ffa500;
+        }
+        
+        .contest-controls {
+            transition: opacity 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -207,7 +233,8 @@
             </div>
             <div class="nav-links">
                 <a href="index.html" class="nav-link">Home</a>
-                <a href="daily-contest.html" class="nav-link">Contest</a>
+                <a href="daily-contest.html" class="nav-link">MLB Contest</a>
+                <a href="nfl-contest.html" class="nav-link">NFL Contest</a>
                 <a href="admin-games-upload.html" class="nav-link">Upload Games</a>
                 <a href="admin-contest.html" class="nav-link active">Contest Admin</a>
             </div>
@@ -217,14 +244,59 @@
     <main class="admin-container">
         <h1 style="color: #ffa500; margin-bottom: 30px;">Contest Administration</h1>
         
-        <!-- Date Selector -->
+        <!-- Contest Type Tabs -->
         <div style="margin-bottom: 30px;">
-            <label style="margin-right: 10px;">Contest Date:</label>
-            <input type="date" id="contest-date" class="date-selector">
-            <button onclick="loadContestData()" class="refresh-btn">Load Data</button>
-            <button onclick="clearSelectedDateData()" class="refresh-btn" style="background: #ff4444; margin-left: 10px;">Clear Data</button>
-            <button onclick="clearAllContestData()" class="refresh-btn" style="background: #ff6600; margin-left: 5px;">Clear All</button>
-            <button onclick="clearTestData()" class="refresh-btn" style="background: #ff0000; margin-left: 5px;">Clear Test Data</button>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button onclick="switchContestType('mlb')" id="mlb-tab" class="contest-tab active-tab">
+                    ⚾ MLB Daily Contest
+                </button>
+                <button onclick="switchContestType('nfl')" id="nfl-tab" class="contest-tab">
+                    🏈 NFL Weekly Contest
+                </button>
+            </div>
+        </div>
+        
+        <!-- MLB Contest Controls -->
+        <div id="mlb-controls" class="contest-controls">
+            <div style="margin-bottom: 30px;">
+                <label style="margin-right: 10px;">Contest Date:</label>
+                <input type="date" id="contest-date" class="date-selector">
+                <button onclick="loadContestData()" class="refresh-btn">Load Data</button>
+                <button onclick="clearSelectedDateData()" class="refresh-btn" style="background: #ff4444; margin-left: 10px;">Clear Data</button>
+                <button onclick="clearAllContestData()" class="refresh-btn" style="background: #ff6600; margin-left: 5px;">Clear All</button>
+                <button onclick="clearTestData()" class="refresh-btn" style="background: #ff0000; margin-left: 5px;">Clear Test Data</button>
+            </div>
+        </div>
+        
+        <!-- NFL Contest Controls -->
+        <div id="nfl-controls" class="contest-controls" style="display: none;">
+            <div style="margin-bottom: 30px;">
+                <label style="margin-right: 10px;">NFL Week:</label>
+                <select id="nfl-week-selector" class="date-selector" style="width: auto; margin-right: 10px;">
+                    <option value="1">Week 1</option>
+                    <option value="2">Week 2</option>
+                    <option value="3">Week 3</option>
+                    <option value="4">Week 4</option>
+                    <option value="5">Week 5</option>
+                    <option value="6">Week 6</option>
+                    <option value="7">Week 7</option>
+                    <option value="8">Week 8</option>
+                    <option value="9">Week 9</option>
+                    <option value="10">Week 10</option>
+                    <option value="11">Week 11</option>
+                    <option value="12">Week 12</option>
+                    <option value="13">Week 13</option>
+                    <option value="14">Week 14</option>
+                    <option value="15">Week 15</option>
+                    <option value="16">Week 16</option>
+                    <option value="17">Week 17</option>
+                    <option value="18">Week 18</option>
+                </select>
+                <button onclick="loadNFLContestData()" class="refresh-btn">Load Data</button>
+                <button onclick="debugNFLStorage()" class="refresh-btn" style="background: #2196F3; margin-left: 10px;">Debug Storage</button>
+                <button onclick="clearNFLWeekData()" class="refresh-btn" style="background: #ff4444; margin-left: 10px;">Clear Week Data</button>
+                <button onclick="clearAllNFLData()" class="refresh-btn" style="background: #ff6600; margin-left: 5px;">Clear All NFL</button>
+            </div>
         </div>
         
         <!-- Statistics -->
@@ -249,7 +321,7 @@
         
         <!-- Entries Table -->
         <div class="entries-table">
-            <h2 style="padding: 20px; color: #ffa500;">Contest Entries</h2>
+            <h2 style="padding: 20px; color: #ffa500;" id="entries-table-title">MLB Contest Entries</h2>
             <table>
                 <thead>
                     <tr>
@@ -258,7 +330,7 @@
                         <th>X Handle</th>
                         <th>Wallet</th>
                         <th>Picks</th>
-                        <th>Tiebreaker</th>
+                        <th id="tiebreaker-header">Tiebreaker</th>
                         <th>Score</th>
                         <th>Prize</th>
                         <th>Status</th>
@@ -333,6 +405,8 @@
         let integration;
         let backend;
         let currentEntries = [];
+        let currentContestType = 'mlb'; // 'mlb' or 'nfl'
+        let currentNFLWeek = 1;
         
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
@@ -423,6 +497,306 @@
             }
         }
         
+        // Contest type switching functions
+        function switchContestType(type) {
+            currentContestType = type;
+            
+            // Update tab appearance
+            document.querySelectorAll('.contest-tab').forEach(tab => {
+                tab.classList.remove('active-tab');
+            });
+            document.getElementById(`${type}-tab`).classList.add('active-tab');
+            
+            // Show/hide controls
+            document.getElementById('mlb-controls').style.display = type === 'mlb' ? 'block' : 'none';
+            document.getElementById('nfl-controls').style.display = type === 'nfl' ? 'block' : 'none';
+            
+            // Update table title and headers
+            document.getElementById('entries-table-title').textContent = 
+                type === 'mlb' ? 'MLB Contest Entries' : 'NFL Contest Entries';
+            document.getElementById('tiebreaker-header').textContent = 
+                type === 'mlb' ? 'Tiebreaker' : 'Tiebreaker Points';
+            
+            // Update stats grid headers for context
+            const statCards = document.querySelectorAll('.stat-card h3');
+            if (type === 'nfl') {
+                statCards[0].textContent = 'Week Entries';
+                statCards[1].textContent = 'Week Pool';
+                statCards[2].textContent = 'Week Status';
+                statCards[3].textContent = 'Avg Score';
+            } else {
+                statCards[0].textContent = 'Total Entries';
+                statCards[1].textContent = 'Prize Pool';
+                statCards[2].textContent = 'Contest Status';
+                statCards[3].textContent = 'Average Score';
+            }
+            
+            // Clear current data
+            currentEntries = [];
+            document.getElementById('entries-tbody').innerHTML = `
+                <tr>
+                    <td colspan="10" style="text-align: center; color: #888;">
+                        ${type === 'mlb' ? 'Select a date and click Load Data' : 'Select a week and click Load Data'}
+                    </td>
+                </tr>
+            `;
+            
+            // Reset stats
+            updateStats({ totalEntries: 0, prizePool: 0, avgScore: 0 });
+        }
+        
+        // NFL-specific functions
+        async function loadNFLContestData() {
+            const weekSelector = document.getElementById('nfl-week-selector');
+            const selectedWeek = parseInt(weekSelector.value);
+            currentNFLWeek = selectedWeek;
+            
+            try {
+                console.log('🏈 Loading NFL data for week', selectedWeek);
+                
+                // Get NFL entries from localStorage
+                currentEntries = getNFLEntriesFromStorage(selectedWeek);
+                console.log('📊 NFL entries loaded:', currentEntries.length);
+                
+                // Calculate stats
+                const stats = calculateNFLStats(currentEntries);
+                
+                // Update UI
+                updateStats(stats);
+                updateNFLEntriesTable(currentEntries);
+                
+            } catch (error) {
+                console.error('Failed to load NFL data:', error);
+                alert('Failed to load NFL contest data: ' + error.message);
+            }
+        }
+        
+        function getNFLEntriesFromStorage(week) {
+            const entries = [];
+            
+            // Check main contest_entries for NFL entries with weekNumber
+            const mainEntries = localStorage.getItem('contest_entries');
+            if (mainEntries) {
+                try {
+                    const parsed = JSON.parse(mainEntries);
+                    if (Array.isArray(parsed)) {
+                        entries.push(...parsed.filter(entry => 
+                            entry.sport === 'nfl' && entry.weekNumber === week
+                        ));
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse main contest entries');
+                }
+            }
+            
+            // Calculate date range for this NFL week (matching formatWeekDate function)
+            const seasonStart = new Date(2025, 8, 7); // September 7, 2025
+            const weekStart = new Date(seasonStart);
+            weekStart.setDate(weekStart.getDate() + ((week - 1) * 7));
+            const weekDateString = weekStart.toISOString().split('T')[0];
+            
+            // Check date-based storage that might contain NFL entries
+            const dateKey = `contest_entries_${weekDateString}`;
+            const dateEntries = localStorage.getItem(dateKey);
+            if (dateEntries) {
+                try {
+                    const parsed = JSON.parse(dateEntries);
+                    if (Array.isArray(parsed)) {
+                        entries.push(...parsed.filter(entry => 
+                            entry.sport === 'nfl' && entry.weekNumber === week
+                        ));
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse date entries for', dateKey);
+                }
+            }
+            
+            // Also check for week-specific keys that might be used
+            const weekKeys = [
+                `nfl_contest_entries_week_${week}`,
+                `nfl_entries_week_${week}`,
+                `contest_entries_nfl_week_${week}`,
+                `contest_entries_2025-W${week.toString().padStart(2, '0')}`,
+                'nfl_contest_entries'
+            ];
+            
+            for (const key of weekKeys) {
+                const data = localStorage.getItem(key);
+                if (data) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (Array.isArray(parsed)) {
+                            entries.push(...parsed.filter(entry => 
+                                (!entry.weekNumber || entry.weekNumber === week) &&
+                                (!entry.sport || entry.sport === 'nfl')
+                            ));
+                        } else if (parsed.weekNumber === week || parsed.sport === 'nfl') {
+                            entries.push(parsed);
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse NFL data from', key);
+                    }
+                }
+            }
+            
+            // Debug logging
+            console.log(`🔍 NFL Week ${week} search results:`, entries.length, 'entries found');
+            console.log(`🔍 Week ${week} date: ${weekDateString}, key: ${dateKey}`);
+            console.log('🔍 Available localStorage keys:', Object.keys(localStorage).filter(k => 
+                k.includes('contest') || k.includes('entries') || k.includes('nfl')
+            ));
+            
+            // Remove duplicates based on ID or timestamp
+            const uniqueEntries = entries.filter((entry, index, self) => 
+                index === self.findIndex(e => e.id === entry.id || e.timestamp === entry.timestamp)
+            );
+            
+            return uniqueEntries;
+        }
+        
+        function calculateNFLStats(entries) {
+            const totalEntries = entries.length;
+            const prizePool = totalEntries * 50; // 50 NUTS per entry
+            const avgScore = entries.length > 0 ? 
+                entries.reduce((sum, entry) => sum + (entry.score || 0), 0) / entries.length : 0;
+            
+            return { totalEntries, prizePool, avgScore };
+        }
+        
+        function updateNFLEntriesTable(entries) {
+            const tbody = document.getElementById('entries-tbody');
+            
+            if (entries.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="10" style="text-align: center; color: #888;">
+                            No entries for NFL Week ${currentNFLWeek}
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = entries.map(entry => `
+                <tr>
+                    <td style="font-family: monospace; font-size: 0.85em;">
+                        ${entry.id ? entry.id.substring(0, 12) + '...' : 'NFL_' + Date.now()}
+                    </td>
+                    <td>${entry.userName || entry.name || 'Anonymous'}</td>
+                    <td>
+                        ${entry.twitterHandle ? 
+                            `<a href="https://twitter.com/${entry.twitterHandle.replace('@', '')}" 
+                                target="_blank" 
+                                style="color: #1DA1F2; text-decoration: none;">
+                                ${entry.twitterHandle}
+                            </a>` : 
+                            '<span style="color: #666;">-</span>'}
+                    </td>
+                    <td style="font-family: monospace; font-size: 0.75em;">
+                        ${entry.walletAddress ? 
+                            `<span title="${entry.walletAddress}" style="cursor: help;">
+                                ${entry.walletAddress.substring(0, 8)}...${entry.walletAddress.substring(entry.walletAddress.length - 4)}
+                            </span>` : 
+                            '<span style="color: #666;">-</span>'}
+                    </td>
+                    <td class="picks-preview">
+                        ${Object.keys(entry.picks || {}).length} picks
+                    </td>
+                    <td>${entry.tiebreakerPoints || 0} points</td>
+                    <td>
+                        ${entry.score !== undefined ? 
+                            `<span class="score-badge">${entry.score}</span>` : 
+                            '<span style="color: #666;">-</span>'}
+                    </td>
+                    <td>${entry.prizeWon || 0} NUTS</td>
+                    <td>
+                        <span style="color: ${
+                            entry.status === 'won' ? '#4CAF50' : 
+                            entry.status === 'active' ? '#2196F3' : '#888'
+                        }">
+                            ${entry.status || 'pending'}
+                        </span>
+                        ${entry.contestStatus === 'completed' ? 
+                            '<br><small style="color: #ff9900;">Completed</small>' : 
+                            ''}
+                    </td>
+                    <td style="font-size: 0.85em; color: #888;">
+                        ${entry.timestamp ? new Date(entry.timestamp).toLocaleString() : 'N/A'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // NFL data clearing functions
+        function clearNFLWeekData() {
+            if (!confirm(`Clear all data for NFL Week ${currentNFLWeek}?`)) return;
+            
+            const keysToRemove = [
+                `nfl_contest_entries_week_${currentNFLWeek}`,
+                `nfl_entries_week_${currentNFLWeek}`,
+                `contest_entries_nfl_week_${currentNFLWeek}`
+            ];
+            
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            alert(`Cleared NFL Week ${currentNFLWeek} data`);
+            loadNFLContestData();
+        }
+        
+        function clearAllNFLData() {
+            if (!confirm('Clear ALL NFL contest data? This cannot be undone!')) return;
+            
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const key = localStorage.key(i);
+                if (key && key.includes('nfl')) {
+                    localStorage.removeItem(key);
+                }
+            }
+            
+            alert('Cleared all NFL contest data');
+            loadNFLContestData();
+        }
+        
+        function debugNFLStorage() {
+            console.log('🔍 Debug: All localStorage keys:');
+            const allKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                allKeys.push(localStorage.key(i));
+            }
+            
+            const relevantKeys = allKeys.filter(key => 
+                key && (key.includes('contest') || key.includes('entries') || key.includes('nfl'))
+            );
+            
+            console.table(relevantKeys.map(key => ({
+                key: key,
+                length: localStorage.getItem(key)?.length || 0,
+                preview: (localStorage.getItem(key) || '').substring(0, 100) + '...'
+            })));
+            
+            // Check main contest_entries for NFL entries
+            const mainEntries = localStorage.getItem('contest_entries');
+            if (mainEntries) {
+                try {
+                    const parsed = JSON.parse(mainEntries);
+                    const nflEntries = parsed.filter(entry => entry.sport === 'nfl');
+                    console.log('🏈 NFL entries in main storage:', nflEntries.length);
+                    if (nflEntries.length > 0) {
+                        console.table(nflEntries.map(entry => ({
+                            id: entry.id,
+                            week: entry.weekNumber,
+                            sport: entry.sport,
+                            userName: entry.userName,
+                            timestamp: new Date(entry.timestamp).toLocaleString()
+                        })));
+                    }
+                } catch (e) {
+                    console.error('Failed to parse main entries:', e);
+                }
+            }
+            
+            alert(`Found ${relevantKeys.length} relevant storage keys. Check console for details.`);
+        }
+        
         function updateStats(stats) {
             document.getElementById('total-entries').textContent = stats.totalEntries;
             document.getElementById('prize-pool').textContent = stats.prizePool + ' NUTS';
@@ -432,6 +806,11 @@
         }
         
         function updateEntriesTable(entries) {
+            if (currentContestType === 'nfl') {
+                updateNFLEntriesTable(entries);
+                return;
+            }
+            
             const tbody = document.getElementById('entries-tbody');
             
             if (entries.length === 0) {

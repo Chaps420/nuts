@@ -28,9 +28,13 @@ class ContestBackend {
             userName: entryData.userName || 'Anonymous',
             twitterHandle: entryData.twitterHandle || null, // Store Twitter handle
             walletAddress: entryData.walletAddress || null, // Store wallet address from payment
-            contestDate: entryData.contestDay,
+            sport: entryData.sport || 'mlb', // Add sport field for NFL support
+            contestDate: entryData.contestDay || entryData.contestDate,
+            contestWeek: entryData.contestWeek || null, // For NFL weekly contests
+            weekNumber: entryData.weekNumber || null, // NFL week number
             picks: entryData.picks,
-            tiebreakerRuns: entryData.tiebreakerRuns,
+            tiebreakerRuns: entryData.tiebreakerRuns || null, // MLB tiebreaker
+            tiebreakerPoints: entryData.tiebreakerPoints || null, // NFL tiebreaker
             entryFee: entryData.entryFee,
             transactionId: entryData.transactionId,
             timestamp: new Date().toISOString(),

@@ -37,7 +37,8 @@
             </div>              <!-- Desktop Navigation -->
             <div class="nav-links desktop-nav">
                 <a href="#home" class="nav-link active">Home</a>
-                <a href="daily-contest.html" class="nav-link">Daily Contest</a>
+                <a href="daily-contest.html" class="nav-link">MLB Contest</a>
+                <a href="nfl-contest.html" class="nav-link">NFL Contest</a>
                 <a href="contest-results.html" class="nav-link">Leaderboard</a>
                 <a href="https://firstledger.net/token/rBpdegD7kqHdczjKzTKNEUZj1Fg1eYZRbe/4E75747300000000000000000000000000000000" target="_blank" class="nav-link">Buy $NUTS</a>
             </div>
@@ -103,27 +104,6 @@
             </div>
         </section>
 
-
-        <!-- Upcoming Games Preview -->
-        <section class="upcoming-games" id="upcoming-games">
-            <div class="container">
-                <h2 class="section-title">TODAY'S GAMES</h2>
-                <p class="section-subtitle">Preview of games available for today's contest</p>
-                
-                <div class="games-container" id="upcoming-games-preview">
-                    <!-- Games will be loaded dynamically -->
-                    <div class="loading-placeholder">
-                        <div class="loading-spinner"></div>
-                        <p>Loading today's games...</p>
-                    </div>
-                </div>
-                
-                <a href="daily-contest.html" class="btn btn-primary">
-                    <span>View All Games & Enter Contest</span>
-                    <div class="btn-glow"></div>
-                </a>
-            </div>
-        </section>
 
         <!-- Quick Start Guide -->
         <section class="how-it-works-preview" id="how-it-works">
@@ -274,63 +254,7 @@
                     mobileMenu.classList.toggle('hidden');
                 });
             }
-            
-            // Initialize MLB Schedule API and load today's games
-            window.mlbSchedule = new MLBScheduleFree();
-            await loadTodaysGames();
         });
-        
-        async function loadTodaysGames() {
-            try {
-                const gamesContainer = document.getElementById('upcoming-games-preview');
-                if (!gamesContainer) return;
-                
-                // Get today's games
-                const today = new Date();
-                const games = await window.mlbSchedule.getGamesForDate(today);
-                
-                if (games && games.length > 0) {
-                    // Show first 6 games as preview
-                    const previewGames = games.slice(0, 6);
-                    
-                    gamesContainer.innerHTML = `
-                        <div style="max-width: 800px; margin: 0 auto;">
-                            ${games.map(game => `
-                                <div style="
-                                    display: flex;
-                                    justify-content: space-between;
-                                    align-items: center;
-                                    padding: 12px 0;
-                                    border-bottom: 1px solid #333;
-                                ">
-                                    <div style="flex: 1;">
-                                        <span style="color: #888; margin-right: 15px;">${game.gameTimeFormatted || formatGameTime(game.gameTime)}</span>
-                                        <span>${game.awayTeam} @ ${game.homeTeam}</span>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
-                } else {
-                    gamesContainer.innerHTML = '<p style="text-align: center; color: #888;">No games scheduled for today</p>';
-                }
-            } catch (error) {
-                console.error('Failed to load today\'s games:', error);
-                const gamesContainer = document.getElementById('upcoming-games-preview');
-                if (gamesContainer) {
-                    gamesContainer.innerHTML = '<p style="text-align: center; color: #888;">Unable to load games at this time</p>';
-                }
-            }
-        }
-        
-        function formatGameTime(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit',
-                hour12: true 
-            });
-        }
     </script>
 </body>
 </html>
