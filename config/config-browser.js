@@ -80,6 +80,8 @@ window.config = {
     storageBucket: "nuts-sports-pickem.firebasestorage.app",
     messagingSenderId: "759992859280",
     appId: "1:759992859280:web:e42c5c219e4bc0c2e8f615",
+    // Cloud Functions URL for GitHub Pages
+    functionsUrl: "https://us-central1-nuts-sports-pickem.cloudfunctions.net",
     // Cloud Functions
     cloudFunctions: {
       region: 'us-central1',
@@ -88,7 +90,11 @@ window.config = {
         createUserBet: '/createUserBet',
         getUserBets: '/getUserBets',
         getContestResults: '/getContestResults',
-        generatePayoutQR: '/generatePayoutQR'
+        generatePayoutQR: '/generatePayoutQR',
+        // New endpoints for production
+        createContestEntry: '/createContestEntry',
+        getContestEntries: '/getContestEntries',
+        updateGameResults: '/updateGameResults'
       }
     },
     // Firestore collections
@@ -96,8 +102,20 @@ window.config = {
       users: 'users',
       bets: 'bets',
       contests: 'contests',
-      payouts: 'payouts'
-    }
+      payouts: 'payouts',
+      mlbContests: 'mlbContests',
+      nflContests: 'nflContests',
+      contestEntries: 'contestEntries'
+    },
+    // CORS configuration for GitHub Pages
+    allowedOrigins: [
+      'https://yourusername.github.io', // Replace with your GitHub username
+      'http://localhost:8080',
+      'http://localhost:3000',
+      'https://nuts-sports-pickem.web.app',
+      'https://nuts-sports-pickem.firebaseapp.com'
+    ]
+  },
   },
 
   // NFT Configuration

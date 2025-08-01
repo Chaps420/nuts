@@ -29,13 +29,26 @@ class DailyContestManager {
             // No wallet connection needed - payment only system
             console.log('💸 Payment-only system ready');
             
-            // Initialize backend
-            if (window.ContestBackend) {
+            // Initialize backend (try production first, fallback to local)
+            if (window.ContestBackendProduction) {
+                this.backend = new ContestBackendProduction();
+                const connected = await this.backend.init();
+                if (connected) {
+                    console.log('✅ Production backend connected');
+                } else {
+                    console.log('⚠️ Production backend failed, trying local...');
+                    if (window.ContestBackend) {
+                        this.backend = new ContestBackend();
+                        await this.backend.init();
+                        console.log('✅ Local backend initialized');
+                    }
+                }
+            } else if (window.ContestBackend) {
                 this.backend = new ContestBackend();
                 await this.backend.init();
-                console.log('✅ Backend initialized');
+                console.log('✅ Local backend initialized');
             } else {
-                console.warn('⚠️ ContestBackend not available');
+                console.warn('⚠️ No backend available');
             }
             
             // Initialize Firebase + Xaman integration

@@ -27,7 +27,20 @@ class NFLContestManager {
                 await this.integration.init();
             }
 
-            if (window.ContestBackend) {
+            if (window.ContestBackendProduction) {
+                this.backend = new ContestBackendProduction();
+                const connected = await this.backend.init();
+                if (connected) {
+                    console.log('✅ Production backend connected');
+                } else {
+                    console.log('⚠️ Production backend failed, trying local...');
+                    if (window.ContestBackend) {
+                        this.backend = new ContestBackend();
+                        await this.backend.init();
+                        console.log('✅ Local backend initialized');
+                    }
+                }
+            } else if (window.ContestBackend) {
                 this.backend = new ContestBackend();
                 await this.backend.init();
             }
