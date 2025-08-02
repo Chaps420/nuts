@@ -127,10 +127,18 @@ exports.getContestStats = functions.https.onRequest(corsHandler(async (req, res)
     const snapshot = await query.get();
     const entries = snapshot.docs.map(doc => doc.data());
     
+    // Calculate average score if entries have results
+    let avgScore = 0;
+    const entriesWithScores = entries.filter(e => e.score !== undefined && e.score !== null);
+    if (entriesWithScores.length > 0) {
+      avgScore = entriesWithScores.reduce((sum, e) => sum + (e.score || 0), 0) / entriesWithScores.length;
+    }
+    
     const stats = {
       totalEntries: entries.length,
-      totalPrizePool: entries.length * 50, // 50 NUTS per entry
-      uniqueUsers: new Set(entries.map(e => e.userId)).size,
+      prizePool: entries.length * 50, // 50 NUTS per entry
+      avgScore: avgScore,
+      uniqueUsers: new Set(entries.map(e => e.userId || e.username)).size,
       sports: {
         mlb: entries.filter(e => e.sport === 'mlb' || !e.sport).length,
         nfl: entries.filter(e => e.sport === 'nfl').length

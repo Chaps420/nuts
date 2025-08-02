@@ -841,11 +841,19 @@
         }
         
         function updateStats(stats) {
-            document.getElementById('total-entries').textContent = stats.totalEntries;
-            document.getElementById('prize-pool').textContent = stats.prizePool + ' NUTS';
+            console.log('📊 Updating stats with:', stats);
+            
+            // Handle both direct stats object and nested stats object
+            const actualStats = stats.stats || stats;
+            
+            document.getElementById('total-entries').textContent = actualStats.totalEntries || 0;
+            document.getElementById('prize-pool').textContent = (actualStats.prizePool || 0) + ' NUTS';
             document.getElementById('contest-status').textContent = 
-                stats.totalEntries >= 2 ? 'Active' : 'Needs ' + (2 - stats.totalEntries) + ' more';
-            document.getElementById('avg-score').textContent = stats.avgScore.toFixed(1);
+                (actualStats.totalEntries || 0) >= 2 ? 'Active' : 'Needs ' + (2 - (actualStats.totalEntries || 0)) + ' more';
+            
+            // Handle avgScore safely
+            const avgScore = actualStats.avgScore || actualStats.averageScore || 0;
+            document.getElementById('avg-score').textContent = Number(avgScore).toFixed(1);
         }
         
         function updateEntriesTable(entries) {
