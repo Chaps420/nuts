@@ -425,8 +425,15 @@
             integration = new FirebaseXamanIntegration();
             await integration.init();
             
-            // Initialize backend
-            backend = new ContestBackend();
+            // Initialize backend - use production backend for GitHub Pages
+            const isGitHubPages = window.location.hostname.includes('github.io');
+            if (isGitHubPages) {
+                console.log('🌐 Running on GitHub Pages - using production backend');
+                backend = new ContestBackendProduction();
+            } else {
+                console.log('🏠 Running locally - using local backend');
+                backend = new ContestBackend();
+            }
             await backend.init();
             
             // Load today's data
@@ -482,12 +489,18 @@
                     }
                 }
                 
-                // Get entries
-                currentEntries = await integration.getContestEntries(contestDate);
+                // Get entries - use backend instead of integration for better Firebase connection
+                console.log('📊 Using backend to get entries...', backend.constructor.name);
+                currentEntries = await backend.getContestEntries(contestDate, currentContestType);
                 console.log('📊 Final loaded entries:', currentEntries.length, currentEntries.length > 0 ? currentEntries[0] : 'none');
                 
-                // Get stats
-                const stats = await integration.getContestStats(contestDate);
+                // Get stats - use backend if available, otherwise integration
+                let stats;
+                if (backend.getContestStats) {
+                    stats = await backend.getContestStats(currentContestType, contestDate);
+                } else {
+                    stats = await integration.getContestStats(contestDate);
+                }
                 
                 // Update UI
                 updateStats(stats);
@@ -556,12 +569,40 @@
             try {
                 console.log('🏈 Loading NFL data for week', selectedWeek);
                 
-                // Get NFL entries from localStorage
-                currentEntries = getNFLEntriesFromStorage(selectedWeek);
-                console.log('📊 NFL entries loaded:', currentEntries.length);
+                // Get NFL entries using backend (Firebase) first, fallback to localStorage
+                console.log('📊 Using backend to get NFL entries...', backend.constructor.name);
+                
+                // Calculate the week date for the backend call
+                const seasonStart = new Date(2025, 8, 7); // September 7, 2025
+                const weekStart = new Date(seasonStart);
+                weekStart.setDate(weekStart.getDate() + ((selectedWeek - 1) * 7));
+                const weekDateString = weekStart.toISOString().split('T')[0];
+                
+                // Try to get entries from backend first
+                let nflEntries = [];
+                try {
+                    nflEntries = await backend.getContestEntries(weekDateString, 'nfl', selectedWeek);
+                    console.log('📊 Got NFL entries from backend:', nflEntries.length);
+                } catch (error) {
+                    console.warn('Failed to get NFL entries from backend, falling back to localStorage:', error);
+                    nflEntries = getNFLEntriesFromStorage(selectedWeek);
+                }
+                
+                currentEntries = nflEntries;
+                console.log('📊 Final NFL entries loaded:', currentEntries.length);
                 
                 // Calculate stats
-                const stats = calculateNFLStats(currentEntries);
+                let stats;
+                if (backend.getContestStats) {
+                    try {
+                        stats = await backend.getContestStats('nfl', weekDateString, selectedWeek);
+                    } catch (error) {
+                        console.warn('Failed to get stats from backend, calculating locally:', error);
+                        stats = calculateNFLStats(currentEntries);
+                    }
+                } else {
+                    stats = calculateNFLStats(currentEntries);
+                }
                 
                 // Update UI
                 updateStats(stats);
