@@ -1329,11 +1329,14 @@ class DailyContestManager {
                 
                 // Try to store the entry - but don't fail if storage fails
                 try {
-                    if (this.integration) {
+                    if (this.backend && this.backend.createContestEntry) {
+                        console.log('📝 Storing entry via production backend...');
+                        result = await this.backend.createContestEntry(contestEntry);
+                    } else if (this.integration) {
                         console.log('📝 Storing entry via integration...');
                         result = await this.integration.storeInFirebase(contestEntry);
-                    } else if (this.backend) {
-                        console.log('📝 Storing entry via backend...');
+                    } else if (this.backend && this.backend.storeContestEntry) {
+                        console.log('📝 Storing entry via local backend...');
                         result = await this.backend.storeContestEntry(contestEntry);
                     } else {
                         console.log('📝 Storing entry locally...');
