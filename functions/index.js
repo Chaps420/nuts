@@ -164,3 +164,217 @@ exports.healthCheck = functions.https.onRequest(corsHandler((req, res) => {
     service: 'NUTS Sports Pickem API'
   });
 }));
+
+// DAILY CONTEST FUNCTIONS
+
+// Create or Update Daily Contest
+exports.createDailyContest = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const contestData = req.body;
+    
+    // Validate required fields
+    if (!contestData.contestDate || !contestData.choices) {
+      return res.status(400).json({ error: 'Missing required fields: contestDate, choices' });
+    }
+
+    // Add server timestamp
+    contestData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+    if (!contestData.createdAt) {
+      contestData.createdAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+
+    // Use contestDate as document ID for easy retrieval
+    const contestId = contestData.contestDate;
+    
+    // Store in Firestore
+    await db.collection('dailyContests').doc(contestId).set(contestData, { merge: true });
+
+    res.status(200).json({ 
+      success: true, 
+      contestId: contestId,
+      message: 'Daily contest saved successfully' 
+    });
+
+  } catch (error) {
+    console.error('Error creating daily contest:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
+
+// Get Daily Contest by Date
+exports.getDailyContest = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'GET') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { date } = req.query;
+    
+    if (!date) {
+      return res.status(400).json({ error: 'Date parameter required' });
+    }
+
+    const doc = await db.collection('dailyContests').doc(date).get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No contest found for this date' 
+      });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      contest: { id: doc.id, ...doc.data() }
+    });
+
+  } catch (error) {
+    console.error('Error getting daily contest:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
+
+// Create Daily Contest Entry
+exports.createDailyContestEntry = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const entryData = req.body;
+    
+    // Validate required fields
+    if (!entryData.picks || !entryData.contestDate) {
+      return res.status(400).json({ error: 'Missing required fields: picks, contestDate' });
+    }
+
+    // Check if contest exists and is active
+    const contestDoc = await db.collection('dailyContests').doc(entryData.contestDate).get();
+    if (!contestDoc.exists) {
+      return res.status(404).json({ error: 'Contest not found for this date' });
+    }
+
+    const contest = contestDoc.data();
+    if (contest.status !== 'active') {
+      return res.status(400).json({ error: 'Contest is not accepting entries' });
+    }
+
+    // Add server timestamp and entry ID
+    entryData.serverTimestamp = admin.firestore.FieldValue.serverTimestamp();
+    entryData.id = db.collection('dailyContestEntries').doc().id;
+    entryData.sport = 'daily';
+
+    // Store in Firestore
+    await db.collection('dailyContestEntries').doc(entryData.id).set(entryData);
+
+    res.status(200).json({ 
+      success: true, 
+      entryId: entryData.id,
+      message: 'Daily contest entry created successfully' 
+    });
+
+  } catch (error) {
+    console.error('Error creating daily contest entry:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
+
+// Get Daily Contest Entries
+exports.getDailyContestEntries = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'GET') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { contestDate } = req.query;
+    
+    if (!contestDate) {
+      return res.status(400).json({ error: 'contestDate parameter required' });
+    }
+
+    const snapshot = await db.collection('dailyContestEntries')
+      .where('contestDate', '==', contestDate)
+      .get();
+    
+    const entries = [];
+    snapshot.forEach(doc => {
+      entries.push({ id: doc.id, ...doc.data() });
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      entries: entries,
+      count: entries.length 
+    });
+
+  } catch (error) {
+    console.error('Error getting daily contest entries:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
+
+// Resolve Daily Contest (Admin sets winners)
+exports.resolveDailyContest = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { contestDate, choiceResults } = req.body;
+    
+    if (!contestDate || !choiceResults) {
+      return res.status(400).json({ error: 'Missing required fields: contestDate, choiceResults' });
+    }
+
+    // Update contest status to resolved
+    await db.collection('dailyContests').doc(contestDate).update({
+      status: 'resolved',
+      resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
+      choiceResults: choiceResults
+    });
+
+    // Get all entries for this contest
+    const entriesSnapshot = await db.collection('dailyContestEntries')
+      .where('contestDate', '==', contestDate)
+      .get();
+
+    // Calculate scores for each entry
+    const batch = db.batch();
+    
+    entriesSnapshot.forEach(doc => {
+      const entry = doc.data();
+      let score = 0;
+      
+      // Calculate score based on correct picks
+      Object.keys(entry.picks).forEach(choiceId => {
+        const userPick = entry.picks[choiceId];
+        const correctAnswer = choiceResults[choiceId];
+        if (userPick === correctAnswer) {
+          score += 1;
+        }
+      });
+      
+      // Update entry with score
+      batch.update(doc.ref, {
+        score: score,
+        scoredAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    await batch.commit();
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Daily contest resolved and scores calculated',
+      entriesUpdated: entriesSnapshot.size
+    });
+
+  } catch (error) {
+    console.error('Error resolving daily contest:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
