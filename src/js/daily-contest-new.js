@@ -270,34 +270,10 @@ class DailyContestManager {
     }
 
     loadAdminSelectedGamesForDay(dateString) {
-        try {
-            const contestData = localStorage.getItem(`daily_contest_games_${dateString}`);
-            if (contestData) {
-                const parsed = JSON.parse(contestData);
-                if (parsed.games && parsed.games.length === 10) {
-                    console.log(`📋 Loaded ${parsed.games.length} admin-selected games for ${dateString}`);
-                    return parsed.games;
-                }
-            }
-            
-            // Fallback to single-day storage format
-            const singleDayData = localStorage.getItem('daily_contest_games');
-            if (singleDayData) {
-                const parsed = JSON.parse(singleDayData);
-                const contestDate = new Date(parsed.contestDate).toDateString();
-                
-                if (contestDate === dateString && parsed.games && parsed.games.length === 10) {
-                    console.log(`📋 Loaded ${parsed.games.length} admin-selected games for ${dateString} (fallback)`);
-                    return parsed.games;
-                }
-            }
-            
-            console.log(`ℹ️ No valid admin-selected games found for ${dateString}`);
-            return null;
-        } catch (error) {
-            console.error(`❌ Error loading admin games for ${dateString}:`, error);
-            return null;
-        }
+        // Firebase-only mode: no localStorage fallback for admin-selected games
+        // This allows the system to use live MLB API data instead
+        console.log(`ℹ️ Firebase-only mode: using live MLB API data for ${dateString}`);
+        return null;
     }
 
     async loadMLBGamesForDay(date) {
@@ -1441,26 +1417,6 @@ class DailyContestManager {
             console.error('❌ Failed to create Firebase bets:', error);
             this.showError('Failed to store bets in Firebase: ' + error.message);
             return [];
-        }
-    }    /**
-     * Save contest entry to local storage (backup)
-     */
-    saveContestEntry(contestEntry) {
-        try {
-            const storageKey = `contest_entry_${contestEntry.contestDay}_${Date.now()}`;
-            localStorage.setItem(storageKey, JSON.stringify(contestEntry));
-            
-            // Also save to a general contest entries array
-            const allEntries = JSON.parse(localStorage.getItem('all_contest_entries') || '[]');
-            allEntries.push({
-                ...contestEntry,
-                storageKey: storageKey
-            });
-            localStorage.setItem('all_contest_entries', JSON.stringify(allEntries));
-            
-            console.log('✅ Contest entry saved to local storage');
-        } catch (error) {
-            console.error('❌ Failed to save contest entry:', error);
         }
     }
 

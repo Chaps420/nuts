@@ -237,9 +237,9 @@ class ContestBackend {
             if (error.code !== 'permission-denied' && !error.message?.includes('permissions')) {
                 console.error('Failed to get contest entries:', error);
             }
-            // Fall back to localStorage on any Firebase error
-            const dateKey = `contest_entries_${contestDate}`;
-            return JSON.parse(this.localStorage.getItem(dateKey) || '[]');
+            // Firebase-only mode: no localStorage fallback
+            console.log('🌐 Firebase-only mode: returning empty array on error');
+            return [];
         }
     }
 

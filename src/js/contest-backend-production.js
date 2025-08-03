@@ -45,16 +45,10 @@ class ContestBackendProduction {
             const result = await response.json();
             console.log('✅ Contest entry created:', result);
             
-            // Also store locally as backup
-            this.storeEntryLocally(entryData);
-            
             return result;
         } catch (error) {
             console.error('❌ Failed to create contest entry:', error);
-            
-            // Fallback to local storage
-            console.log('📱 Falling back to local storage...');
-            return this.storeEntryLocally(entryData);
+            throw error; // Firebase-only mode: throw error instead of fallback
         }
     }
 
@@ -118,151 +112,13 @@ class ContestBackendProduction {
         } catch (error) {
             console.error('❌ Failed to get contest stats:', error);
             
-            // Fallback to local calculation
-            return this.calculateStatsLocally(sport, contestDay, weekNumber);
-        }
-    }
-
-    /**
-     * Store entry locally as backup
-     */
-    storeEntryLocally(entryData) {
-        try {
-            const timestamp = new Date().toISOString();
-            const entryId = `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            
-            const entry = {
-                ...entryData,
-                id: entryId,
-                localTimestamp: timestamp,
-                source: 'local_backup'
-            };
-
-            // Store in localStorage
-            const existingEntries = JSON.parse(localStorage.getItem('contest_entries') || '[]');
-            existingEntries.push(entry);
-            localStorage.setItem('contest_entries', JSON.stringify(existingEntries));
-            
-            console.log('💾 Entry stored locally:', entryId);
-            
-            return {
-                success: true,
-                entryId: entryId,
-                message: 'Entry stored locally (backup)',
-                isLocal: true
-            };
-        } catch (error) {
-            console.error('❌ Failed to store entry locally:', error);
-            return {
-                success: false,
-                error: 'Failed to store entry'
-            };
-        }
-    }
-
-    /**
-     * Get entries from local storage
-     */
-    getEntriesLocally(contestDay, sport = null, weekNumber = null) {
-        try {
-            const allEntries = JSON.parse(localStorage.getItem('contest_entries') || '[]');
-            
-            let filteredEntries = allEntries.filter(entry => {
-                if (contestDay && entry.contestDay !== contestDay) return false;
-                if (sport && entry.sport !== sport) return false;
-                if (weekNumber && entry.weekNumber !== weekNumber) return false;
-                return true;
-            });
-            
-            console.log(`📱 Retrieved ${filteredEntries.length} entries from local storage`);
-            return filteredEntries;
-        } catch (error) {
-            console.error('❌ Failed to get local entries:', error);
-            return [];
-        }
-    }
-
-    /**
-     * Calculate stats from local data
-     */
-    calculateStatsLocally(sport = null, contestDay = null, weekNumber = null) {
-        try {
-            const entries = this.getEntriesLocally(contestDay, sport, weekNumber);
-            
-            const stats = {
-                totalEntries: entries.length,
-                totalPrizePool: entries.length * 50,
-                uniqueUsers: new Set(entries.map(e => e.userId)).size,
-                sports: {
-                    mlb: entries.filter(e => e.sport === 'mlb' || !e.sport).length,
-                    nfl: entries.filter(e => e.sport === 'nfl').length
-                },
-                isLocal: true
-            };
-            
-            console.log('🧮 Calculated local stats:', stats);
-            return stats;
-        } catch (error) {
-            console.error('❌ Failed to calculate local stats:', error);
+            // Firebase-only mode: return empty stats on error
             return {
                 totalEntries: 0,
-                totalPrizePool: 0,
-                uniqueUsers: 0,
-                sports: { mlb: 0, nfl: 0 },
-                isLocal: true
+                totalPlayers: 0,
+                completedContests: 0,
+                activeContests: 0
             };
-        }
-    }
-
-    /**
-     * Sync local entries to Firebase (when connection is restored)
-     */
-    async syncLocalEntries() {
-        try {
-            const localEntries = JSON.parse(localStorage.getItem('contest_entries') || '[]');
-            const unsyncedEntries = localEntries.filter(entry => entry.source === 'local_backup');
-            
-            if (unsyncedEntries.length === 0) {
-                console.log('✅ No local entries to sync');
-                return { synced: 0, failed: 0 };
-            }
-            
-            console.log(`🔄 Syncing ${unsyncedEntries.length} local entries to Firebase...`);
-            
-            let synced = 0;
-            let failed = 0;
-            
-            for (const entry of unsyncedEntries) {
-                try {
-                    const result = await this.createContestEntry({
-                        ...entry,
-                        source: 'synced_from_local',
-                        originalLocalId: entry.id
-                    });
-                    
-                    if (result.success) {
-                        synced++;
-                        // Mark as synced in local storage
-                        entry.synced = true;
-                        entry.firebaseId = result.entryId;
-                    } else {
-                        failed++;
-                    }
-                } catch (error) {
-                    console.error('Failed to sync entry:', entry.id, error);
-                    failed++;
-                }
-            }
-            
-            // Update local storage
-            localStorage.setItem('contest_entries', JSON.stringify(localEntries));
-            
-            console.log(`✅ Sync complete: ${synced} synced, ${failed} failed`);
-            return { synced, failed };
-            
-        } catch (error) {
-            console.error('❌ Failed to sync local entries:', error);
-            return { synced: 0, failed: 0 };
         }
     }
 }
