@@ -76,6 +76,29 @@ class ContestBackendProduction {
             const result = await response.json();
             console.log('📊 Retrieved contest entries:', result);
             
+            // If no entries found with sport filter and it's MLB, try without sport filter
+            // This handles legacy entries that don't have the sport field
+            if (result.entries.length === 0 && sport === 'mlb') {
+                console.log('🔄 No MLB entries found with sport filter, trying without sport filter...');
+                const fallbackUrl = `${this.baseUrl}/getContestEntries?contestDay=${encodeURIComponent(contestDay)}`;
+                const fallbackResponse = await fetch(fallbackUrl);
+                
+                if (fallbackResponse.ok) {
+                    const fallbackResult = await fallbackResponse.json();
+                    console.log('📊 Fallback entries (no sport filter):', fallbackResult);
+                    
+                    // Filter client-side for MLB-like entries (contestDay matches and no sport field or sport=mlb)
+                    const mlbEntries = fallbackResult.entries.filter(entry => {
+                        // Include entries that don't have sport field (legacy MLB entries)
+                        // or entries that explicitly have sport=mlb
+                        return !entry.sport || entry.sport === 'mlb';
+                    });
+                    
+                    console.log(`📊 Filtered ${mlbEntries.length} MLB entries from ${fallbackResult.entries.length} total entries`);
+                    return mlbEntries;
+                }
+            }
+            
             return result.entries || [];
         } catch (error) {
             console.error('❌ Failed to get contest entries:', error);
