@@ -118,6 +118,34 @@ class ContestBackendProduction {
     }
 
     /**
+     * Get NFL contest entries by week number
+     */
+    async getNFLEntriesByWeek(weekNumber) {
+        try {
+            const params = new URLSearchParams();
+            params.append('sport', 'nfl');
+            params.append('weekNumber', weekNumber.toString());
+            
+            const url = `${this.baseUrl}/getContestEntries?${params.toString()}`;
+            console.log('🔍 NFL Backend query URL:', url);
+
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('🏈 Retrieved NFL contest entries:', result);
+            
+            return result.entries || [];
+        } catch (error) {
+            console.error('❌ Failed to get NFL contest entries:', error);
+            return [];
+        }
+    }
+
+    /**
      * Get contest statistics
      */
     async getContestStats(sport = null, contestDay = null, weekNumber = null) {

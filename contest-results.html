@@ -407,16 +407,15 @@
                     // For NFL, use weekNumber parameter instead of contestDay
                     let weekNumber;
                     if (isNaN(queryParam)) {
-                        // Special weeks like 'wildcard', 'divisional', etc. - use placeholder
+                        // Special weeks like 'wildcard', 'divisional', etc.
                         console.log('📊 Loading NFL entries for special week:', queryParam);
-                        // For special weeks, we might need to handle differently
-                        // For now, try using the string directly
-                        entries = await backend.getContestEntries(null, 'nfl', queryParam);
+                        // Create a special query for non-numeric weeks
+                        entries = await backend.getNFLEntriesByWeek(queryParam);
                     } else {
                         // Regular season weeks - use numeric week
                         weekNumber = parseInt(queryParam);
                         console.log('📊 Loading NFL entries for week number:', weekNumber);
-                        entries = await backend.getContestEntries(null, 'nfl', weekNumber);
+                        entries = await backend.getNFLEntriesByWeek(weekNumber);
                     }
                 }
                 
