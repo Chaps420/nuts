@@ -395,6 +395,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
     <script src="config/config-browser.js"></script>
     <script src="config/environment.js"></script>
     <script src="src/js/firebase-integration.js"></script>
@@ -417,7 +418,24 @@
             
             // Initialize Firebase integration first
             console.log('🔥 Setting up Firebase integration...');
-            window.firebaseIntegration = new FirebaseIntegration();
+            
+            // Wait for firebaseIntegration to be available (it might be created by firebase-integration.js)
+            let retries = 0;
+            const maxRetries = 50;
+            
+            while (!window.firebaseIntegration && retries < maxRetries) {
+                console.log('⏳ Waiting for Firebase Integration to load...');
+                await new Promise(resolve => setTimeout(resolve, 100));
+                retries++;
+            }
+            
+            // If not available, create it
+            if (!window.firebaseIntegration) {
+                console.log('🔧 Creating Firebase Integration instance...');
+                window.firebaseIntegration = new FirebaseIntegration();
+            }
+            
+            console.log('🔄 Starting Firebase initialization...');
             await window.firebaseIntegration.initialize();
             
             // Initialize Firebase + Xaman integration

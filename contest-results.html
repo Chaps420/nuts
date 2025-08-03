@@ -233,7 +233,9 @@
 
     <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
     <script src="config/config-browser.js"></script>
     <script src="config/environment.js"></script>
     <script src="src/js/firebase-integration.js"></script>
@@ -262,8 +264,21 @@
             await backend.init();
             
             // Initialize Firebase
+            // Wait for firebaseIntegration to be available
+            let retries = 0;
+            const maxRetries = 50;
+            
+            while (!window.firebaseIntegration && retries < maxRetries) {
+                console.log('⏳ Waiting for Firebase Integration to load...');
+                await new Promise(resolve => setTimeout(resolve, 100));
+                retries++;
+            }
+            
             if (window.firebaseIntegration) {
+                console.log('🔄 Starting Firebase initialization...');
                 await window.firebaseIntegration.initialize();
+            } else {
+                console.warn('⚠️ Firebase Integration not found after waiting');
             }
             
             // Load results

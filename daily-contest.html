@@ -499,7 +499,18 @@
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('🔥 Initializing Firebase for contest platform...');
             
+            // Wait for firebaseIntegration to be available
+            let retries = 0;
+            const maxRetries = 50;
+            
+            while (!window.firebaseIntegration && retries < maxRetries) {
+                console.log('⏳ Waiting for Firebase Integration to load...');
+                await new Promise(resolve => setTimeout(resolve, 100));
+                retries++;
+            }
+            
             if (window.firebaseIntegration) {
+                console.log('🔄 Starting Firebase initialization...');
                 const success = await window.firebaseIntegration.initialize();
                 if (success) {
                     console.log('✅ Firebase integration ready for contest platform');
@@ -526,6 +537,8 @@
                 } else {
                     console.warn('⚠️ Firebase initialization failed, using local-only mode');
                 }
+            } else {
+                console.error('❌ Firebase Integration not found after waiting');
             }
             
             // Update time remaining countdown to contest deadline

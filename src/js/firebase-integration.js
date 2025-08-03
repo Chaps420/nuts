@@ -22,9 +22,23 @@ class FirebaseIntegration {
         try {
             console.log('🔥 Initializing Firebase...');
             
+            // Wait for Firebase SDK to be fully loaded
+            await this.waitForFirebase();
+            
             // Check if Firebase SDK is loaded
             if (typeof firebase === 'undefined') {
-                throw new Error('Firebase SDK not loaded');
+                throw new Error('Firebase SDK not loaded after waiting');
+            }
+
+            // Check for required Firebase services
+            if (!firebase.auth) {
+                throw new Error('Firebase Auth not available');
+            }
+            if (!firebase.firestore) {
+                throw new Error('Firebase Firestore not available');
+            }
+            if (!firebase.functions) {
+                throw new Error('Firebase Functions not available');
             }
 
             // Initialize Firebase app
@@ -51,6 +65,28 @@ class FirebaseIntegration {
             console.error('❌ Firebase initialization failed:', error);
             return false;
         }
+    }
+
+    /**
+     * Wait for Firebase SDK to be fully loaded
+     */
+    async waitForFirebase(maxWaitTime = 10000) {
+        const startTime = Date.now();
+        
+        while (Date.now() - startTime < maxWaitTime) {
+            if (typeof firebase !== 'undefined' && 
+                firebase.auth && 
+                firebase.firestore && 
+                firebase.functions) {
+                console.log('✅ Firebase SDK fully loaded');
+                return true;
+            }
+            
+            console.log('⏳ Waiting for Firebase SDK to load...');
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        throw new Error('Firebase SDK failed to load within timeout');
     }
 
     /**
