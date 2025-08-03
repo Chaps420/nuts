@@ -11,6 +11,9 @@
     <!-- Styles -->
     <link rel="stylesheet" href="src/css/styles.css">
     
+    <!-- Daily Contest API -->
+    <script src="src/js/daily-contest-api.js"></script>
+    
     <style>
         .admin-container {
             max-width: 1400px;
@@ -1559,19 +1562,20 @@
             try {
                 console.log('Loading daily contest for:', date);
                 
-                // Load from Firebase or local storage
-                const contestKey = `daily_contest_${date}`;
-                const stored = localStorage.getItem(contestKey);
+                // Load from Firebase with localStorage fallback
+                const contest = await window.smartDailyContestAPI.getDailyContest(date);
                 
-                if (stored) {
-                    currentDailyContest = JSON.parse(stored);
+                if (contest) {
+                    currentDailyContest = contest;
                     dailyChoices = currentDailyContest.choices || [];
                     updateDailyContestUI();
+                    console.log('✅ Loaded daily contest:', contest);
                 } else {
                     // No contest exists
                     currentDailyContest = null;
                     dailyChoices = [];
                     updateDailyContestUI();
+                    console.log('ℹ️ No contest found for date:', date);
                 }
                 
             } catch (error) {
@@ -1672,13 +1676,16 @@
                 currentDailyContest.choices = dailyChoices;
                 currentDailyContest.publishedAt = new Date().toISOString();
                 
-                // Save to local storage (later we'll add Firebase)
-                const contestKey = `daily_contest_${currentDailyContest.contestDate}`;
-                localStorage.setItem(contestKey, JSON.stringify(currentDailyContest));
+                // Save to Firebase with localStorage fallback
+                const result = await window.smartDailyContestAPI.saveDailyContest(currentDailyContest);
                 
-                updateDailyContestUI();
-                alert('✅ Daily contest published successfully!');
-                console.log('Published daily contest:', currentDailyContest);
+                if (result.success) {
+                    updateDailyContestUI();
+                    alert('✅ Daily contest published successfully!');
+                    console.log('Published daily contest:', currentDailyContest);
+                } else {
+                    throw new Error('Failed to publish contest');
+                }
                 
             } catch (error) {
                 console.error('Failed to publish contest:', error);
@@ -1697,12 +1704,16 @@
                 currentDailyContest.status = 'locked';
                 currentDailyContest.lockedAt = new Date().toISOString();
                 
-                const contestKey = `daily_contest_${currentDailyContest.contestDate}`;
-                localStorage.setItem(contestKey, JSON.stringify(currentDailyContest));
+                // Save to Firebase with localStorage fallback
+                const result = await window.smartDailyContestAPI.saveDailyContest(currentDailyContest);
                 
-                updateDailyContestUI();
-                alert('✅ Contest locked - no more entries accepted');
-                console.log('Locked daily contest');
+                if (result.success) {
+                    updateDailyContestUI();
+                    alert('✅ Daily contest locked successfully!');
+                    console.log('Locked daily contest');
+                } else {
+                    throw new Error('Failed to lock contest');
+                }
                 
             } catch (error) {
                 console.error('Failed to lock contest:', error);
@@ -1725,18 +1736,30 @@
             }
             
             try {
-                currentDailyContest.status = 'resolved';
-                currentDailyContest.resolvedAt = new Date().toISOString();
+                // Prepare choice results for backend scoring
+                const choiceResults = {};
+                dailyChoices.forEach(choice => {
+                    choiceResults[choice.id] = choice.correctAnswer;
+                });
                 
-                // TODO: Calculate scores for all entries
-                // This will be implemented when we add entry submission
+                // Send to Firebase for resolution and scoring
+                const result = await window.smartDailyContestAPI.resolveDailyContest(
+                    currentDailyContest.contestDate, 
+                    choiceResults
+                );
                 
-                const contestKey = `daily_contest_${currentDailyContest.contestDate}`;
-                localStorage.setItem(contestKey, JSON.stringify(currentDailyContest));
-                
-                updateDailyContestUI();
-                alert('✅ Contest resolved and winners calculated!');
-                console.log('Resolved daily contest');
+                if (result.success) {
+                    // Update local contest object
+                    currentDailyContest.status = 'resolved';
+                    currentDailyContest.resolvedAt = new Date().toISOString();
+                    currentDailyContest.choiceResults = choiceResults;
+                    
+                    updateDailyContestUI();
+                    alert(`✅ Contest resolved and ${result.entriesUpdated || 0} entries scored!`);
+                    console.log('Resolved daily contest');
+                } else {
+                    throw new Error('Failed to resolve contest');
+                }
                 
             } catch (error) {
                 console.error('Failed to resolve contest:', error);

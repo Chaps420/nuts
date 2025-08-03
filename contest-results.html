@@ -196,6 +196,7 @@
                 <select id="sport-selector" class="date-selector" style="min-width: 120px;" onchange="toggleDateWeekSelector()">
                     <option value="mlb">⚾ MLB</option>
                     <option value="nfl">🏈 NFL</option>
+                    <option value="daily">📅 Daily Contest</option>
                 </select>
             </div>
             <div id="date-selector-container">
@@ -280,6 +281,9 @@
     <script src="src/js/firebase-xaman-integration.js"></script>
     <script src="src/js/contest-backend.js"></script>
     <script src="src/js/contest-backend-production.js"></script>
+    
+    <!-- Daily Contest API -->
+    <script src="src/js/daily-contest-api.js"></script>
     
     <script>
         let backend;
@@ -387,6 +391,19 @@
                     displayText = `NFL Week ${selectedWeek}`;
                 }
                 console.log('Loading NFL results for week', selectedWeek);
+                
+            } else if (selectedSport === 'daily') {
+                const dateInput = document.getElementById('contest-date');
+                const contestDate = dateInput.value;
+                
+                if (!contestDate) {
+                    alert('Please select a date');
+                    return;
+                }
+                
+                queryParam = contestDate;
+                displayText = `Daily Contest for ${contestDate}`;
+                console.log('Loading Daily Contest results for', contestDate);
             }
             
             try {
@@ -417,6 +434,25 @@
                         weekNumber = parseInt(queryParam);
                         console.log('📊 Loading NFL entries for week number:', weekNumber);
                         entries = await backend.getNFLEntriesByWeek(weekNumber);
+                    }
+                    
+                } else if (selectedSport === 'daily') {
+                    // For Daily Contest, load entries from Firebase with localStorage fallback
+                    console.log('📊 Loading Daily Contest entries for date:', queryParam);
+                    try {
+                        entries = await window.smartDailyContestAPI.getDailyContestEntries(queryParam);
+                        
+                        // Transform entries to match expected format
+                        entries = entries.map(entry => ({
+                            ...entry,
+                            sport: 'daily',
+                            userName: entry.userName || entry.userId || 'Anonymous',
+                            contestDay: entry.contestDate
+                        }));
+                        
+                    } catch (error) {
+                        console.warn('⚠️ Failed to load Daily Contest entries:', error.message);
+                        entries = [];
                     }
                 }
                 
@@ -613,6 +649,8 @@
                 return '<span style="color: #4CAF50;">⚾ MLB</span>';
             } else if (sport === 'nfl') {
                 return '<span style="color: #ff6b00;">🏈 NFL</span>';
+            } else if (sport === 'daily') {
+                return '<span style="color: #9C27B0;">📅 Daily</span>';
             } else {
                 return '<span style="color: #888;">❓ ' + sport.toUpperCase() + '</span>';
             }
@@ -627,6 +665,7 @@
                 dateContainer.style.display = 'none';
                 weekContainer.style.display = 'block';
             } else {
+                // For MLB and Daily Contest, use date selector
                 dateContainer.style.display = 'block';
                 weekContainer.style.display = 'none';
             }
