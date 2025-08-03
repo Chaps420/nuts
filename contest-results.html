@@ -191,15 +191,41 @@
         <!-- Date and Sport Selector -->
         <div style="margin-bottom: 30px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
             <div>
+                <label style="margin-right: 10px; color: #ccc;">Sport:</label>
+                <select id="sport-selector" class="date-selector" style="min-width: 120px;" onchange="toggleDateWeekSelector()">
+                    <option value="mlb">⚾ MLB</option>
+                    <option value="nfl">🏈 NFL</option>
+                </select>
+            </div>
+            <div id="date-selector-container">
                 <label style="margin-right: 10px; color: #ccc;">Contest Date:</label>
                 <input type="date" id="contest-date" class="date-selector">
             </div>
-            <div>
-                <label style="margin-right: 10px; color: #ccc;">Sport:</label>
-                <select id="sport-selector" class="date-selector" style="min-width: 120px;">
-                    <option value="all">All Sports</option>
-                    <option value="mlb">⚾ MLB</option>
-                    <option value="nfl">🏈 NFL</option>
+            <div id="week-selector-container" style="display: none;">
+                <label style="margin-right: 10px; color: #ccc;">NFL Week:</label>
+                <select id="nfl-week" class="date-selector" style="min-width: 100px;">
+                    <option value="1">Week 1</option>
+                    <option value="2">Week 2</option>
+                    <option value="3">Week 3</option>
+                    <option value="4">Week 4</option>
+                    <option value="5">Week 5</option>
+                    <option value="6">Week 6</option>
+                    <option value="7">Week 7</option>
+                    <option value="8">Week 8</option>
+                    <option value="9">Week 9</option>
+                    <option value="10">Week 10</option>
+                    <option value="11">Week 11</option>
+                    <option value="12">Week 12</option>
+                    <option value="13">Week 13</option>
+                    <option value="14">Week 14</option>
+                    <option value="15">Week 15</option>
+                    <option value="16">Week 16</option>
+                    <option value="17">Week 17</option>
+                    <option value="18">Week 18</option>
+                    <option value="wildcard">Wild Card</option>
+                    <option value="divisional">Divisional</option>
+                    <option value="conference">Conference</option>
+                    <option value="superbowl">Super Bowl</option>
                 </select>
             </div>
             <button onclick="loadResults()" class="refresh-btn">Load Results</button>
@@ -268,8 +294,12 @@
             const contestDate = dateParam || new Date().toISOString().split('T')[0];
             document.getElementById('contest-date').value = contestDate;
             
-            // Set default sport to "all"
-            document.getElementById('sport-selector').value = 'all';
+            // Set default sport to MLB
+            document.getElementById('sport-selector').value = 'mlb';
+            
+            // Set default NFL week to current week (estimate based on date)
+            const currentWeek = estimateNFLWeek();
+            document.getElementById('nfl-week').value = currentWeek;
             
             // Store entry ID to highlight
             window.highlightEntryId = entryParam;
@@ -321,61 +351,79 @@
         });
         
         async function loadResults() {
-            const dateInput = document.getElementById('contest-date');
             const sportSelector = document.getElementById('sport-selector');
-            const contestDate = dateInput.value;
             const selectedSport = sportSelector.value;
             
-            if (!contestDate) {
-                alert('Please select a date');
-                return;
+            let queryParam = '';
+            let displayText = '';
+            
+            if (selectedSport === 'mlb') {
+                const dateInput = document.getElementById('contest-date');
+                const contestDate = dateInput.value;
+                
+                if (!contestDate) {
+                    alert('Please select a date');
+                    return;
+                }
+                
+                queryParam = contestDate;
+                displayText = `MLB contest for ${contestDate}`;
+                console.log('Loading MLB results for', contestDate);
+                
+            } else if (selectedSport === 'nfl') {
+                const weekSelector = document.getElementById('nfl-week');
+                const selectedWeek = weekSelector.value;
+                
+                if (!selectedWeek) {
+                    alert('Please select an NFL week');
+                    return;
+                }
+                
+                queryParam = selectedWeek;
+                if (isNaN(selectedWeek)) {
+                    displayText = `NFL ${selectedWeek.charAt(0).toUpperCase() + selectedWeek.slice(1)} round`;
+                } else {
+                    displayText = `NFL Week ${selectedWeek}`;
+                }
+                console.log('Loading NFL results for week', selectedWeek);
             }
             
             try {
-                console.log('Loading results for', contestDate, 'sport:', selectedSport);
-                
-                // Get entries from production backend
+                // Get entries based on sport
                 let entries = [];
                 
-                if (selectedSport === 'all') {
-                    // Get both MLB and NFL entries
-                    console.log('📊 Loading all sports entries...');
+                if (selectedSport === 'mlb') {
+                    // Use date for MLB
+                    entries = await backend.getContestEntries(queryParam, 'mlb');
                     
-                    // Try MLB entries (with and without sport filter for backward compatibility)
-                    let mlbEntries = await backend.getContestEntries(contestDate, 'mlb');
-                    if (mlbEntries.length === 0) {
-                        console.log('🔄 No MLB entries with sport filter, trying without filter...');
-                        const allEntries = await backend.getContestEntries(contestDate);
-                        // Filter for MLB-like entries (those without sport field or with sport=mlb)
-                        mlbEntries = allEntries.filter(entry => !entry.sport || entry.sport === 'mlb');
-                    }
-                    
-                    // Get NFL entries
-                    const nflEntries = await backend.getContestEntries(contestDate, 'nfl');
-                    
-                    entries = [...mlbEntries, ...nflEntries];
-                    console.log(`📊 Found ${mlbEntries.length} MLB + ${nflEntries.length} NFL = ${entries.length} total entries`);
-                    
-                } else {
-                    // Get specific sport entries
-                    entries = await backend.getContestEntries(contestDate, selectedSport);
-                    
-                    // If no entries with sport filter and it's MLB, try without filter for backward compatibility
-                    if (entries.length === 0 && selectedSport === 'mlb') {
+                    // If no entries with sport filter, try without filter for backward compatibility
+                    if (entries.length === 0) {
                         console.log('🔄 No MLB entries with sport filter, trying without filter for backward compatibility...');
-                        const allEntries = await backend.getContestEntries(contestDate);
+                        const allEntries = await backend.getContestEntries(queryParam);
                         entries = allEntries.filter(entry => !entry.sport || entry.sport === 'mlb');
                     }
                     
-                    console.log(`📊 Found ${entries.length} ${selectedSport.toUpperCase()} entries`);
+                } else if (selectedSport === 'nfl') {
+                    // Use week for NFL - format as contestDay with week format
+                    let weekFormat;
+                    if (isNaN(queryParam)) {
+                        // Special weeks like 'wildcard', 'divisional', etc.
+                        weekFormat = `2025-${queryParam}`;
+                    } else {
+                        // Regular season weeks
+                        weekFormat = `2025-W${queryParam.toString().padStart(2, '0')}`;
+                    }
+                    console.log('📊 Loading NFL entries for week:', queryParam, 'formatted as:', weekFormat);
+                    entries = await backend.getContestEntries(weekFormat, 'nfl');
                 }
                 
+                console.log(`📊 Found ${entries.length} ${selectedSport.toUpperCase()} entries`);
+                
                 if (entries.length === 0) {
-                    const sportText = selectedSport === 'all' ? 'any sport' : selectedSport.toUpperCase();
                     document.getElementById('results-tbody').innerHTML = `
                         <tr>
                             <td colspan="8" style="text-align: center; color: #888;">
-                                No ${sportText} entries found for ${contestDate}
+                                No entries found for ${displayText}
                             </td>
                         </tr>
                     `;
@@ -564,6 +612,35 @@
                 return '<span style="color: #ff6b00;">🏈 NFL</span>';
             } else {
                 return '<span style="color: #888;">❓ ' + sport.toUpperCase() + '</span>';
+            }
+        }
+        
+        function toggleDateWeekSelector() {
+            const sport = document.getElementById('sport-selector').value;
+            const dateContainer = document.getElementById('date-selector-container');
+            const weekContainer = document.getElementById('week-selector-container');
+            
+            if (sport === 'nfl') {
+                dateContainer.style.display = 'none';
+                weekContainer.style.display = 'block';
+            } else {
+                dateContainer.style.display = 'block';
+                weekContainer.style.display = 'none';
+            }
+        }
+        
+        function estimateNFLWeek() {
+            // NFL season typically starts first Thursday of September
+            // This is a rough estimate - in a real app you'd have a proper calendar
+            const now = new Date();
+            const month = now.getMonth(); // 0-11
+            
+            if (month >= 8 && month <= 11) { // Sep-Dec (regular season)
+                return '1'; // Default to week 1 for now
+            } else if (month === 0) { // January (playoffs)
+                return 'wildcard';
+            } else {
+                return '1'; // Default fallback
             }
         }
     </script>
