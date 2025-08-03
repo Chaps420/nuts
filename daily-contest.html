@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Contest - $NUTS Sports Pick'em</title>
+    <title>MLB Contest - $NUTS Sports Pick'em</title>
     <meta name="description" content="Enter the daily $NUTS sports pick'em contest. 50 $NUTS entry fee, top 3 win crypto prizes.">
     
     <!-- Favicon -->
@@ -293,7 +293,7 @@
         <!-- Mobile Navigation -->
         <div class="mobile-nav hidden" id="mobile-menu">
             <a href="index.html" class="nav-link">Home</a>
-            <a href="daily-contest.html" class="nav-link">Daily Contest</a>
+            <a href="daily-contest.html" class="nav-link">MLB Contest</a>
             <a href="contest-results.html" class="nav-link">Leaderboard</a>
             <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
         </div>
@@ -546,7 +546,7 @@
                 const timeElement = document.getElementById('time-remaining');
                 if (!timeElement) return;
                 
-                // Get the contest deadline from the daily contest manager
+                // Get the contest deadline from the MLB contest manager
                 if (window.dailyContestManager && window.dailyContestManager.contestDeadline) {
                     console.log('⏰ Updating time remaining - checking deadline...');
                     const now = new Date();

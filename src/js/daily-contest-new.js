@@ -1,4 +1,4 @@
-// Daily Contest Manager - Multi-day contest support
+// MLB Contest Manager - Multi-day contest support
 class DailyContestManager {
     constructor() {
         this.selectedGames = [];
@@ -72,7 +72,7 @@ class DailyContestManager {
             
             console.log('✅ Multi-day contest initialized with wallet integration');
         } catch (error) {
-            console.error('❌ Failed to initialize daily contest:', error);
+            console.error('❌ Failed to initialize MLB contest:', error);
             // Only show error if it's not a permissions issue
             if (error.code !== 'permission-denied' && !error.message?.includes('permissions')) {
                 this.showError('Failed to load contest games. Please try refreshing the page.');
@@ -1695,7 +1695,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Wait a bit to ensure all scripts are loaded
     setTimeout(() => {
-        console.log('🎮 Initializing Daily Contest Manager...');
+        console.log('🎮 Initializing MLB Contest Manager...');
         window.dailyContestManager = new DailyContestManager();
         window.dailyContestManager.init();
         
@@ -1767,4 +1767,4 @@ window.switchToDay = (dayIndex) => {
     }
 };
 
-console.log('⚾ Daily Contest module loaded');
+console.log('⚾ MLB Contest module loaded');

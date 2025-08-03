@@ -38,7 +38,7 @@ class XamanPaymentFixed {
                     {
                         Memo: {
                             MemoType: this.toHex('Contest Entry'),
-                            MemoData: this.toHex('Daily Contest Entry Fee - 50 NUTS')
+                            MemoData: this.toHex('MLB Contest Entry Fee - 50 NUTS')
                         }
                     }
                 ]
