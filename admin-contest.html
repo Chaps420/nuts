@@ -425,15 +425,9 @@
             integration = new FirebaseXamanIntegration();
             await integration.init();
             
-            // Initialize backend - use production backend for GitHub Pages
-            const isGitHubPages = window.location.hostname.includes('github.io');
-            if (isGitHubPages) {
-                console.log('🌐 Running on GitHub Pages - using production backend');
-                backend = new ContestBackendProduction();
-            } else {
-                console.log('🏠 Running locally - using local backend');
-                backend = new ContestBackend();
-            }
+            // Always use production backend - no localStorage
+            console.log('🌐 Using production Firebase backend only');
+            backend = new ContestBackendProduction();
             await backend.init();
             
             // Load today's data
@@ -489,37 +483,9 @@
                     }
                 }
                 
-                // Get entries - use backend instead of integration for better Firebase connection
-                console.log('📊 Using backend to get entries...', backend.constructor.name);
-                
-                // For local development, also check the main contest_entries key for all entries
-                if (!window.location.hostname.includes('github.io')) {
-                    console.log('🏠 Local development - checking main contest_entries key');
-                    const mainEntries = localStorage.getItem('contest_entries');
-                    if (mainEntries) {
-                        try {
-                            const parsed = JSON.parse(mainEntries);
-                            const filteredEntries = parsed.filter(entry => {
-                                const entryDate = entry.contestDate || entry.contestDay;
-                                const isMLB = entry.sport === 'mlb' || !entry.sport;
-                                const matchesDate = entryDate === contestDate || entryDate?.includes(contestDate);
-                                return isMLB && (matchesDate || currentContestType === 'mlb');
-                            });
-                            console.log(`📦 Found ${filteredEntries.length} MLB entries in main storage for ${contestDate}`);
-                            if (filteredEntries.length > 0) {
-                                currentEntries = filteredEntries;
-                                console.log('📊 Using entries from main localStorage:', currentEntries.length);
-                            }
-                        } catch (e) {
-                            console.warn('Failed to parse main contest_entries');
-                        }
-                    }
-                }
-                
-                // If no entries found locally, try backend
-                if (currentEntries.length === 0) {
-                    currentEntries = await backend.getContestEntries(contestDate, currentContestType);
-                }
+                // Get entries from Firebase backend only
+                console.log('📊 Using production backend to get entries...', backend.constructor.name);
+                currentEntries = await backend.getContestEntries(contestDate, currentContestType);
                 console.log('📊 Final loaded entries:', currentEntries.length, currentEntries.length > 0 ? currentEntries[0] : 'none');
                 
                 // Get stats - use backend if available, otherwise integration
@@ -606,37 +572,14 @@
                 weekStart.setDate(weekStart.getDate() + ((selectedWeek - 1) * 7));
                 const weekDateString = weekStart.toISOString().split('T')[0];
                 
-                // Try to get entries from backend first
+                // Get NFL entries from Firebase backend only
                 let nflEntries = [];
                 try {
                     nflEntries = await backend.getContestEntries(weekDateString, 'nfl', selectedWeek);
-                    console.log('📊 Got NFL entries from backend:', nflEntries.length);
+                    console.log('📊 Got NFL entries from Firebase backend:', nflEntries.length);
                 } catch (error) {
-                    console.warn('Failed to get NFL entries from backend, falling back to localStorage:', error);
-                }
-                
-                // For local development, also check main localStorage if no entries found
-                if (nflEntries.length === 0 && !window.location.hostname.includes('github.io')) {
-                    console.log('🏠 Local development - checking main contest_entries for NFL');
-                    const mainEntries = localStorage.getItem('contest_entries');
-                    if (mainEntries) {
-                        try {
-                            const parsed = JSON.parse(mainEntries);
-                            const filteredEntries = parsed.filter(entry => 
-                                entry.sport === 'nfl' && 
-                                (entry.weekNumber === selectedWeek || !entry.weekNumber)
-                            );
-                            console.log(`📦 Found ${filteredEntries.length} NFL entries in main storage for week ${selectedWeek}`);
-                            nflEntries = filteredEntries;
-                        } catch (e) {
-                            console.warn('Failed to parse main contest_entries for NFL');
-                        }
-                    }
-                }
-                
-                // If still no entries, try the old localStorage function
-                if (nflEntries.length === 0) {
-                    nflEntries = getNFLEntriesFromStorage(selectedWeek);
+                    console.error('Failed to get NFL entries from Firebase backend:', error);
+                    nflEntries = [];
                 }
                 
                 currentEntries = nflEntries;

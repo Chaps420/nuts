@@ -27,36 +27,15 @@ class NFLContestManager {
                 await this.integration.init();
             }
 
-            // For GitHub Pages, use production backend only
-            const isGitHubPages = window.location.hostname.includes('github.io');
-            if (isGitHubPages) {
-                console.log('🌐 Running on GitHub Pages - using production backend only');
-                if (window.ContestBackendProduction) {
-                    this.backend = new ContestBackendProduction();
-                    await this.backend.init();
-                    console.log('✅ Production backend initialized for GitHub Pages');
-                } else {
-                    console.error('❌ Production backend not available on GitHub Pages');
-                }
+            // Always use production backend only - no localStorage fallback
+            console.log('🌐 Using production Firebase backend only');
+            if (window.ContestBackendProduction) {
+                this.backend = new ContestBackendProduction();
+                await this.backend.init();
+                console.log('✅ Production backend initialized');
             } else {
-                // For local development, try production first, then local
-                if (window.ContestBackendProduction) {
-                    this.backend = new ContestBackendProduction();
-                    const connected = await this.backend.init();
-                    if (connected) {
-                        console.log('✅ Production backend connected');
-                    } else {
-                        console.log('⚠️ Production backend failed, trying local...');
-                        if (window.ContestBackend) {
-                            this.backend = new ContestBackend();
-                            await this.backend.init();
-                            console.log('✅ Local backend initialized');
-                        }
-                    }
-                } else if (window.ContestBackend) {
-                    this.backend = new ContestBackend();
-                    await this.backend.init();
-                }
+                console.error('❌ Production backend not available');
+                throw new Error('Production backend required');
             }
 
             // Initialize payment system (use same as MLB contest)

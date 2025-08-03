@@ -121,8 +121,19 @@
                 await backend.init();
                 log('✅ Firebase backend connected');
                 
-                // Auto-scan on load
+                // Auto-scan and migrate on load
                 scanEntries();
+                
+                // If entries found, auto-migrate after 2 seconds
+                setTimeout(() => {
+                    if (foundEntries.length > 0) {
+                        log(`🚀 Auto-migrating ${foundEntries.length} entries in 3 seconds...`);
+                        setTimeout(() => {
+                            migrateAllEntries();
+                        }, 3000);
+                    }
+                }, 2000);
+                
             } catch (error) {
                 log('❌ Failed to initialize: ' + error.message, 'error');
             }
