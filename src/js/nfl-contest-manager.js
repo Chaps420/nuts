@@ -49,7 +49,7 @@ class NFLContestManager {
             await this.loadContestWeeks();
 
             // Initial stats update
-            this.updateContestStats();
+            await this.updateContestStats();
 
             console.log('✅ NFL Contest Manager ready');
             return true;
@@ -104,7 +104,7 @@ class NFLContestManager {
             // Update UI
             this.updateWeekDisplay();
             this.updateGamesDisplay();
-            this.updateContestStats();
+            await this.updateContestStats();
             
             console.log(`✅ Selected week ${weekNumber} with ${this.selectedGames.length} games`);
             return true;
@@ -487,15 +487,15 @@ class NFLContestManager {
     /**
      * Update contest stats in the header
      */
-    updateContestStats() {
+    async updateContestStats() {
         // Update current week display
         const currentWeekDisplay = document.getElementById('current-week-display');
         if (currentWeekDisplay) {
             currentWeekDisplay.textContent = `Week ${this.currentWeek}`;
         }
 
-        // Get entries for current week
-        const entries = this.getWeekEntries(this.currentWeek);
+        // Get entries for current week from Firebase
+        const entries = await this.getWeekEntries(this.currentWeek);
         const entryCount = entries.length;
         const prizePool = entryCount * 50;
 
@@ -517,25 +517,27 @@ class NFLContestManager {
     /**
      * Get entries for a specific week from localStorage
      */
-    getWeekEntries(weekNumber) {
-        const entries = [];
-        
+    async getWeekEntries(weekNumber) {
         try {
-            // Check main contest_entries for NFL entries with weekNumber
-            const mainEntries = localStorage.getItem('contest_entries');
-            if (mainEntries) {
-                const parsed = JSON.parse(mainEntries);
-                if (Array.isArray(parsed)) {
-                    entries.push(...parsed.filter(entry => 
-                        entry.sport === 'nfl' && entry.weekNumber === weekNumber
-                    ));
-                }
+            if (!this.backend) {
+                console.warn('⚠️ No backend available for getWeekEntries');
+                return [];
             }
+
+            // Calculate the week date for the backend call
+            const seasonStart = new Date(2025, 8, 7); // September 7, 2025
+            const weekStart = new Date(seasonStart);
+            weekStart.setDate(weekStart.getDate() + ((weekNumber - 1) * 7));
+            const weekDateString = weekStart.toISOString().split('T')[0];
+
+            // Get entries from Firebase backend only
+            const entries = await this.backend.getContestEntries(weekDateString, 'nfl', weekNumber);
+            console.log(`📊 Got ${entries.length} NFL entries for week ${weekNumber} from Firebase`);
+            return entries;
         } catch (e) {
-            console.warn('Failed to get week entries:', e);
+            console.warn('Failed to get week entries from Firebase:', e);
+            return [];
         }
-        
-        return entries;
     }
 
     /**

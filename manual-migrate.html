@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manual Migration Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: white; }
+        button { background: #4CAF50; color: white; border: none; padding: 10px 20px; margin: 10px; border-radius: 5px; cursor: pointer; }
+        .error { color: #ff4444; }
+        .success { color: #4CAF50; }
+        .info { color: #2196F3; }
+    </style>
+</head>
+<body>
+    <h1>Manual Migration Tool</h1>
+    <div id="status">Ready to migrate...</div>
+    <button onclick="migrateData()">Migrate All Data Now</button>
+    <button onclick="checkFirebase()">Check Firebase</button>
+    
+    <script src="config/config-browser.js"></script>
+    <script src="src/js/contest-backend-production.js"></script>
+    
+    <script>
+        let backend;
+        
+        async function init() {
+            try {
+                backend = new ContestBackendProduction();
+                await backend.init();
+                log('✅ Backend ready', 'success');
+            } catch (e) {
+                log('❌ Backend failed: ' + e.message, 'error');
+            }
+        }
+        
+        function log(msg, type = 'info') {
+            const div = document.getElementById('status');
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            div.innerHTML += `<div class="${className}">${new Date().toLocaleTimeString()}: ${msg}</div>`;
+        }
+        
+        async function migrateData() {
+            log('🔄 Starting migration...');
+            
+            const mainEntries = localStorage.getItem('contest_entries');
+            if (!mainEntries) {
+                log('❌ No contest_entries found in localStorage', 'error');
+                return;
+            }
+            
+            try {
+                const entries = JSON.parse(mainEntries);
+                log(`📦 Found ${entries.length} entries in localStorage`);
+                
+                let successCount = 0;
+                for (const entry of entries) {
+                    try {
+                        // Add required fields if missing
+                        const enrichedEntry = {
+                            ...entry,
+                            sport: entry.sport || (entry.weekNumber ? 'nfl' : 'mlb'),
+                            contestDate: entry.contestDate || entry.contestDay || '2025-08-01',
+                            userName: entry.userName || entry.name || 'MigratedUser',
+                            timestamp: entry.timestamp || Date.now()
+                        };
+                        
+                        const result = await backend.submitContestEntry(enrichedEntry);
+                        if (result.success) {
+                            successCount++;
+                            log(`✅ Migrated: ${enrichedEntry.userName} (${enrichedEntry.sport})`, 'success');
+                        } else {
+                            log(`❌ Failed: ${enrichedEntry.userName} - ${result.error}`, 'error');
+                        }
+                        
+                        // Small delay
+                        await new Promise(r => setTimeout(r, 200));
+                    } catch (e) {
+                        log(`❌ Error migrating entry: ${e.message}`, 'error');
+                    }
+                }
+                
+                log(`🎉 Migration complete! ${successCount}/${entries.length} entries migrated`, 'success');
+            } catch (e) {
+                log(`❌ Failed to parse entries: ${e.message}`, 'error');
+            }
+        }
+        
+        async function checkFirebase() {
+            try {
+                const response = await fetch('https://us-central1-nuts-sports-pickem.cloudfunctions.net/getContestEntries');
+                const data = await response.json();
+                log(`📊 Firebase has ${data.count} total entries`, 'info');
+                
+                const mlbEntries = data.entries.filter(e => e.sport === 'mlb' || !e.sport);
+                const nflEntries = data.entries.filter(e => e.sport === 'nfl');
+                log(`⚾ MLB entries: ${mlbEntries.length}`, 'info');
+                log(`🏈 NFL entries: ${nflEntries.length}`, 'info');
+            } catch (e) {
+                log(`❌ Failed to check Firebase: ${e.message}`, 'error');
+            }
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
