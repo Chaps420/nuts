@@ -404,17 +404,20 @@
                     }
                     
                 } else if (selectedSport === 'nfl') {
-                    // Use week for NFL - format as contestDay with week format
-                    let weekFormat;
+                    // For NFL, use weekNumber parameter instead of contestDay
+                    let weekNumber;
                     if (isNaN(queryParam)) {
-                        // Special weeks like 'wildcard', 'divisional', etc.
-                        weekFormat = `2025-${queryParam}`;
+                        // Special weeks like 'wildcard', 'divisional', etc. - use placeholder
+                        console.log('📊 Loading NFL entries for special week:', queryParam);
+                        // For special weeks, we might need to handle differently
+                        // For now, try using the string directly
+                        entries = await backend.getContestEntries(null, 'nfl', queryParam);
                     } else {
-                        // Regular season weeks
-                        weekFormat = `2025-W${queryParam.toString().padStart(2, '0')}`;
+                        // Regular season weeks - use numeric week
+                        weekNumber = parseInt(queryParam);
+                        console.log('📊 Loading NFL entries for week number:', weekNumber);
+                        entries = await backend.getContestEntries(null, 'nfl', weekNumber);
                     }
-                    console.log('📊 Loading NFL entries for week:', queryParam, 'formatted as:', weekFormat);
-                    entries = await backend.getContestEntries(weekFormat, 'nfl');
                 }
                 
                 console.log(`📊 Found ${entries.length} ${selectedSport.toUpperCase()} entries`);
