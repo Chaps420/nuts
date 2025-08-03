@@ -1269,6 +1269,7 @@ class DailyContestManager {
                 userId: 'USER_' + Date.now(),
                 userName: twitterHandle ? `@${twitterHandle}` : 'Player #' + Math.floor(Math.random() * 9999),
                 twitterHandle: twitterHandle ? `@${twitterHandle}` : null,
+                sport: 'mlb', // Required for Firebase filtering
                 picks: validPicks,
                 tiebreakerRuns: tiebreakerRuns,
                 entryFee: 50,
