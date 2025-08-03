@@ -592,6 +592,7 @@ class NFLContestManager {
                 tiebreakerPoints: tiebreakerPoints,
                 entryFee: 50,
                 contestWeek: `2025-W${this.currentWeek.toString().padStart(2, '0')}`,
+                contestDay: this.formatWeekDate(this.currentWeek), // Required by Firebase function
                 contestDate: this.formatWeekDate(this.currentWeek), // For compatibility
                 weekNumber: this.currentWeek,
                 timestamp: new Date().toISOString(),
