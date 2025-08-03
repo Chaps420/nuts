@@ -73,6 +73,8 @@ class ContestBackendProduction {
             }
             
             url += params.toString();
+            
+            console.log('🔍 Backend query URL:', url);
 
             const response = await fetch(url);
             
