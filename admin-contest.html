@@ -491,7 +491,35 @@
                 
                 // Get entries - use backend instead of integration for better Firebase connection
                 console.log('📊 Using backend to get entries...', backend.constructor.name);
-                currentEntries = await backend.getContestEntries(contestDate, currentContestType);
+                
+                // For local development, also check the main contest_entries key for all entries
+                if (!window.location.hostname.includes('github.io')) {
+                    console.log('🏠 Local development - checking main contest_entries key');
+                    const mainEntries = localStorage.getItem('contest_entries');
+                    if (mainEntries) {
+                        try {
+                            const parsed = JSON.parse(mainEntries);
+                            const filteredEntries = parsed.filter(entry => {
+                                const entryDate = entry.contestDate || entry.contestDay;
+                                const isMLB = entry.sport === 'mlb' || !entry.sport;
+                                const matchesDate = entryDate === contestDate || entryDate?.includes(contestDate);
+                                return isMLB && (matchesDate || currentContestType === 'mlb');
+                            });
+                            console.log(`📦 Found ${filteredEntries.length} MLB entries in main storage for ${contestDate}`);
+                            if (filteredEntries.length > 0) {
+                                currentEntries = filteredEntries;
+                                console.log('📊 Using entries from main localStorage:', currentEntries.length);
+                            }
+                        } catch (e) {
+                            console.warn('Failed to parse main contest_entries');
+                        }
+                    }
+                }
+                
+                // If no entries found locally, try backend
+                if (currentEntries.length === 0) {
+                    currentEntries = await backend.getContestEntries(contestDate, currentContestType);
+                }
                 console.log('📊 Final loaded entries:', currentEntries.length, currentEntries.length > 0 ? currentEntries[0] : 'none');
                 
                 // Get stats - use backend if available, otherwise integration
@@ -585,6 +613,29 @@
                     console.log('📊 Got NFL entries from backend:', nflEntries.length);
                 } catch (error) {
                     console.warn('Failed to get NFL entries from backend, falling back to localStorage:', error);
+                }
+                
+                // For local development, also check main localStorage if no entries found
+                if (nflEntries.length === 0 && !window.location.hostname.includes('github.io')) {
+                    console.log('🏠 Local development - checking main contest_entries for NFL');
+                    const mainEntries = localStorage.getItem('contest_entries');
+                    if (mainEntries) {
+                        try {
+                            const parsed = JSON.parse(mainEntries);
+                            const filteredEntries = parsed.filter(entry => 
+                                entry.sport === 'nfl' && 
+                                (entry.weekNumber === selectedWeek || !entry.weekNumber)
+                            );
+                            console.log(`📦 Found ${filteredEntries.length} NFL entries in main storage for week ${selectedWeek}`);
+                            nflEntries = filteredEntries;
+                        } catch (e) {
+                            console.warn('Failed to parse main contest_entries for NFL');
+                        }
+                    }
+                }
+                
+                // If still no entries, try the old localStorage function
+                if (nflEntries.length === 0) {
                     nflEntries = getNFLEntriesFromStorage(selectedWeek);
                 }
                 
