@@ -30,25 +30,38 @@ class DailyContestManager {
             console.log('💸 Payment-only system ready');
             
             // Initialize backend (try production first, fallback to local)
-            if (window.ContestBackendProduction) {
-                this.backend = new ContestBackendProduction();
-                const connected = await this.backend.init();
-                if (connected) {
-                    console.log('✅ Production backend connected');
+            const isGitHubPages = window.location.hostname.includes('github.io');
+            if (isGitHubPages) {
+                console.log('🌐 Running on GitHub Pages - using production backend only');
+                if (window.ContestBackendProduction) {
+                    this.backend = new ContestBackendProduction();
+                    await this.backend.init();
+                    console.log('✅ Production backend initialized for GitHub Pages');
                 } else {
-                    console.log('⚠️ Production backend failed, trying local...');
-                    if (window.ContestBackend) {
-                        this.backend = new ContestBackend();
-                        await this.backend.init();
-                        console.log('✅ Local backend initialized');
-                    }
+                    console.error('❌ Production backend not available on GitHub Pages');
                 }
-            } else if (window.ContestBackend) {
-                this.backend = new ContestBackend();
-                await this.backend.init();
-                console.log('✅ Local backend initialized');
             } else {
-                console.warn('⚠️ No backend available');
+                // For local development, try production first, then local
+                if (window.ContestBackendProduction) {
+                    this.backend = new ContestBackendProduction();
+                    const connected = await this.backend.init();
+                    if (connected) {
+                        console.log('✅ Production backend connected');
+                    } else {
+                        console.log('⚠️ Production backend failed, trying local...');
+                        if (window.ContestBackend) {
+                            this.backend = new ContestBackend();
+                            await this.backend.init();
+                            console.log('✅ Local backend initialized');
+                        }
+                    }
+                } else if (window.ContestBackend) {
+                    this.backend = new ContestBackend();
+                    await this.backend.init();
+                    console.log('✅ Local backend initialized');
+                } else {
+                    console.warn('⚠️ No backend available');
+                }
             }
             
             // Initialize Firebase + Xaman integration
