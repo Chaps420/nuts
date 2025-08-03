@@ -188,10 +188,20 @@
             <p style="color: #ccc;">View live standings and contest results</p>
         </div>
         
-        <!-- Date Selector -->
-        <div style="margin-bottom: 30px;">
-            <label style="margin-right: 10px; color: #ccc;">Contest Date:</label>
-            <input type="date" id="contest-date" class="date-selector">
+        <!-- Date and Sport Selector -->
+        <div style="margin-bottom: 30px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+            <div>
+                <label style="margin-right: 10px; color: #ccc;">Contest Date:</label>
+                <input type="date" id="contest-date" class="date-selector">
+            </div>
+            <div>
+                <label style="margin-right: 10px; color: #ccc;">Sport:</label>
+                <select id="sport-selector" class="date-selector" style="min-width: 120px;">
+                    <option value="all">All Sports</option>
+                    <option value="mlb">⚾ MLB</option>
+                    <option value="nfl">🏈 NFL</option>
+                </select>
+            </div>
             <button onclick="loadResults()" class="refresh-btn">Load Results</button>
         </div>
         
@@ -213,6 +223,7 @@
                     <tr>
                         <th>Rank</th>
                         <th>Player</th>
+                        <th>Sport</th>
                         <th>Score</th>
                         <th>Game Results</th>
                         <th>Tiebreaker</th>
@@ -222,8 +233,8 @@
                 </thead>
                 <tbody id="results-tbody">
                     <tr>
-                        <td colspan="7" style="text-align: center; color: #888;">
-                            Select a date and click Load Results
+                        <td colspan="8" style="text-align: center; color: #888;">
+                            Select a date and sport, then click Load Results
                         </td>
                     </tr>
                 </tbody>
@@ -241,6 +252,7 @@
     <script src="src/js/firebase-integration.js"></script>
     <script src="src/js/firebase-xaman-integration.js"></script>
     <script src="src/js/contest-backend.js"></script>
+    <script src="src/js/contest-backend-production.js"></script>
     
     <script>
         let backend;
@@ -256,11 +268,15 @@
             const contestDate = dateParam || new Date().toISOString().split('T')[0];
             document.getElementById('contest-date').value = contestDate;
             
+            // Set default sport to "all"
+            document.getElementById('sport-selector').value = 'all';
+            
             // Store entry ID to highlight
             window.highlightEntryId = entryParam;
             
-            // Initialize backend
-            backend = new ContestBackend();
+            // Initialize production backend
+            console.log('🌐 Using production Firebase backend only');
+            backend = new ContestBackendProduction();
             await backend.init();
             
             // Initialize Firebase
@@ -306,7 +322,9 @@
         
         async function loadResults() {
             const dateInput = document.getElementById('contest-date');
+            const sportSelector = document.getElementById('sport-selector');
             const contestDate = dateInput.value;
+            const selectedSport = sportSelector.value;
             
             if (!contestDate) {
                 alert('Please select a date');
@@ -314,33 +332,50 @@
             }
             
             try {
-                console.log('Loading results for', contestDate);
+                console.log('Loading results for', contestDate, 'sport:', selectedSport);
                 
-                // Get entries from backend
-                let entries = await backend.getContestEntries(contestDate);
+                // Get entries from production backend
+                let entries = [];
                 
-                // Also check FirebaseXamanIntegration if available
-                if (window.FirebaseXamanIntegration) {
-                    console.log('Checking FirebaseXamanIntegration for entries...');
-                    const integration = new FirebaseXamanIntegration();
-                    const integrationEntries = await integration.getContestEntries(contestDate);
+                if (selectedSport === 'all') {
+                    // Get both MLB and NFL entries
+                    console.log('📊 Loading all sports entries...');
                     
-                    // Merge entries, avoiding duplicates
-                    const entryIds = new Set(entries.map(e => e.id));
-                    integrationEntries.forEach(entry => {
-                        if (!entryIds.has(entry.id)) {
-                            entries.push(entry);
-                        }
-                    });
+                    // Try MLB entries (with and without sport filter for backward compatibility)
+                    let mlbEntries = await backend.getContestEntries(contestDate, 'mlb');
+                    if (mlbEntries.length === 0) {
+                        console.log('🔄 No MLB entries with sport filter, trying without filter...');
+                        const allEntries = await backend.getContestEntries(contestDate);
+                        // Filter for MLB-like entries (those without sport field or with sport=mlb)
+                        mlbEntries = allEntries.filter(entry => !entry.sport || entry.sport === 'mlb');
+                    }
                     
-                    console.log(`Found ${entries.length} total entries (${integrationEntries.length} from integration)`);
+                    // Get NFL entries
+                    const nflEntries = await backend.getContestEntries(contestDate, 'nfl');
+                    
+                    entries = [...mlbEntries, ...nflEntries];
+                    console.log(`📊 Found ${mlbEntries.length} MLB + ${nflEntries.length} NFL = ${entries.length} total entries`);
+                    
+                } else {
+                    // Get specific sport entries
+                    entries = await backend.getContestEntries(contestDate, selectedSport);
+                    
+                    // If no entries with sport filter and it's MLB, try without filter for backward compatibility
+                    if (entries.length === 0 && selectedSport === 'mlb') {
+                        console.log('🔄 No MLB entries with sport filter, trying without filter for backward compatibility...');
+                        const allEntries = await backend.getContestEntries(contestDate);
+                        entries = allEntries.filter(entry => !entry.sport || entry.sport === 'mlb');
+                    }
+                    
+                    console.log(`📊 Found ${entries.length} ${selectedSport.toUpperCase()} entries`);
                 }
                 
                 if (entries.length === 0) {
+                    const sportText = selectedSport === 'all' ? 'any sport' : selectedSport.toUpperCase();
                     document.getElementById('results-tbody').innerHTML = `
                         <tr>
-                            <td colspan="7" style="text-align: center; color: #888;">
-                                No entries found for this date
+                            <td colspan="8" style="text-align: center; color: #888;">
+                                No ${sportText} entries found for ${contestDate}
                             </td>
                         </tr>
                     `;
@@ -497,11 +532,18 @@
                                 ''}
                             ${isHighlighted ? '<span style="color: #4CAF50; font-size: 0.8em;"> (Your Entry)</span>' : ''}
                         </td>
+                        <td style="text-align: center;">
+                            ${getSportDisplay(entry.sport)}
+                        </td>
                         <td>
                             <strong>${entry.score || 0}</strong> / ${entry.totalGames || 0}
                         </td>
                         <td>${gameResults || 'Pending'}</td>
-                        <td>${entry.tiebreakerRuns || 0} runs</td>
+                        <td>
+                            ${entry.tiebreakerRuns !== undefined ? entry.tiebreakerRuns + ' runs' : 
+                             entry.tiebreakerPoints !== undefined ? entry.tiebreakerPoints + ' pts' : 
+                             'N/A'}
+                        </td>
                         <td>
                             ${entry.prizeWon > 0 ? 
                                 `<strong style="color: #4CAF50;">${entry.prizeWon} NUTS</strong>` : 
@@ -513,6 +555,16 @@
                     </tr>
                 `;
             }).join('');
+        }
+        
+        function getSportDisplay(sport) {
+            if (!sport || sport === 'mlb') {
+                return '<span style="color: #4CAF50;">⚾ MLB</span>';
+            } else if (sport === 'nfl') {
+                return '<span style="color: #ff6b00;">🏈 NFL</span>';
+            } else {
+                return '<span style="color: #888;">❓ ' + sport.toUpperCase() + '</span>';
+            }
         }
     </script>
 </body>
