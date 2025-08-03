@@ -57,15 +57,22 @@ class ContestBackendProduction {
      */
     async getContestEntries(contestDay, sport = null, weekNumber = null) {
         try {
-            let url = `${this.baseUrl}/getContestEntries?contestDay=${encodeURIComponent(contestDay)}`;
+            let url = `${this.baseUrl}/getContestEntries?`;
+            const params = new URLSearchParams();
+            
+            if (contestDay) {
+                params.append('contestDay', contestDay);
+            }
             
             if (sport) {
-                url += `&sport=${sport}`;
+                params.append('sport', sport);
             }
             
             if (weekNumber) {
-                url += `&weekNumber=${weekNumber}`;
+                params.append('weekNumber', weekNumber.toString());
             }
+            
+            url += params.toString();
 
             const response = await fetch(url);
             
