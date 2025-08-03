@@ -502,7 +502,16 @@
                 
                 // Get entries from Firebase backend only
                 console.log('📊 Using production backend to get entries...', backend.constructor.name);
+                
+                // Try with sport filter first, then without if no results (for backward compatibility)
                 currentEntries = await backend.getContestEntries(contestDate, currentContestType);
+                
+                // If no results with sport filter, try without filter for MLB (backward compatibility)
+                if (currentEntries.length === 0 && currentContestType === 'mlb') {
+                    console.log('🔄 No entries found with sport filter, trying without filter for backward compatibility...');
+                    currentEntries = await backend.getContestEntries(contestDate);
+                }
+                
                 console.log('📊 Final loaded entries:', currentEntries.length, currentEntries.length > 0 ? currentEntries[0] : 'none');
                 
                 // Get stats - use backend if available, otherwise integration
