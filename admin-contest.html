@@ -11,9 +11,6 @@
     <!-- Styles -->
     <link rel="stylesheet" href="src/css/styles.css">
     
-    <!-- Daily Contest API -->
-    <script src="src/js/daily-contest-api.js"></script>
-    
     <style>
         .admin-container {
             max-width: 1400px;
@@ -236,7 +233,7 @@
             </div>
             <div class="nav-links">
                 <a href="index.html" class="nav-link">Home</a>
-                <a href="daily-contest.html" class="nav-link">MLB Contest</a>
+                <a href="mlb-contest.html" class="nav-link">MLB Contest</a>
                 <a href="nfl-contest.html" class="nav-link">NFL Contest</a>
                 <a href="admin-games-upload.html" class="nav-link">Upload Games</a>
                 <a href="admin-contest.html" class="nav-link active">Contest Admin</a>
@@ -255,9 +252,6 @@
                 </button>
                 <button onclick="switchContestType('nfl')" id="nfl-tab" class="contest-tab">
                     🏈 NFL Weekly Contest
-                </button>
-                <button onclick="switchContestType('daily')" id="daily-tab" class="contest-tab">
-                    📅 Daily Contest
                 </button>
             </div>
         </div>
@@ -302,58 +296,6 @@
                 <button onclick="debugNFLStorage()" class="refresh-btn" style="background: #2196F3; margin-left: 10px;">Debug Storage</button>
                 <button onclick="clearNFLWeekData()" class="refresh-btn" style="background: #ff4444; margin-left: 10px;">Clear Week Data</button>
                 <button onclick="clearAllNFLData()" class="refresh-btn" style="background: #ff6600; margin-left: 5px;">Clear All NFL</button>
-            </div>
-        </div>
-        
-        <!-- Daily Contest Controls -->
-        <div id="daily-controls" class="contest-controls" style="display: none;">
-            <div style="margin-bottom: 30px;">
-                <label style="margin-right: 10px;">Contest Date:</label>
-                <input type="date" id="daily-contest-date" class="date-selector">
-                <button onclick="loadDailyContestData()" class="refresh-btn">Load Contest</button>
-                <button onclick="createNewDailyContest()" class="refresh-btn" style="background: #4CAF50; margin-left: 10px;">Create New</button>
-                <button onclick="publishDailyContest()" class="refresh-btn" style="background: #2196F3; margin-left: 10px;">Publish</button>
-            </div>
-            
-            <!-- Contest Status -->
-            <div id="daily-contest-status" style="margin-bottom: 20px; padding: 15px; background: #2a2a2a; border-radius: 8px; display: none;">
-                <h3 style="color: #ffa500; margin-bottom: 10px;">Contest Status</h3>
-                <div id="daily-status-text" style="color: #ccc;">No contest loaded</div>
-            </div>
-            
-            <!-- Choice Builder -->
-            <div id="daily-choice-builder" style="margin-bottom: 30px; padding: 20px; background: #2a2a2a; border-radius: 8px; display: none;">
-                <h3 style="color: #ffa500; margin-bottom: 15px;">Add Choice</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                    <input type="text" id="option-a" placeholder="Option A (e.g., Chiefs -3.5)" class="date-selector">
-                    <input type="text" id="option-b" placeholder="Option B (e.g., Bills +3.5)" class="date-selector">
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                    <input type="text" id="choice-category" placeholder="Category (e.g., NFL Spread)" class="date-selector">
-                    <input type="text" id="choice-description" placeholder="Description (optional)" class="date-selector">
-                </div>
-                <button onclick="addDailyChoice()" class="refresh-btn" style="background: #4CAF50;">Add Choice</button>
-                <button onclick="clearChoiceForm()" class="refresh-btn" style="background: #666; margin-left: 10px;">Clear</button>
-            </div>
-            
-            <!-- Current Choices -->
-            <div id="daily-choices-list" style="margin-bottom: 30px; display: none;">
-                <h3 style="color: #ffa500; margin-bottom: 15px;">Current Choices</h3>
-                <div id="choices-container" style="background: #2a2a2a; border-radius: 8px; padding: 15px;">
-                    <!-- Choices will be dynamically added here -->
-                </div>
-            </div>
-            
-            <!-- Resolution Interface (shown after contest is published) -->
-            <div id="daily-resolution" style="margin-bottom: 30px; padding: 20px; background: #2a2a2a; border-radius: 8px; display: none;">
-                <h3 style="color: #ffa500; margin-bottom: 15px;">Resolve Contest</h3>
-                <div id="resolution-choices">
-                    <!-- Resolution options will be dynamically added here -->
-                </div>
-                <div style="margin-top: 20px;">
-                    <button onclick="lockDailyContest()" class="refresh-btn" style="background: #ff9800;">Lock Contest</button>
-                    <button onclick="resolveDailyContest()" class="refresh-btn" style="background: #4CAF50; margin-left: 10px;">Calculate Winners</button>
-                </div>
             </div>
         </div>
         
@@ -603,7 +545,6 @@
             // Show/hide controls
             document.getElementById('mlb-controls').style.display = type === 'mlb' ? 'block' : 'none';
             document.getElementById('nfl-controls').style.display = type === 'nfl' ? 'block' : 'none';
-            document.getElementById('daily-controls').style.display = type === 'daily' ? 'block' : 'none';
             
             // Update table title and headers
             let tableTitle = '';
@@ -615,9 +556,6 @@
             } else if (type === 'nfl') {
                 tableTitle = 'NFL Contest Entries';
                 tiebreakerHeader = 'Tiebreaker Points';
-            } else if (type === 'daily') {
-                tableTitle = 'Daily Contest Entries';
-                tiebreakerHeader = 'Score';
             }
             
             document.getElementById('entries-table-title').textContent = tableTitle;
@@ -629,11 +567,6 @@
                 statCards[0].textContent = 'Week Entries';
                 statCards[1].textContent = 'Week Pool';
                 statCards[2].textContent = 'Week Status';
-                statCards[3].textContent = 'Avg Score';
-            } else if (type === 'daily') {
-                statCards[0].textContent = 'Total Entries';
-                statCards[1].textContent = 'Prize Pool';
-                statCards[2].textContent = 'Contest Status';
                 statCards[3].textContent = 'Avg Score';
             } else {
                 statCards[0].textContent = 'Total Entries';
@@ -1541,360 +1474,9 @@
             }
         }
         
-        // Daily Contest Management Functions
-        let currentDailyContest = null;
-        let dailyChoices = [];
-        
-        // Initialize daily contest date to today
-        function initializeDailyContest() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('daily-contest-date').value = today;
-        }
-        
-        // Load existing daily contest
-        async function loadDailyContestData() {
-            const date = document.getElementById('daily-contest-date').value;
-            if (!date) {
-                alert('Please select a date');
-                return;
-            }
-            
-            try {
-                console.log('Loading daily contest for:', date);
-                
-                // Load from Firebase with localStorage fallback
-                const contest = await window.smartDailyContestAPI.getDailyContest(date);
-                
-                if (contest) {
-                    currentDailyContest = contest;
-                    dailyChoices = currentDailyContest.choices || [];
-                    updateDailyContestUI();
-                    console.log('✅ Loaded daily contest:', contest);
-                } else {
-                    // No contest exists
-                    currentDailyContest = null;
-                    dailyChoices = [];
-                    updateDailyContestUI();
-                    console.log('ℹ️ No contest found for date:', date);
-                }
-                
-            } catch (error) {
-                console.error('Failed to load daily contest:', error);
-                alert('Failed to load daily contest: ' + error.message);
-            }
-        }
-        
-        // Create new daily contest
-        async function createNewDailyContest() {
-            const date = document.getElementById('daily-contest-date').value;
-            if (!date) {
-                alert('Please select a date');
-                return;
-            }
-            
-            currentDailyContest = {
-                contestDate: date,
-                sport: 'daily',
-                status: 'draft',
-                choices: [],
-                createdAt: new Date().toISOString(),
-                active: false
-            };
-            
-            dailyChoices = [];
-            updateDailyContestUI();
-            console.log('Created new daily contest for:', date);
-        }
-        
-        // Add choice to contest
-        function addDailyChoice() {
-            const optionA = document.getElementById('option-a').value.trim();
-            const optionB = document.getElementById('option-b').value.trim();
-            const category = document.getElementById('choice-category').value.trim();
-            const description = document.getElementById('choice-description').value.trim();
-            
-            if (!optionA || !optionB) {
-                alert('Please enter both Option A and Option B');
-                return;
-            }
-            
-            const choice = {
-                id: `choice_${Date.now()}`,
-                optionA: optionA,
-                optionB: optionB,
-                category: category || 'General',
-                description: description,
-                correctAnswer: null
-            };
-            
-            dailyChoices.push(choice);
-            
-            if (currentDailyContest) {
-                currentDailyContest.choices = dailyChoices;
-            }
-            
-            updateDailyContestUI();
-            clearChoiceForm();
-            console.log('Added choice:', choice);
-        }
-        
-        // Clear choice form
-        function clearChoiceForm() {
-            document.getElementById('option-a').value = '';
-            document.getElementById('option-b').value = '';
-            document.getElementById('choice-category').value = '';
-            document.getElementById('choice-description').value = '';
-        }
-        
-        // Remove choice
-        function removeDailyChoice(choiceId) {
-            dailyChoices = dailyChoices.filter(c => c.id !== choiceId);
-            
-            if (currentDailyContest) {
-                currentDailyContest.choices = dailyChoices;
-            }
-            
-            updateDailyContestUI();
-            console.log('Removed choice:', choiceId);
-        }
-        
-        // Publish contest
-        async function publishDailyContest() {
-            if (!currentDailyContest) {
-                alert('Please create a contest first');
-                return;
-            }
-            
-            if (dailyChoices.length === 0) {
-                alert('Please add at least one choice before publishing');
-                return;
-            }
-            
-            try {
-                currentDailyContest.status = 'active';
-                currentDailyContest.active = true;
-                currentDailyContest.choices = dailyChoices;
-                currentDailyContest.publishedAt = new Date().toISOString();
-                
-                // Save to Firebase with localStorage fallback
-                const result = await window.smartDailyContestAPI.saveDailyContest(currentDailyContest);
-                
-                if (result.success) {
-                    updateDailyContestUI();
-                    alert('✅ Daily contest published successfully!');
-                    console.log('Published daily contest:', currentDailyContest);
-                } else {
-                    throw new Error('Failed to publish contest');
-                }
-                
-            } catch (error) {
-                console.error('Failed to publish contest:', error);
-                alert('Failed to publish contest: ' + error.message);
-            }
-        }
-        
-        // Lock contest (stop accepting entries)
-        async function lockDailyContest() {
-            if (!currentDailyContest) {
-                alert('No contest loaded');
-                return;
-            }
-            
-            try {
-                currentDailyContest.status = 'locked';
-                currentDailyContest.lockedAt = new Date().toISOString();
-                
-                // Save to Firebase with localStorage fallback
-                const result = await window.smartDailyContestAPI.saveDailyContest(currentDailyContest);
-                
-                if (result.success) {
-                    updateDailyContestUI();
-                    alert('✅ Daily contest locked successfully!');
-                    console.log('Locked daily contest');
-                } else {
-                    throw new Error('Failed to lock contest');
-                }
-                
-            } catch (error) {
-                console.error('Failed to lock contest:', error);
-                alert('Failed to lock contest: ' + error.message);
-            }
-        }
-        
-        // Resolve contest and calculate winners
-        async function resolveDailyContest() {
-            if (!currentDailyContest) {
-                alert('No contest loaded');
-                return;
-            }
-            
-            // Check if all choices have results
-            const unresolvedChoices = dailyChoices.filter(c => !c.correctAnswer);
-            if (unresolvedChoices.length > 0) {
-                alert(`Please set results for all choices. Missing: ${unresolvedChoices.length} choices`);
-                return;
-            }
-            
-            try {
-                // Prepare choice results for backend scoring
-                const choiceResults = {};
-                dailyChoices.forEach(choice => {
-                    choiceResults[choice.id] = choice.correctAnswer;
-                });
-                
-                // Send to Firebase for resolution and scoring
-                const result = await window.smartDailyContestAPI.resolveDailyContest(
-                    currentDailyContest.contestDate, 
-                    choiceResults
-                );
-                
-                if (result.success) {
-                    // Update local contest object
-                    currentDailyContest.status = 'resolved';
-                    currentDailyContest.resolvedAt = new Date().toISOString();
-                    currentDailyContest.choiceResults = choiceResults;
-                    
-                    updateDailyContestUI();
-                    alert(`✅ Contest resolved and ${result.entriesUpdated || 0} entries scored!`);
-                    console.log('Resolved daily contest');
-                } else {
-                    throw new Error('Failed to resolve contest');
-                }
-                
-            } catch (error) {
-                console.error('Failed to resolve contest:', error);
-                alert('Failed to resolve contest: ' + error.message);
-            }
-        }
-        
-        // Set choice result
-        function setChoiceResult(choiceId, result) {
-            const choice = dailyChoices.find(c => c.id === choiceId);
-            if (choice) {
-                choice.correctAnswer = result;
-                
-                if (currentDailyContest) {
-                    currentDailyContest.choices = dailyChoices;
-                }
-                
-                console.log(`Set result for ${choiceId}: ${result}`);
-            }
-        }
-        
-        // Update UI based on current contest state
-        function updateDailyContestUI() {
-            const statusDiv = document.getElementById('daily-contest-status');
-            const statusText = document.getElementById('daily-status-text');
-            const builderDiv = document.getElementById('daily-choice-builder');
-            const choicesDiv = document.getElementById('daily-choices-list');
-            const resolutionDiv = document.getElementById('daily-resolution');
-            
-            if (!currentDailyContest) {
-                statusDiv.style.display = 'none';
-                builderDiv.style.display = 'none';
-                choicesDiv.style.display = 'none';
-                resolutionDiv.style.display = 'none';
-                return;
-            }
-            
-            // Show status
-            statusDiv.style.display = 'block';
-            statusText.textContent = `Status: ${currentDailyContest.status?.toUpperCase() || 'DRAFT'} | Choices: ${dailyChoices.length}`;
-            
-            // Show/hide sections based on status
-            if (currentDailyContest.status === 'draft') {
-                builderDiv.style.display = 'block';
-                choicesDiv.style.display = dailyChoices.length > 0 ? 'block' : 'none';
-                resolutionDiv.style.display = 'none';
-            } else if (currentDailyContest.status === 'active') {
-                builderDiv.style.display = 'none';
-                choicesDiv.style.display = 'block';
-                resolutionDiv.style.display = 'block';
-            } else {
-                builderDiv.style.display = 'none';
-                choicesDiv.style.display = 'block';
-                resolutionDiv.style.display = 'block';
-            }
-            
-            // Update choices list
-            updateChoicesList();
-            updateResolutionInterface();
-        }
-        
-        // Update choices list display
-        function updateChoicesList() {
-            const container = document.getElementById('choices-container');
-            
-            if (dailyChoices.length === 0) {
-                container.innerHTML = '<p style="color: #888; text-align: center;">No choices added yet</p>';
-                return;
-            }
-            
-            container.innerHTML = dailyChoices.map((choice, index) => `
-                <div style="margin-bottom: 15px; padding: 15px; background: #1a1a1a; border-radius: 8px; border-left: 4px solid #ffa500;">
-                    <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 10px;">
-                        <h4 style="color: #ffa500; margin: 0;">Choice ${index + 1}</h4>
-                        ${currentDailyContest?.status === 'draft' ? 
-                            `<button onclick="removeDailyChoice('${choice.id}')" style="background: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Remove</button>` :
-                            ''
-                        }
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
-                        <div style="padding: 10px; background: #333; border-radius: 4px;">
-                            <strong style="color: #4CAF50;">Option A:</strong><br>
-                            <span style="color: #ccc;">${choice.optionA}</span>
-                        </div>
-                        <div style="padding: 10px; background: #333; border-radius: 4px;">
-                            <strong style="color: #ff6b00;">Option B:</strong><br>
-                            <span style="color: #ccc;">${choice.optionB}</span>
-                        </div>
-                    </div>
-                    <div style="color: #888; font-size: 0.9em;">
-                        <strong>Category:</strong> ${choice.category}
-                        ${choice.description ? `<br><strong>Description:</strong> ${choice.description}` : ''}
-                        ${choice.correctAnswer ? `<br><strong>Result:</strong> Option ${choice.correctAnswer} Won` : ''}
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        // Update resolution interface
-        function updateResolutionInterface() {
-            const container = document.getElementById('resolution-choices');
-            
-            if (currentDailyContest?.status !== 'active' && currentDailyContest?.status !== 'locked' && currentDailyContest?.status !== 'resolved') {
-                return;
-            }
-            
-            container.innerHTML = dailyChoices.map((choice, index) => `
-                <div style="margin-bottom: 15px; padding: 15px; background: #1a1a1a; border-radius: 8px;">
-                    <h4 style="color: #ffa500; margin-bottom: 10px;">Choice ${index + 1}: ${choice.category}</h4>
-                    <div style="margin-bottom: 15px; color: #ccc;">
-                        <strong>${choice.optionA}</strong> vs <strong>${choice.optionB}</strong>
-                    </div>
-                    <div style="display: flex; gap: 15px;">
-                        <label style="color: #ccc; cursor: pointer;">
-                            <input type="radio" name="result_${choice.id}" value="A" 
-                                   onchange="setChoiceResult('${choice.id}', 'A')"
-                                   ${choice.correctAnswer === 'A' ? 'checked' : ''}
-                                   ${currentDailyContest?.status === 'resolved' ? 'disabled' : ''}>
-                            Option A Won
-                        </label>
-                        <label style="color: #ccc; cursor: pointer;">
-                            <input type="radio" name="result_${choice.id}" value="B" 
-                                   onchange="setChoiceResult('${choice.id}', 'B')"
-                                   ${choice.correctAnswer === 'B' ? 'checked' : ''}
-                                   ${currentDailyContest?.status === 'resolved' ? 'disabled' : ''}>
-                            Option B Won
-                        </label>
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        // Initialize daily contest when page loads
+        // Initialize page when loaded
         document.addEventListener('DOMContentLoaded', function() {
-            initializeDailyContest();
+            // Initialize with MLB contest as default
         });
     </script>
 </body>
