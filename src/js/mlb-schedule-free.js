@@ -146,24 +146,37 @@ class MLBScheduleFree {
                 const gameTime = new Date(game.gameDate);
                 const status = game.status?.abstractGameState || 'Preview';
                 
-                // Only include scheduled games (not completed or in progress)
-                if (status === 'Preview' || status === 'Scheduled') {
-                    games.push({
-                        id: `mlb_${date.toISOString().split('T')[0]}_${game.gamePk}`,
-                        gameId: game.gamePk,
-                        homeTeam: this.getTeamAbbr(homeTeam),
-                        homeTeamFull: homeTeam,
-                        awayTeam: this.getTeamAbbr(awayTeam),
-                        awayTeamFull: awayTeam,
-                        gameTime: gameTime.toISOString(),
-                        gameTimeFormatted: this.formatGameTime(gameTime),
-                        venue: game.venue?.name || 'TBD',
-                        status: status,
-                        // Add placeholder odds since we don't need real ones
-                        homeOdds: this.generatePlaceholderOdds(),
-                        awayOdds: this.generatePlaceholderOdds()
-                    });
+                // Get scores if game is completed
+                const homeScore = game.teams?.home?.score || 0;
+                const awayScore = game.teams?.away?.score || 0;
+                
+                // Determine winner for completed games
+                let winner = null;
+                if (status === 'Final' && homeScore !== awayScore) {
+                    winner = homeScore > awayScore ? 'home' : 'away';
                 }
+                
+                // Include all games (not just scheduled ones) so we can see completed games
+                games.push({
+                    id: `mlb_${date.toISOString().split('T')[0]}_${game.gamePk}`,
+                    gameId: game.gamePk,
+                    homeTeam: this.getTeamAbbr(homeTeam),
+                    homeTeamFull: homeTeam,
+                    awayTeam: this.getTeamAbbr(awayTeam),
+                    awayTeamFull: awayTeam,
+                    gameTime: gameTime.toISOString(),
+                    gameTimeFormatted: this.formatGameTime(gameTime),
+                    venue: game.venue?.name || 'TBD',
+                    status: status,
+                    // Add actual scores and winner for completed games
+                    homeScore: homeScore,
+                    awayScore: awayScore,
+                    winner: winner,
+                    totalRuns: homeScore + awayScore,
+                    // Add placeholder odds since we don't need real ones
+                    homeOdds: this.generatePlaceholderOdds(),
+                    awayOdds: this.generatePlaceholderOdds()
+                });
             });
         }
         
@@ -248,6 +261,52 @@ class MLBScheduleFree {
         }
         
         return allGames;
+    }
+    
+    /**
+     * Get real game results for contest scoring
+     * @param {Date} date - The date to get results for
+     * @returns {Object} - Game results formatted for contest scoring
+     */
+    async getGameResults(date) {
+        try {
+            console.log(`🏆 Fetching real game results for ${date.toDateString()}...`);
+            
+            const games = await this.getGamesForDate(date);
+            const gameResults = {};
+            let completedGames = 0;
+            
+            games.forEach(game => {
+                if (game.status === 'Final' && game.winner) {
+                    gameResults[game.id] = {
+                        status: 'completed',
+                        winner: game.winner,
+                        homeScore: game.homeScore,
+                        awayScore: game.awayScore,
+                        homeTeam: game.homeTeam,
+                        awayTeam: game.awayTeam,
+                        totalRuns: game.totalRuns
+                    };
+                    completedGames++;
+                }
+            });
+            
+            // Calculate total runs for tiebreaker
+            const totalRuns = Object.values(gameResults).reduce((sum, game) => 
+                sum + game.totalRuns, 0
+            );
+            
+            if (totalRuns > 0) {
+                gameResults.lastGameRuns = totalRuns;
+            }
+            
+            console.log(`✅ Found ${completedGames} completed games with ${totalRuns} total runs`);
+            return gameResults;
+            
+        } catch (error) {
+            console.error('❌ Failed to fetch game results:', error);
+            return {};
+        }
     }
     
     /**

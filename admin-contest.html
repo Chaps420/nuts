@@ -261,6 +261,7 @@
                 <label style="margin-right: 10px;">Contest Date:</label>
                 <input type="date" id="contest-date" class="date-selector">
                 <button onclick="loadContestData()" class="refresh-btn">Load Data</button>
+                <button onclick="fetchRealGameResults()" class="refresh-btn" style="background: #2196F3; margin-left: 10px;">🔄 Update Game Results</button>
                 <button onclick="clearSelectedDateData()" class="refresh-btn" style="background: #ff4444; margin-left: 10px;">Clear Data</button>
                 <button onclick="clearAllContestData()" class="refresh-btn" style="background: #ff6600; margin-left: 5px;">Clear All</button>
                 <button onclick="clearTestData()" class="refresh-btn" style="background: #ff0000; margin-left: 5px;">Clear Test Data</button>
@@ -316,6 +317,13 @@
                 <h3>Average Score</h3>
                 <div class="stat-value" id="avg-score">0</div>
             </div>
+        </div>
+        
+        <!-- Auto-Update Status -->
+        <div style="background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+            <span style="color: #4CAF50;">🔄 Auto-Update:</span>
+            <span id="auto-update-status" style="color: #ccc;">Checking for game results every 10 minutes...</span>
+            <span id="last-update" style="color: #888; margin-left: 10px;"></span>
         </div>
         
         <!-- Entries Table -->
@@ -401,6 +409,7 @@
     <script src="src/js/firebase-xaman-integration.js"></script>
     <script src="src/js/contest-backend.js"></script>
     <script src="src/js/contest-backend-production.js"></script>
+    <script src="src/js/mlb-schedule-free.js"></script>
     
     <script>
         let integration;
@@ -448,6 +457,55 @@
             
             // Load today's data
             loadContestData();
+            
+            // Set up automatic score updates every 10 minutes
+            console.log('⏰ Setting up automatic score updates...');
+            setInterval(async () => {
+                const contestDate = document.getElementById('contest-date').value;
+                if (contestDate && currentEntries.length > 0) {
+                    console.log('🔄 Automatic score update check...');
+                    
+                    // Update status
+                    const statusElement = document.getElementById('auto-update-status');
+                    if (statusElement) {
+                        statusElement.textContent = 'Checking for updates...';
+                        statusElement.style.color = '#ff9900';
+                    }
+                    
+                    try {
+                        const gameResults = await fetchRealGameResults(contestDate, false); // false = no alert
+                        if (Object.keys(gameResults).length > 0) {
+                            await updateEntryScores(gameResults);
+                            updateStats({ totalEntries: currentEntries.length, prizePool: currentEntries.length * 50, avgScore: 0 });
+                            updateEntriesTable(currentEntries);
+                            console.log('✅ Automatic score update completed');
+                            
+                            if (statusElement) {
+                                statusElement.textContent = 'Scores updated with live results!';
+                                statusElement.style.color = '#4CAF50';
+                            }
+                        } else {
+                            if (statusElement) {
+                                statusElement.textContent = 'No completed games yet...';
+                                statusElement.style.color = '#888';
+                            }
+                        }
+                        
+                        // Update last check time
+                        const lastUpdateElement = document.getElementById('last-update');
+                        if (lastUpdateElement) {
+                            lastUpdateElement.textContent = `Last checked: ${new Date().toLocaleTimeString()}`;
+                        }
+                        
+                    } catch (error) {
+                        console.warn('⚠️ Automatic score update failed:', error);
+                        if (statusElement) {
+                            statusElement.textContent = 'Update failed - will retry...';
+                            statusElement.style.color = '#ff4444';
+                        }
+                    }
+                }
+            }, 10 * 60 * 1000); // Every 10 minutes
         });
         
         async function loadContestData() {
@@ -978,20 +1036,29 @@
                 return;
             }
             
-            // In production, this would get actual game results
-            const mockGameResults = {};
-            currentEntries[0].picks && Object.keys(currentEntries[0].picks).forEach(gameId => {
-                mockGameResults[gameId] = {
-                    winner: Math.random() > 0.5 ? 'home' : 'away'
-                };
-            });
-            mockGameResults.lastGameRuns = Math.floor(Math.random() * 15) + 5;
+            // Get REAL game results instead of mock data
+            const contestDate = document.getElementById('contest-date').value;
+            let gameResults = {};
             
             try {
-                const result = await integration.updateGameResults(
-                    document.getElementById('contest-date').value,
-                    mockGameResults
-                );
+                console.log('🔄 Fetching real game results for scoring...');
+                gameResults = await fetchRealGameResults(contestDate, false); // false = don't show alerts
+                
+                if (Object.keys(gameResults).length === 0) {
+                    alert('⚠️ No completed games found yet. Cannot calculate winners until games finish.');
+                    return;
+                }
+                
+                console.log('📊 Using real game results:', gameResults);
+                
+            } catch (error) {
+                console.error('❌ Failed to get real game results:', error);
+                alert('Failed to fetch real game results. Please try again.');
+                return;
+            }
+            
+            try {
+                const result = await integration.updateGameResults(contestDate, gameResults);
                 
                 if (result) {
                     if (result.status === 'cancelled') {
@@ -1020,6 +1087,130 @@
                 }
             } catch (error) {
                 alert('Failed to calculate winners: ' + error.message);
+            }
+        }
+        
+        // NEW FUNCTION: Fetch real game results from MLB API
+        async function fetchRealGameResults(contestDate = null, showAlert = true) {
+            const dateToCheck = contestDate || document.getElementById('contest-date').value;
+            
+            if (!dateToCheck) {
+                if (showAlert) alert('Please select a date first');
+                return {};
+            }
+            
+            try {
+                console.log(`🔄 Fetching real MLB game results for ${dateToCheck}...`);
+                
+                if (showAlert) {
+                    document.body.style.cursor = 'wait';
+                }
+                
+                // Initialize MLB Schedule API if not available
+                if (!window.mlbSchedule) {
+                    console.log('📡 Loading MLB Schedule API...');
+                    const script = document.createElement('script');
+                    script.src = 'src/js/mlb-schedule-free.js';
+                    document.head.appendChild(script);
+                    
+                    // Wait for it to load
+                    await new Promise(resolve => {
+                        script.onload = resolve;
+                        setTimeout(resolve, 2000); // fallback timeout
+                    });
+                }
+                
+                const gameDate = new Date(dateToCheck);
+                
+                // Use the new getGameResults method that returns processed results
+                const gameResults = await window.mlbSchedule.getGameResults(gameDate);
+                
+                const completedGames = Object.keys(gameResults).filter(key => key !== 'lastGameRuns').length;
+                
+                console.log(`📅 Found ${completedGames} completed games for ${dateToCheck}`);
+                
+                if (completedGames === 0) {
+                    if (showAlert) {
+                        const games = await window.mlbSchedule.getGamesForDate(gameDate);
+                        const inProgress = games.filter(g => g.status === 'Live' || g.status === 'In Progress').length;
+                        const notStarted = games.filter(g => g.status === 'Preview' || g.status === 'Scheduled').length;
+                        
+                        alert(`� Game Status Update for ${dateToCheck}:\n\n✅ Completed: 0\n🔄 In Progress: ${inProgress}\n📅 Not Started: ${notStarted}\n\nNo games have finished yet. Check back later!`);
+                    }
+                    return {};
+                }
+                
+                if (showAlert) {
+                    document.body.style.cursor = 'default';
+                    
+                    alert(`📊 Game Results Updated!\n\n✅ Completed Games: ${completedGames}\n🏃 Total Runs: ${gameResults.lastGameRuns || 0}\n\nContest scores will be updated automatically.`);
+                    
+                    // Automatically recalculate scores for entries
+                    await updateEntryScores(gameResults);
+                    loadContestData(); // Refresh the display
+                }
+                
+                return gameResults;
+                
+            } catch (error) {
+                console.error('❌ Failed to fetch real game results:', error);
+                if (showAlert) {
+                    document.body.style.cursor = 'default';
+                    alert(`Failed to fetch game results: ${error.message}\n\nPlease check your internet connection and try again.`);
+                }
+                return {};
+            }
+        }
+        
+        // NEW FUNCTION: Update entry scores based on real game results
+        async function updateEntryScores(gameResults) {
+            if (currentEntries.length === 0 || Object.keys(gameResults).length === 0) {
+                return;
+            }
+            
+            console.log('🏆 Updating entry scores with real game results...');
+            
+            let updatedEntries = 0;
+            
+            currentEntries.forEach(entry => {
+                if (!entry.picks) return;
+                
+                let newScore = 0;
+                
+                // Calculate score based on real game results
+                Object.keys(entry.picks).forEach(gameId => {
+                    const userPick = entry.picks[gameId]; // 'home' or 'away'
+                    const gameResult = gameResults[gameId];
+                    
+                    if (gameResult && gameResult.status === 'completed') {
+                        if (userPick === gameResult.winner) {
+                            newScore++;
+                        }
+                    }
+                });
+                
+                // Update the entry score
+                const oldScore = entry.score || 0;
+                entry.score = newScore;
+                
+                if (newScore !== oldScore) {
+                    console.log(`📊 ${entry.userName}: ${oldScore} → ${newScore} points`);
+                    updatedEntries++;
+                }
+            });
+            
+            console.log(`✅ Updated scores for ${updatedEntries} entries`);
+            
+            // Save updated entries back to Firebase
+            try {
+                if (backend && backend.updateContestEntry) {
+                    for (const entry of currentEntries) {
+                        await backend.updateContestEntry(entry);
+                    }
+                    console.log('💾 Saved updated scores to Firebase');
+                }
+            } catch (error) {
+                console.error('❌ Failed to save updated scores:', error);
             }
         }
         
