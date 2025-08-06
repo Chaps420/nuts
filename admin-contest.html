@@ -2279,103 +2279,46 @@
             }
             
             try {
-                // Initialize backend if not already done
-                if (!backend) {
-                    backend = new ContestBackend();
-                    await backend.init();
-                }
+                // Use enhanced backend for Firebase-compatible score persistence
+                console.log('🔧 Initializing enhanced backend for Firebase score persistence...');
+                const enhancedBackend = new ContestBackendEnhanced();
+                await enhancedBackend.init();
                 
-                console.log('🧮 Calculating scores for each entry...');
-                let updatedCount = 0;
+                // Use the enhanced backend's updateGameResults method for CORS-compliant Firebase operations
+                console.log('� Persisting scores to Firebase via enhanced backend...');
+                const result = await enhancedBackend.updateGameResults(contestDate, gameResults);
                 
-                // Calculate scores for each entry
-                for (const entry of currentEntries) {
-                    if (!entry.picks) {
-                        console.log(`❌ ${entry.userName}: No picks found`);
-                        continue;
+                if (result && result.allEntries) {
+                    // Update current entries with the persisted scores from Firebase
+                    currentEntries = result.allEntries;
+                    console.log(`✅ Successfully persisted ${result.allEntries.length} entry scores to Firebase`);
+                    
+                    // Clear temporary scores since we now have persisted data
+                    if (window.tempScores) {
+                        delete window.tempScores;
                     }
                     
-                    let newScore = 0;
-                    console.log(`🔍 Processing ${entry.userName}...`);
-                    
-                    // Calculate score based on real game results
-                    Object.keys(entry.picks).forEach(gameId => {
-                        const userPick = entry.picks[gameId]; // 'home' or 'away'
-                        
-                        // Try exact match first
-                        let gameResult = gameResults[gameId];
-                        
-                        // If no exact match, try to find a similar game ID
-                        if (!gameResult) {
-                            const possibleMatches = Object.keys(gameResults).filter(resultGameId => {
-                                if (resultGameId.includes(gameId) || gameId.includes(resultGameId)) {
-                                    return true;
-                                }
-                                
-                                const extractGamePk = (id) => {
-                                    const match = id.match(/(\d+)$/);
-                                    return match ? match[1] : null;
-                                };
-                                
-                                const userGamePk = extractGamePk(gameId);
-                                const resultGamePk = extractGamePk(resultGameId);
-                                
-                                return userGamePk && resultGamePk && userGamePk === resultGamePk;
-                            });
-                            
-                            if (possibleMatches.length > 0) {
-                                gameResult = gameResults[possibleMatches[0]];
-                                console.log(`  🔄 Matched ${gameId} to ${possibleMatches[0]}`);
-                            }
-                        }
-                        
-                        if (gameResult && (gameResult.status === 'completed' || gameResult.status === 'Final')) {
-                            const isCorrect = userPick === gameResult.winner;
-                            if (isCorrect) {
-                                newScore++;
-                            }
-                        }
-                    });
-                    
-                    const oldScore = entry.score || 0;
-                    entry.score = newScore;
-                    
-                    console.log(`📊 ${entry.userName}: ${oldScore} → ${newScore} points`);
-                    
-                    // Save individual entry score to Firebase using production backend
-                    try {
-                        const updateData = {
-                            entryId: entry.id,
-                            score: entry.score,
-                            contestDate: contestDate
-                        };
-                        
-                        // Call Firebase Cloud Function to update score
-                        const response = await fetch(`${backend.baseUrl}/updateEntryScore`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(updateData)
+                    // Display winner information if available
+                    if (result.winners && result.winners.length > 0) {
+                        console.log('🏆 Contest winners:', result.winners);
+                        result.winners.forEach((winner, index) => {
+                            console.log(`${index + 1}. ${winner.entry?.userName || winner.userName} - Score: ${winner.entry?.score || winner.score} - Prize: ${winner.prize} NUTS`);
                         });
-                        
-                        if (response.ok) {
-                            const result = await response.json();
-                            if (result.success) {
-                                console.log(`💾 Saved ${entry.userName} score (${entry.score}) to Firebase`);
-                                updatedCount++;
-                            } else {
-                                console.error(`❌ Firebase rejected score update for ${entry.userName}:`, result.error);
-                            }
-                        } else {
-                            console.error(`❌ HTTP error saving ${entry.userName} score:`, response.status);
-                        }
-                    } catch (updateError) {
-                        console.error(`❌ Failed to save ${entry.userName} score:`, updateError);
                     }
+                    
+                    // Show status information
+                    if (result.status === 'cancelled') {
+                        console.warn('⚠️ Contest cancelled:', result.reason);
+                        alert(`Contest cancelled: ${result.reason}\nEntries: ${result.totalEntries}, Minimum required: ${result.minimumRequired}`);
+                    } else if (result.status === 'completed') {
+                        console.log('🎉 Contest completed successfully');
+                        if (result.totalPrizePool) {
+                            console.log(`💰 Total prize pool: ${result.totalPrizePool} NUTS`);
+                        }
+                    }
+                } else {
+                    console.warn('⚠️ No entries updated - this may indicate an issue with Firebase persistence');
                 }
-                
-                console.log(`✅ Updated ${updatedCount} entry scores in Firebase`);
                 
                 // Refresh the display using enhanced display if available
                 if (window.enhancedDisplay && window.enhancedDisplay.displayAdminEntries) {
@@ -2387,11 +2330,98 @@
                 // Reload the contest data to reflect the updated scores
                 await loadContestData();
                 
-                console.log('� Contest data reloaded with updated scores');
+                console.log('🔄 Contest data reloaded with updated scores from Firebase');
                 
             } catch (error) {
-                console.error('❌ Failed to update scores in Firebase:', error);
-                alert(`Failed to save scores to Firebase: ${error.message}\n\nScores calculated correctly but not saved to database.`);
+                console.error('❌ Failed to persist scores to Firebase:', error);
+                
+                // Fallback: Calculate and display scores locally without Firebase persistence
+                console.log('🔄 Falling back to local score calculation...');
+                
+                try {
+                    let updatedCount = 0;
+                    
+                    // Calculate scores for each entry locally
+                    for (const entry of currentEntries) {
+                        if (!entry.picks) {
+                            console.log(`❌ ${entry.userName}: No picks found`);
+                            continue;
+                        }
+                        
+                        let newScore = 0;
+                        console.log(`🔍 Processing ${entry.userName}...`);
+                        
+                        // Calculate score based on real game results
+                        Object.keys(entry.picks).forEach(gameId => {
+                            const userPick = entry.picks[gameId]; // 'home' or 'away'
+                            
+                            // Try exact match first
+                            let gameResult = gameResults[gameId];
+                            
+                            // If no exact match, try to find a similar game ID
+                            if (!gameResult) {
+                                const possibleMatches = Object.keys(gameResults).filter(resultGameId => {
+                                    if (resultGameId.includes(gameId) || gameId.includes(resultGameId)) {
+                                        return true;
+                                    }
+                                    
+                                    const extractGamePk = (id) => {
+                                        const match = id.match(/(\d+)$/);
+                                        return match ? match[1] : null;
+                                    };
+                                    
+                                    const userGamePk = extractGamePk(gameId);
+                                    const resultGamePk = extractGamePk(resultGameId);
+                                    
+                                    return userGamePk && resultGamePk && userGamePk === resultGamePk;
+                                });
+                                
+                                if (possibleMatches.length > 0) {
+                                    gameResult = gameResults[possibleMatches[0]];
+                                    console.log(`  🔄 Matched ${gameId} to ${possibleMatches[0]}`);
+                                }
+                            }
+                            
+                            if (gameResult && (gameResult.status === 'completed' || gameResult.status === 'Final')) {
+                                const isCorrect = userPick === gameResult.winner;
+                                if (isCorrect) {
+                                    newScore++;
+                                }
+                            }
+                        });
+                        
+                        const oldScore = entry.score || 0;
+                        entry.score = newScore;
+                        
+                        console.log(`📊 ${entry.userName}: ${oldScore} → ${newScore} points`);
+                        updatedCount++;
+                        
+                        // Store in temporary scores object for display
+                        if (!window.tempScores) {
+                            window.tempScores = {};
+                        }
+                        window.tempScores[entry.id] = {
+                            score: entry.score,
+                            userName: entry.userName,
+                            timestamp: Date.now()
+                        };
+                    }
+                    
+                    console.log(`✅ Calculated ${updatedCount} entry scores locally (NOT saved to Firebase)`);
+                    
+                    // Refresh the display
+                    if (window.enhancedDisplay && window.enhancedDisplay.displayAdminEntries) {
+                        window.enhancedDisplay.displayAdminEntries(currentEntries, contestDate);
+                    } else {
+                        updateEntriesTable(currentEntries);
+                    }
+                    
+                    alert(`⚠️ Firebase Error: ${error.message}\n\nScores calculated correctly but not saved to database.\nDisplaying local calculations only.`);
+                    
+                } catch (fallbackError) {
+                    console.error('❌ Fallback calculation also failed:', fallbackError);
+                    alert(`Failed to calculate scores: ${fallbackError.message}`);
+                }
             }
         }
         
