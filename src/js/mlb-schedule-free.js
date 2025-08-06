@@ -22,8 +22,9 @@ class MLBScheduleFree {
         
         // Check for manually uploaded games first
         try {
-            const manualGames = this.getManuallyUploadedGames(date);
-            if (manualGames.length > 0) {
+            const formattedDate = this.formatDate(date);
+            const manualGames = this.getManuallyUploadedGames(formattedDate);
+            if (manualGames && manualGames.length > 0) {
                 console.log(`📋 Using ${manualGames.length} manually uploaded games`);
                 return manualGames;
             }

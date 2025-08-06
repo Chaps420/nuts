@@ -1,0 +1,446 @@
+/* Enhanced Contest Display Styles */
+
+/* Pick badges for leaderboard */
+.picks-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 300px;
+}
+
+.pick-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: 600;
+    background: #333;
+    border: 1px solid #555;
+    white-space: nowrap;
+    cursor: help;
+    transition: all 0.2s ease;
+}
+
+.pick-badge:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(255, 165, 0, 0.3);
+}
+
+.pick-badge.correct {
+    background: rgba(76, 175, 80, 0.2);
+    border-color: #4CAF50;
+    color: #4CAF50;
+}
+
+.pick-badge.incorrect {
+    background: rgba(244, 67, 54, 0.2);
+    border-color: #f44336;
+    color: #f44336;
+}
+
+.pick-badge.pending {
+    background: rgba(255, 165, 0, 0.2);
+    border-color: #ffa500;
+    color: #ffa500;
+}
+
+.pick-badge.more {
+    background: rgba(158, 158, 158, 0.2);
+    border-color: #9e9e9e;
+    color: #9e9e9e;
+    font-style: italic;
+}
+
+/* Rank styling */
+.rank-1 {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0.05) 100%);
+    border-left: 4px solid #FFD700;
+}
+
+.rank-2 {
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.1) 0%, rgba(192, 192, 192, 0.05) 100%);
+    border-left: 4px solid #C0C0C0;
+}
+
+.rank-3 {
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.1) 0%, rgba(205, 127, 50, 0.05) 100%);
+    border-left: 4px solid #CD7F32;
+}
+
+.highlight-row {
+    background: rgba(255, 165, 0, 0.1) !important;
+    border: 2px solid #ffa500;
+    box-shadow: 0 0 10px rgba(255, 165, 0, 0.3);
+}
+
+/* Admin portal styles */
+.admin-picks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.admin-pick-item {
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    border: 1px solid #444;
+    background: #2a2a2a;
+    transition: all 0.2s ease;
+}
+
+.admin-pick-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.admin-pick-item.correct {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.admin-pick-item.incorrect {
+    border-color: #f44336;
+    background: rgba(244, 67, 54, 0.1);
+}
+
+.admin-pick-item.pending {
+    border-color: #ffa500;
+    background: rgba(255, 165, 0, 0.1);
+}
+
+.pick-teams {
+    margin-bottom: 4px;
+    font-weight: 600;
+    color: #ffa500;
+}
+
+.pick-result {
+    font-size: 0.9em;
+    font-weight: 600;
+    margin: 2px 0;
+}
+
+.pick-score {
+    font-size: 0.8em;
+    color: #888;
+    margin-top: 2px;
+}
+
+.pick-venue {
+    font-size: 0.75em;
+    color: #666;
+    font-style: italic;
+}
+
+/* Admin picks simple format */
+.admin-picks-simple {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.admin-pick-basic {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 8px;
+    background: #2a2a2a;
+    border-radius: 4px;
+    font-size: 0.8em;
+}
+
+.pick-team {
+    font-weight: 600;
+    color: #ffa500;
+}
+
+.pick-game {
+    font-size: 0.7em;
+    color: #888;
+}
+
+/* Status badges */
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.9em;
+    text-transform: uppercase;
+}
+
+.status-badge.status-won {
+    background: #4CAF50;
+    color: white;
+}
+
+.status-badge.status-lost {
+    background: #666;
+    color: #ccc;
+}
+
+.status-badge.status-pending {
+    background: #ffa500;
+    color: white;
+}
+
+/* Button styles */
+.btn-small {
+    padding: 4px 8px;
+    font-size: 0.8em;
+    background: #ffa500;
+    color: #000;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-small:hover {
+    background: #ff8c00;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(255, 165, 0, 0.3);
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background-color: #1a1a1a;
+    margin: 5% auto;
+    padding: 0;
+    border: 1px solid #444;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 85vh;
+    overflow-y: auto;
+    color: white;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #333;
+    background: #2a2a2a;
+    border-radius: 12px 12px 0 0;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #ffa500;
+    font-size: 1.5em;
+}
+
+.close-modal {
+    font-size: 2em;
+    color: #888;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.close-modal:hover {
+    color: #ffa500;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.entry-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #2a2a2a;
+    border-radius: 8px;
+}
+
+.entry-summary div {
+    text-align: center;
+}
+
+.picks-detailed {
+    display: grid;
+    gap: 10px;
+}
+
+.pick-detail-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 15px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #444;
+    background: #2a2a2a;
+    align-items: center;
+}
+
+.pick-detail-row.correct {
+    border-color: #4CAF50;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.pick-detail-row.incorrect {
+    border-color: #f44336;
+    background: rgba(244, 67, 54, 0.1);
+}
+
+.pick-detail-row.pending {
+    border-color: #ffa500;
+    background: rgba(255, 165, 0, 0.1);
+}
+
+.pick-teams {
+    font-weight: 600;
+    color: #ffa500;
+}
+
+.pick-selection {
+    text-align: center;
+}
+
+.pick-result {
+    text-align: center;
+    font-weight: 600;
+}
+
+.pick-score {
+    text-align: center;
+    color: #888;
+    font-size: 0.9em;
+}
+
+/* Wallet address styling */
+.wallet-addr {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8em;
+    color: #888;
+    background: #333;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .picks-container {
+        max-width: 200px;
+    }
+    
+    .admin-picks-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .pick-detail-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        text-align: center;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 2% auto;
+    }
+    
+    .entry-summary {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Loading states */
+.loading-picker {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #333;
+    border-radius: 50%;
+    border-top-color: #ffa500;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Score highlighting */
+.score-highlight {
+    animation: scoreGlow 2s ease-in-out;
+}
+
+@keyframes scoreGlow {
+    0%, 100% {
+        box-shadow: none;
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(76, 175, 80, 0.6);
+    }
+}
+
+/* Contest resolution button */
+.resolve-contest-btn {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.resolve-contest-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+.resolve-contest-btn:disabled {
+    background: #666;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Success/Error messages */
+.message-success {
+    background: rgba(76, 175, 80, 0.2);
+    border: 1px solid #4CAF50;
+    color: #4CAF50;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.message-error {
+    background: rgba(244, 67, 54, 0.2);
+    border: 1px solid #f44336;
+    color: #f44336;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 10px 0;
+}
