@@ -420,9 +420,15 @@
         
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            // Set today's date as default
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('contest-date').value = today;
+            // Set today's date as default in EST
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayString = `${year}-${month}-${day}`;
+            
+            document.getElementById('contest-date').value = todayString;
+            console.log('📅 Set default date to:', todayString);
             
             // Initialize Firebase integration first
             console.log('🔥 Setting up Firebase integration...');
@@ -1120,11 +1126,11 @@
                     });
                 }
                 
-                // Fix timezone issue - create date in local timezone
-                const dateParts = dateToCheck.split('-');
-                const gameDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                // Create date object for the specified date (avoid timezone issues)
+                const gameDate = new Date(dateToCheck + 'T12:00:00'); // Use noon to avoid timezone edge cases
                 
-                console.log(`🗓️ Processing game results for: ${dateToCheck} -> ${gameDate.toDateString()}`);
+                console.log(`🗓️ Processing game results for: ${dateToCheck}`);
+                console.log(`🗓️ Created date object: ${gameDate.toDateString()} (${gameDate.toISOString()})`);
                 
                 // Use the new getGameResults method that returns processed results
                 const gameResults = await window.mlbSchedule.getGameResults(gameDate);
