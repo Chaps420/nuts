@@ -975,12 +975,30 @@
                 return;
             }
             
-            tbody.innerHTML = entries.map(entry => `
-                <tr>
+            // Sort entries by score (descending) for leaderboard effect
+            const sortedEntries = [...entries].sort((a, b) => (b.score || 0) - (a.score || 0));
+            
+            tbody.innerHTML = sortedEntries.map((entry, index) => {
+                // Create detailed picks display
+                const picksHtml = formatPicksDisplay(entry.picks || {});
+                
+                // Determine rank styling
+                const rank = index + 1;
+                const rankStyle = rank === 1 ? 'color: #FFD700; font-weight: bold;' : // Gold
+                                 rank === 2 ? 'color: #C0C0C0; font-weight: bold;' : // Silver  
+                                 rank === 3 ? 'color: #CD7F32; font-weight: bold;' : // Bronze
+                                 'color: #888;';
+                
+                return `
+                <tr style="${rank <= 3 ? 'background: rgba(255, 215, 0, 0.05);' : ''}">
                     <td style="font-family: monospace; font-size: 0.85em;">
-                        ${entry.id.substring(0, 12)}...
+                        <span style="${rankStyle}">#${rank}</span><br>
+                        ${entry.id.substring(0, 8)}...
                     </td>
-                    <td>${entry.userName}</td>
+                    <td>
+                        <strong>${entry.userName}</strong>
+                        ${rank <= 3 ? `<br><small style="${rankStyle}">${rank === 1 ? '👑 Leader' : rank === 2 ? '🥈 2nd Place' : '🥉 3rd Place'}</small>` : ''}
+                    </td>
                     <td>
                         ${entry.twitterHandle ? 
                             `<a href="https://twitter.com/${entry.twitterHandle.replace('@', '')}" 
@@ -997,16 +1015,18 @@
                             </span>` : 
                             '<span style="color: #666;">-</span>'}
                     </td>
-                    <td class="picks-preview">
-                        ${Object.keys(entry.picks || {}).length} picks
+                    <td class="picks-preview" style="max-width: 200px;">
+                        ${picksHtml}
                     </td>
-                    <td>${entry.tiebreakerRuns || 0} runs</td>
-                    <td>
+                    <td style="text-align: center;">
+                        <strong>${entry.tiebreakerRuns || 0}</strong> runs
+                    </td>
+                    <td style="text-align: center;">
                         ${entry.score !== undefined ? 
-                            `<span class="score-badge">${entry.score}</span>` : 
+                            `<span class="score-badge" style="font-size: 1.1em; ${rank <= 3 ? 'background: ' + (rank === 1 ? '#FFD700' : rank === 2 ? '#C0C0C0' : '#CD7F32') + '; color: #000;' : ''}">${entry.score}</span>` : 
                             '<span style="color: #666;">-</span>'}
                     </td>
-                    <td>${entry.prizeWon || 0} NUTS</td>
+                    <td style="text-align: center;">${entry.prizeWon || 0} NUTS</td>
                     <td>
                         <span style="color: ${
                             entry.status === 'won' ? '#4CAF50' : 
@@ -1031,7 +1051,63 @@
                         ${new Date(entry.timestamp || entry.paymentTimestamp).toLocaleTimeString()}
                     </td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
+        }
+        
+        // NEW FUNCTION: Format picks for display
+        function formatPicksDisplay(picks) {
+            if (!picks || Object.keys(picks).length === 0) {
+                return '<span style="color: #666;">No picks</span>';
+            }
+            
+            let html = `<div style="font-size: 0.8em;">`;
+            let pickCount = 0;
+            const maxDisplayPicks = 4; // Show first 4 picks, then "..."
+            
+            Object.entries(picks).forEach(([gameId, pick]) => {
+                if (pickCount < maxDisplayPicks) {
+                    // Try to get team names from the game ID or use generic names
+                    const teams = getTeamNamesFromGameId(gameId);
+                    const pickedTeam = pick === 'home' ? teams.home : teams.away;
+                    
+                    html += `
+                        <div style="margin: 2px 0; padding: 2px 4px; background: #2a2a2a; border-radius: 3px; display: flex; justify-content: space-between;">
+                            <span style="color: #888; font-size: 0.7em;">${teams.away} @ ${teams.home}</span>
+                            <span style="color: #ffa500; font-weight: bold;">${pickedTeam}</span>
+                        </div>
+                    `;
+                }
+                pickCount++;
+            });
+            
+            if (pickCount > maxDisplayPicks) {
+                html += `<div style="color: #666; font-size: 0.7em; text-align: center; margin-top: 4px;">...and ${pickCount - maxDisplayPicks} more</div>`;
+            }
+            
+            html += `</div>`;
+            return html;
+        }
+        
+        // Helper function to extract team names from game ID
+        function getTeamNamesFromGameId(gameId) {
+            // Try to extract team names from the game ID
+            // Game IDs often follow patterns like "2025-08-05-NYY-BOS" or similar
+            if (gameId && gameId.includes('-')) {
+                const parts = gameId.split('-');
+                if (parts.length >= 4) {
+                    return {
+                        away: parts[parts.length - 2] || 'Away',
+                        home: parts[parts.length - 1] || 'Home'
+                    };
+                }
+            }
+            
+            // Fallback to generic names
+            return {
+                away: 'Away',
+                home: 'Home'
+            };
         }
         
         async function calculateWinners() {
@@ -1723,26 +1799,67 @@
                 </div>
             `;
             
-            // Show some game details if there are live games
-            if (inProgress > 0) {
-                html += `<div style="border-top: 1px solid #444; padding-top: 10px;">`;
-                html += `<h4 style="color: #ff9900; margin: 0 0 10px 0;">🔴 Live Games:</h4>`;
+            // Show ALL games in a detailed format
+            html += `<div style="border-top: 1px solid #444; padding-top: 15px;">`;
+            html += `<h4 style="color: #ffa500; margin: 0 0 15px 0;">� All Games Today:</h4>`;
+            
+            // Group games by status
+            const gamesByStatus = {
+                'Live/In Progress': games.filter(g => g.status === 'Live' || g.status === 'In Progress'),
+                'Final': games.filter(g => g.status === 'Final'),
+                'Warmup': games.filter(g => g.status === 'Warmup'),
+                'Scheduled': games.filter(g => g.status === 'Preview' || g.status === 'Scheduled')
+            };
+            
+            Object.entries(gamesByStatus).forEach(([status, statusGames]) => {
+                if (statusGames.length === 0) return;
                 
-                const liveGames = games.filter(g => g.status === 'Live' || g.status === 'In Progress');
-                liveGames.slice(0, 3).forEach(game => {
+                const statusColors = {
+                    'Live/In Progress': '#ff9900',
+                    'Final': '#4CAF50',
+                    'Warmup': '#2196F3',
+                    'Scheduled': '#666'
+                };
+                
+                const statusEmojis = {
+                    'Live/In Progress': '🔴',
+                    'Final': '✅',
+                    'Warmup': '🔥',
+                    'Scheduled': '📅'
+                };
+                
+                html += `<div style="margin-bottom: 15px;">`;
+                html += `<h5 style="color: ${statusColors[status]}; margin: 0 0 8px 0; font-size: 0.9em;">${statusEmojis[status]} ${status} (${statusGames.length})</h5>`;
+                
+                statusGames.forEach(game => {
+                    const gameTime = game.gameTime ? new Date(game.gameTime).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) : '';
+                    
                     html += `
-                        <div style="background: #1a1a1a; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 0.9em;">
-                            <strong>${game.awayTeam} @ ${game.homeTeam}</strong>
-                            ${game.awayScore !== undefined ? ` - ${game.awayScore}-${game.homeScore}` : ''}
+                        <div style="background: #1a1a1a; padding: 10px; margin: 5px 0; border-radius: 6px; border-left: 3px solid ${statusColors[status]};">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="font-weight: bold; color: white;">
+                                    ${game.awayTeam} @ ${game.homeTeam}
+                                </div>
+                                <div style="text-align: right;">
+                                    ${game.awayScore !== undefined && game.homeScore !== undefined ? 
+                                        `<span style="color: #4CAF50; font-weight: bold; font-size: 1.1em;">${game.awayScore} - ${game.homeScore}</span>` : 
+                                        `<span style="color: #888;">${gameTime}</span>`
+                                    }
+                                </div>
+                            </div>
+                            ${game.inning ? `<div style="color: #888; font-size: 0.8em; margin-top: 4px;">${game.inning}</div>` : ''}
+                            ${game.gameId ? `<div style="color: #666; font-size: 0.7em; font-family: monospace;">${game.gameId}</div>` : ''}
                         </div>
                     `;
                 });
                 
-                if (liveGames.length > 3) {
-                    html += `<div style="color: #888; font-size: 0.8em;">...and ${liveGames.length - 3} more games</div>`;
-                }
                 html += `</div>`;
-            }
+            });
+            
+            html += `</div>`;
             
             contentDiv.innerHTML = html;
             progressDiv.style.display = 'block';
