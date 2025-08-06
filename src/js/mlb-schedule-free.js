@@ -294,8 +294,8 @@ class MLBScheduleFree {
             let latestStartTime = null;
             
             games.forEach(game => {
-                if (game.gameData && game.gameData.datetime && game.gameData.datetime.dateTime) {
-                    const startTime = new Date(game.gameData.datetime.dateTime);
+                if (game.gameTime) {
+                    const startTime = new Date(game.gameTime);
                     if (!latestStartTime || startTime > latestStartTime) {
                         latestStartTime = startTime;
                         lastGame = game;
@@ -304,14 +304,11 @@ class MLBScheduleFree {
             });
             
             let lastGameRuns = 0;
-            if (lastGame && lastGame.liveData && lastGame.liveData.linescore) {
-                const homeScore = lastGame.liveData.linescore.teams.home.runs || 0;
-                const awayScore = lastGame.liveData.linescore.teams.away.runs || 0;
-                lastGameRuns = homeScore + awayScore;
+            if (lastGame && lastGame.status === 'Final') {
+                lastGameRuns = lastGame.totalRuns || 0;
                 
-                const homeTeam = lastGame.gameData.teams.home.name;
-                const awayTeam = lastGame.gameData.teams.away.name;
-                console.log(`🌙 Last game of night: ${awayTeam} @ ${homeTeam} = ${awayScore}-${homeScore} (${lastGameRuns} total runs)`);
+                console.log(`🌙 Last game of night: ${lastGame.awayTeam} @ ${lastGame.homeTeam} = ${lastGame.awayScore}-${lastGame.homeScore} (${lastGameRuns} total runs)`);
+                console.log(`🕐 Last game start time: ${new Date(lastGame.gameTime).toLocaleTimeString()}`);
             }
             
             if (lastGameRuns > 0) {
