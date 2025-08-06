@@ -33,6 +33,7 @@ class MLBScheduleFree {
         
         try {
             const formattedDate = this.formatDate(date);
+            const cacheKey = `games_${formattedDate}`;
             console.log(`📡 Fetching MLB games from free API for ${formattedDate}...`);
             
             const url = `${this.baseUrl}/schedule?sportId=1&date=${formattedDate}`;
@@ -77,7 +78,7 @@ class MLBScheduleFree {
                 timestamp: Date.now()
             });
             
-            console.log(`✅ Found ${games.length} MLB games for ${dateStr}`);
+            console.log(`✅ Found ${games.length} MLB games for ${formattedDate}`);
             return games;
             
         } catch (error) {
