@@ -288,16 +288,37 @@ class MLBScheduleFree {
                 }
             });
             
-            // Calculate total runs for tiebreaker
-            const totalRuns = Object.values(gameResults).reduce((sum, game) => 
-                sum + game.totalRuns, 0
-            );
+            // Calculate total runs for the LAST GAME of the night (tiebreaker)
+            // Find the game with the latest start time to determine "last game"
+            let lastGame = null;
+            let latestStartTime = null;
             
-            if (totalRuns > 0) {
-                gameResults.lastGameRuns = totalRuns;
+            games.forEach(game => {
+                if (game.gameData && game.gameData.datetime && game.gameData.datetime.dateTime) {
+                    const startTime = new Date(game.gameData.datetime.dateTime);
+                    if (!latestStartTime || startTime > latestStartTime) {
+                        latestStartTime = startTime;
+                        lastGame = game;
+                    }
+                }
+            });
+            
+            let lastGameRuns = 0;
+            if (lastGame && lastGame.liveData && lastGame.liveData.linescore) {
+                const homeScore = lastGame.liveData.linescore.teams.home.runs || 0;
+                const awayScore = lastGame.liveData.linescore.teams.away.runs || 0;
+                lastGameRuns = homeScore + awayScore;
+                
+                const homeTeam = lastGame.gameData.teams.home.name;
+                const awayTeam = lastGame.gameData.teams.away.name;
+                console.log(`🌙 Last game of night: ${awayTeam} @ ${homeTeam} = ${awayScore}-${homeScore} (${lastGameRuns} total runs)`);
             }
             
-            console.log(`✅ Found ${completedGames} completed games with ${totalRuns} total runs`);
+            if (lastGameRuns > 0) {
+                gameResults.lastGameRuns = lastGameRuns;
+            }
+            
+            console.log(`✅ Found ${completedGames} completed games, last game had ${lastGameRuns} total runs`);
             return gameResults;
             
         } catch (error) {
