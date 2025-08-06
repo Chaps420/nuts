@@ -1126,8 +1126,9 @@
                     });
                 }
                 
-                // Create date object for the specified date (avoid timezone issues)
-                const gameDate = new Date(dateToCheck + 'T12:00:00'); // Use noon to avoid timezone edge cases
+                // Create date object properly to avoid timezone issues
+                const dateParts = dateToCheck.split('-');
+                const gameDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
                 
                 console.log(`🗓️ Processing game results for: ${dateToCheck}`);
                 console.log(`🗓️ Created date object: ${gameDate.toDateString()} (${gameDate.toISOString()})`);
