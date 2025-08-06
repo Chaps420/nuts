@@ -18,28 +18,22 @@ class MLBScheduleFree {
      * @param {Date} date - The date to get games for
      */
     async getGamesForDate(date) {
-        const dateStr = this.formatDate(date);
+        console.log(`📅 Getting games for date: ${date.toDateString()} (${date.toISOString()})`);
         
-        // First check for manually uploaded games
-        const manualGames = this.getManuallyUploadedGames(dateStr);
-        if (manualGames && manualGames.length > 0) {
-            console.log(`📋 Using ${manualGames.length} manually uploaded games for ${dateStr}`);
-            return manualGames;
-        }
-        
-        const cacheKey = `games_${dateStr}`;
-        
-        // Check cache
-        if (this.cache.has(cacheKey)) {
-            const cached = this.cache.get(cacheKey);
-            if (Date.now() - cached.timestamp < this.cacheTimeout) {
-                console.log('📦 Returning cached games for', dateStr);
-                return cached.data;
+        // Check for manually uploaded games first
+        try {
+            const manualGames = this.getManuallyUploadedGames(date);
+            if (manualGames.length > 0) {
+                console.log(`📋 Using ${manualGames.length} manually uploaded games`);
+                return manualGames;
             }
+        } catch (error) {
+            console.log('Error loading manual games:', error.message);
         }
         
         try {
-            console.log(`📡 Fetching MLB games from free API for ${dateStr}...`);
+            const formattedDate = this.formatDate(date);
+            console.log(`📡 Fetching MLB games from free API for ${formattedDate}...`);
             
             const url = `${this.baseUrl}/schedule?sportId=1&date=${dateStr}`;
             const response = await fetch(url);
@@ -270,7 +264,7 @@ class MLBScheduleFree {
      */
     async getGameResults(date) {
         try {
-            console.log(`🏆 Fetching real game results for ${date.toDateString()}...`);
+            console.log(`🏆 Fetching real game results for ${date.toDateString()} (${date.toISOString()})...`);
             
             const games = await this.getGamesForDate(date);
             const gameResults = {};

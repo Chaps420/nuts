@@ -1120,7 +1120,11 @@
                     });
                 }
                 
-                const gameDate = new Date(dateToCheck);
+                // Fix timezone issue - create date in local timezone
+                const dateParts = dateToCheck.split('-');
+                const gameDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                
+                console.log(`🗓️ Processing game results for: ${dateToCheck} -> ${gameDate.toDateString()}`);
                 
                 // Use the new getGameResults method that returns processed results
                 const gameResults = await window.mlbSchedule.getGameResults(gameDate);
