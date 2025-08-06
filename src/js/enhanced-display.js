@@ -386,4 +386,12 @@ window.displayAdminEntries = displayAdminEntries;
 window.showEntryDetails = showEntryDetails;
 window.closeModal = closeModal;
 
+// Create enhanced display namespace for easier access
+window.enhancedDisplay = {
+    displayEnhancedResults: displayEnhancedResults,
+    displayAdminEntries: displayAdminEntries,
+    showEntryDetails: showEntryDetails,
+    closeModal: closeModal
+};
+
 console.log('✅ Enhanced display functions loaded');

@@ -202,20 +202,27 @@ function setupResolveContestButton() {
 /**
  * Resolve contest functionality
  */
-async function resolveContest() {
+async function resolveContest(providedDate = null) {
     const resolveBtn = document.getElementById('resolve-contest-btn');
-    const contestDate = document.getElementById('contest-date')?.value || 
+    const contestDate = providedDate || 
+                       document.getElementById('contest-date')?.value || 
                        document.getElementById('date-selector')?.value ||
                        new Date().toISOString().split('T')[0];
     
     try {
-        resolveBtn.disabled = true;
-        resolveBtn.innerHTML = '<div class="loading-spinner"></div> Resolving...';
+        // Only try to modify button if it exists
+        if (resolveBtn) {
+            resolveBtn.disabled = true;
+            resolveBtn.innerHTML = '<div class="loading-spinner"></div> Resolving...';
+        }
         
         console.log(`🏁 Resolving contest for ${contestDate}...`);
         
+        // Ensure we have a valid date for the API
+        const gameDate = new Date(contestDate + 'T00:00:00.000Z');
+        
         // Get game results
-        const gameResults = await window.mlbSchedule.getGameResults(new Date(contestDate));
+        const gameResults = await window.mlbSchedule.getGameResults(gameDate);
         
         if (Object.keys(gameResults).length === 0) {
             throw new Error('No completed games found for this date');
@@ -223,15 +230,57 @@ async function resolveContest() {
         
         console.log(`🎮 Found ${Object.keys(gameResults).length} completed games`);
         
-        // Update entries with results
-        const result = await window.contestBackend.updateGameResults(contestDate, gameResults);
+        // Use the same backend instance that's used in the admin portal - FORCE production backend only
+        let backend;
+        
+        // First priority: Use production backend instance that we know works
+        if (window.contestBackendProduction && typeof window.contestBackendProduction.getContestEntries === 'function') {
+            backend = window.contestBackendProduction; // Use the production backend instance
+            console.log('🔥 Using production backend instance:', backend.constructor.name);
+        } else if (window.backend && window.backend.constructor.name === 'ContestBackendProduction') {
+            backend = window.backend; // Use the global admin backend instance if it's production
+            console.log('🔥 Using global admin backend instance:', backend.constructor.name);
+        } else {
+            // Create new production backend instance as last resort
+            console.warn('⚠️ Creating new production backend instance for contest resolution');
+            if (window.ContestBackendProduction) {
+                backend = new window.ContestBackendProduction();
+                await backend.init();
+                console.log('🔥 Created new production backend instance:', backend.constructor.name);
+            } else {
+                throw new Error('Production backend not available for contest resolution');
+            }
+        }
+        
+        // Verify we have a production backend
+        if (backend.constructor.name !== 'ContestBackendProduction') {
+            console.error('❌ Contest resolution requires production backend, got:', backend.constructor.name);
+            throw new Error('Contest resolution requires production Firebase backend');
+        }
+        
+        console.log('🔧 Selected backend for contest resolution:', backend.constructor.name);
+        
+        // Get entries using the production backend
+        const entries = await backend.getContestEntries(contestDate, 'mlb');
+        
+        if (entries.length === 0) {
+            throw new Error('No entries found for this date');
+        }
+        
+        console.log(`📊 Processing ${entries.length} entries...`);
+        
+        // Use enhanced backend for score calculation if available
+        const enhancedBackend = window.contestBackendEnhanced || backend;
+        const result = await enhancedBackend.updateGameResults(contestDate, gameResults);
         
         console.log(`🏆 Calculated ${result.winners?.length || 0} winners`);
         
-        // Display updated entries
+        // Display updated entries if function exists
         if (window.displayAdminEntries) {
             window.displayAdminEntries(result.allEntries);
         }
+        
+        return result;
         
         // Show success message
         showSuccess(`Contest resolved! ${result.winners?.length || 0} winners calculated. Total prize pool: ${result.totalPrizePool || 0} NUTS`);
@@ -244,9 +293,14 @@ async function resolveContest() {
     } catch (error) {
         console.error('❌ Failed to resolve contest:', error);
         showError('Failed to resolve contest: ' + error.message);
+        throw error; // Re-throw for debug page handling
     } finally {
-        resolveBtn.disabled = false;
-        resolveBtn.textContent = 'Resolve Contest';
+        // Only try to modify button if it exists
+        const resolveBtn = document.getElementById('resolve-contest-btn');
+        if (resolveBtn) {
+            resolveBtn.disabled = false;
+            resolveBtn.textContent = 'Resolve Contest';
+        }
     }
 }
 
@@ -412,7 +466,10 @@ window.calculateEntryScore = async function(entryId) {
         }
         
         const contestDate = entry.contestDate;
-        const gameResults = await window.mlbSchedule.getGameResults(new Date(contestDate));
+        // Ensure we have a valid date string for the API
+        const gameDate = new Date(contestDate + 'T00:00:00.000Z');
+        
+        const gameResults = await window.mlbSchedule.getGameResults(gameDate);
         
         if (Object.keys(gameResults).length === 0) {
             showError('No completed games found for scoring');
@@ -442,9 +499,17 @@ window.viewEntryDetails = function(entryId) {
     }
 };
 
-console.log('✅ Enhanced contest integration script loaded');
-
 // Export key functions
 window.loadAndDisplayResults = loadAndDisplayResults;
 window.resolveContest = resolveContest;
 window.displayWinners = displayWinners;
+
+// Create enhanced contest integration namespace
+window.contestIntegrationEnhanced = {
+    loadAndDisplayResults: loadAndDisplayResults,
+    resolveContest: resolveContest,
+    displayWinners: displayWinners,
+    viewEntryDetails: window.viewEntryDetails
+};
+
+console.log('✅ Enhanced contest integration script loaded');

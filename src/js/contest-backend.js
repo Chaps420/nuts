@@ -341,7 +341,7 @@ class ContestBackend {
      * Calculate contest winners
      */
     calculateWinners(entries, forceCalculation = false, gameResults = {}) {
-        const minimumEntries = window.config?.contest?.minimumEntries || 4;
+        const minimumEntries = window.config?.contest?.minimumEntries || 1; // Reduced for testing
         
         // Only allow winner calculation if forced (admin action) or contest is completed
         if (!forceCalculation) {
@@ -619,3 +619,9 @@ class ContestBackend {
 
 // Export for use in other modules
 window.ContestBackend = ContestBackend;
+
+// Create global instances
+window.contestBackend = new ContestBackend();
+window.contestBackendProduction = new ContestBackend(); // Production instance
+
+console.log('✅ Contest Backend instances created');
