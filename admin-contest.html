@@ -262,6 +262,7 @@
                 <input type="date" id="contest-date" class="date-selector">
                 <button onclick="loadContestData()" class="refresh-btn">Load Data</button>
                 <button onclick="fetchRealGameResults()" class="refresh-btn" style="background: #2196F3; margin-left: 10px;">🔄 Update Game Results</button>
+                <button onclick="saveScoresToDatabase()" class="refresh-btn" style="background: #4CAF50; margin-left: 10px;">💾 Save Scores to Database</button>
                 <button onclick="clearSelectedDateData()" class="refresh-btn" style="background: #ff4444; margin-left: 10px;">Clear Data</button>
                 <button onclick="clearAllContestData()" class="refresh-btn" style="background: #ff6600; margin-left: 5px;">Clear All</button>
                 <button onclick="clearTestData()" class="refresh-btn" style="background: #ff0000; margin-left: 5px;">Clear Test Data</button>
@@ -1627,6 +1628,57 @@
             alert(`Cleared ${keysToRemove.length} test data keys. Click Load Data to refresh.`);
         }
         
+        async function saveScoresToDatabase() {
+            const contestDate = document.getElementById('contest-date').value;
+            if (!contestDate) {
+                alert('Please select a contest date first');
+                return;
+            }
+            
+            if (currentEntries.length === 0) {
+                alert('No entries loaded. Please load contest data first.');
+                return;
+            }
+            
+            if (!confirm(`Save current scores for ${currentEntries.length} entries to Firebase database?\n\nThis will update the leaderboard permanently.`)) {
+                return;
+            }
+            
+            try {
+                console.log('💾 Manual save to database initiated...');
+                
+                // Get real game results first
+                const gameResults = await fetchRealGameResults(contestDate, false);
+                
+                if (Object.keys(gameResults).length === 0) {
+                    if (!confirm('No completed games found. Save current scores anyway?')) {
+                        return;
+                    }
+                }
+                
+                // Initialize backend if not already done
+                if (!backend) {
+                    backend = new ContestBackend();
+                    await backend.init();
+                }
+                
+                // Use the backend's updateGameResults method
+                console.log('💾 Saving scores to Firebase...');
+                const result = await backend.updateGameResults(contestDate, gameResults);
+                
+                console.log('✅ Save result:', result);
+                
+                // Reload the contest data to show updated scores
+                await loadContestData();
+                
+                alert(`✅ Scores saved successfully!\n\nUpdated ${currentEntries.length} entries in the database.\nThe main leaderboard should now reflect the correct scores.`);
+                
+            } catch (error) {
+                console.error('❌ Failed to save scores:', error);
+                alert(`Failed to save scores to database: ${error.message}\n\nPlease check the console for more details.`);
+            }
+        }
+        
         function clearAllContestData() {
             if (confirm('Are you sure you want to clear ALL contest data from localStorage? This cannot be undone!')) {
                 // Clear all contest-related keys
@@ -2045,99 +2097,128 @@
             console.log('🎮 Game Results:', gameResults);
             console.log('📋 Available game IDs in results:', Object.keys(gameResults));
             
-            let updatedEntries = 0;
+            const contestDate = document.getElementById('contest-date').value;
+            if (!contestDate) {
+                console.error('❌ No contest date selected');
+                return;
+            }
             
-            currentEntries.forEach(entry => {
-                if (!entry.picks) {
-                    console.log(`❌ ${entry.userName}: No picks found`);
-                    return;
+            try {
+                // Initialize backend if not already done
+                if (!backend) {
+                    backend = new ContestBackend();
+                    await backend.init();
                 }
                 
-                console.log(`🔍 Processing ${entry.userName} picks:`, entry.picks);
+                // Use the backend's updateGameResults method which properly saves to Firebase
+                console.log('💾 Saving updated scores to Firebase...');
+                const result = await backend.updateGameResults(contestDate, gameResults);
                 
-                let newScore = 0;
-                let pickDetails = [];
+                console.log('✅ Firebase update result:', result);
                 
-                // Calculate score based on real game results
-                Object.keys(entry.picks).forEach(gameId => {
-                    const userPick = entry.picks[gameId]; // 'home' or 'away'
-                    console.log(`  🎯 Game ${gameId}: User picked ${userPick}`);
-                    
-                    // Try exact match first
-                    let gameResult = gameResults[gameId];
-                    
-                    // If no exact match, try to find a similar game ID
-                    if (!gameResult) {
-                        // Try to match by looking for partial matches or similar patterns
-                        const possibleMatches = Object.keys(gameResults).filter(resultGameId => {
-                            // Try different matching strategies
-                            if (resultGameId.includes(gameId) || gameId.includes(resultGameId)) {
-                                return true;
-                            }
-                            
-                            // Extract potential game IDs from both
-                            const extractGamePk = (id) => {
-                                const match = id.match(/(\d+)$/);
-                                return match ? match[1] : null;
-                            };
-                            
-                            const userGamePk = extractGamePk(gameId);
-                            const resultGamePk = extractGamePk(resultGameId);
-                            
-                            return userGamePk && resultGamePk && userGamePk === resultGamePk;
-                        });
-                        
-                        if (possibleMatches.length > 0) {
-                            gameResult = gameResults[possibleMatches[0]];
-                            console.log(`  🔄 Found similar game ID: ${possibleMatches[0]} for ${gameId}`);
-                        }
+                // Reload the contest data to reflect the updated scores
+                await loadContestData();
+                
+                console.log('🔄 Contest data reloaded with updated scores');
+                
+            } catch (error) {
+                console.error('❌ Failed to update scores in Firebase:', error);
+                
+                // Fallback: update local scores for display
+                let updatedEntries = 0;
+                
+                currentEntries.forEach(entry => {
+                    if (!entry.picks) {
+                        console.log(`❌ ${entry.userName}: No picks found`);
+                        return;
                     }
                     
-                    if (gameResult) {
-                        console.log(`  📊 Game result:`, gameResult);
+                    console.log(`🔍 Processing ${entry.userName} picks:`, entry.picks);
+                    
+                    let newScore = 0;
+                    let pickDetails = [];
+                    
+                    // Calculate score based on real game results
+                    Object.keys(entry.picks).forEach(gameId => {
+                        const userPick = entry.picks[gameId]; // 'home' or 'away'
+                        console.log(`  🎯 Game ${gameId}: User picked ${userPick}`);
                         
-                        if (gameResult.status === 'completed' || gameResult.status === 'Final') {
-                            const isCorrect = userPick === gameResult.winner;
-                            if (isCorrect) {
-                                newScore++;
-                                console.log(`  ✅ CORRECT! User picked ${userPick}, winner was ${gameResult.winner}`);
-                            } else {
-                                console.log(`  ❌ Wrong. User picked ${userPick}, winner was ${gameResult.winner}`);
-                            }
-                            
-                            pickDetails.push({
-                                gameId: gameId,
-                                userPick: userPick,
-                                winner: gameResult.winner,
-                                correct: isCorrect,
-                                homeTeam: gameResult.homeTeam,
-                                awayTeam: gameResult.awayTeam,
-                                homeScore: gameResult.homeScore,
-                                awayScore: gameResult.awayScore
+                        // Try exact match first
+                        let gameResult = gameResults[gameId];
+                        
+                        // If no exact match, try to find a similar game ID
+                        if (!gameResult) {
+                            // Try to match by looking for partial matches or similar patterns
+                            const possibleMatches = Object.keys(gameResults).filter(resultGameId => {
+                                // Try different matching strategies
+                                if (resultGameId.includes(gameId) || gameId.includes(resultGameId)) {
+                                    return true;
+                                }
+                                
+                                // Extract potential game IDs from both
+                                const extractGamePk = (id) => {
+                                    const match = id.match(/(\d+)$/);
+                                    return match ? match[1] : null;
+                                };
+                                
+                                const userGamePk = extractGamePk(gameId);
+                                const resultGamePk = extractGamePk(resultGameId);
+                                
+                                return userGamePk && resultGamePk && userGamePk === resultGamePk;
                             });
-                        } else {
-                            console.log(`  ⏳ Game not completed yet (status: ${gameResult.status})`);
+                            
+                            if (possibleMatches.length > 0) {
+                                gameResult = gameResults[possibleMatches[0]];
+                                console.log(`  🔄 Found similar game ID: ${possibleMatches[0]} for ${gameId}`);
+                            }
                         }
-                    } else {
-                        console.log(`  ❓ No game result found for ${gameId}`);
+                        
+                        if (gameResult) {
+                            console.log(`  📊 Game result:`, gameResult);
+                            
+                            if (gameResult.status === 'completed' || gameResult.status === 'Final') {
+                                const isCorrect = userPick === gameResult.winner;
+                                if (isCorrect) {
+                                    newScore++;
+                                    console.log(`  ✅ CORRECT! User picked ${userPick}, winner was ${gameResult.winner}`);
+                                } else {
+                                    console.log(`  ❌ Wrong. User picked ${userPick}, winner was ${gameResult.winner}`);
+                                }
+                                
+                                pickDetails.push({
+                                    gameId: gameId,
+                                    userPick: userPick,
+                                    winner: gameResult.winner,
+                                    correct: isCorrect,
+                                    homeTeam: gameResult.homeTeam,
+                                    awayTeam: gameResult.awayTeam,
+                                    homeScore: gameResult.homeScore,
+                                    awayScore: gameResult.awayScore
+                                });
+                            } else {
+                                console.log(`  ⏳ Game not completed yet (status: ${gameResult.status})`);
+                            }
+                        } else {
+                            console.log(`  ❓ No game result found for ${gameId}`);
+                        }
+                    });
+                    
+                    // Update the entry score
+                    const oldScore = entry.score || 0;
+                    entry.score = newScore;
+                    
+                    if (newScore !== oldScore) {
+                        console.log(`📊 ${entry.userName}: ${oldScore} → ${newScore} points`);
+                        console.log(`📋 Pick breakdown:`, pickDetails);
+                        updatedEntries++;
                     }
                 });
                 
-                // Update the entry score
-                const oldScore = entry.score || 0;
-                entry.score = newScore;
+                console.log(`⚠️ Fallback: Updated ${updatedEntries} entries locally (Firebase update failed)`);
                 
-                if (newScore !== oldScore) {
-                    console.log(`📊 ${entry.userName}: ${oldScore} → ${newScore} points`);
-                    console.log(`📋 Pick breakdown:`, pickDetails);
-                    updatedEntries++;
-                }
-            });
-            
-            console.log(`✅ Updated scores for ${updatedEntries} entries`);
-            
-            // Refresh the table to show updated scores
-            updateEntriesTable(currentEntries);
+                // Refresh the table to show updated scores
+                updateEntriesTable(currentEntries);
+            }
         }
         
         // NEW FUNCTION: Show detailed picks modal
