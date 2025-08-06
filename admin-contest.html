@@ -262,6 +262,7 @@
                 <input type="date" id="contest-date" class="date-selector">
                 <button onclick="loadContestData()" class="refresh-btn">Load Data</button>
                 <button onclick="fetchRealGameResults()" class="refresh-btn" style="background: #2196F3; margin-left: 10px;">🔄 Update Game Results</button>
+                <button onclick="debugScoring()" class="refresh-btn" style="background: #9C27B0; margin-left: 10px;">🔍 Debug Scoring</button>
                 <button onclick="saveScoresToDatabase()" class="refresh-btn" style="background: #4CAF50; margin-left: 10px;">💾 Save Scores to Database</button>
                 <button onclick="clearSelectedDateData()" class="refresh-btn" style="background: #ff4444; margin-left: 10px;">Clear Data</button>
                 <button onclick="clearAllContestData()" class="refresh-btn" style="background: #ff6600; margin-left: 5px;">Clear All</button>
@@ -585,6 +586,18 @@
                 }
                 
                 console.log('📊 Final loaded entries:', currentEntries.length, currentEntries.length > 0 ? currentEntries[0] : 'none');
+                
+                // Debug: Log entry structure for first entry
+                if (currentEntries.length > 0) {
+                    console.log('🔍 First entry structure:', {
+                        id: currentEntries[0].id,
+                        userName: currentEntries[0].userName,
+                        score: currentEntries[0].score,
+                        picks: currentEntries[0].picks,
+                        totalPicksCount: currentEntries[0].picks ? Object.keys(currentEntries[0].picks).length : 0,
+                        sampleGameIds: currentEntries[0].picks ? Object.keys(currentEntries[0].picks).slice(0, 3) : []
+                    });
+                }
                 
                 // Get stats - use backend if available, otherwise integration
                 let stats;
@@ -1626,6 +1639,87 @@
             });
             
             alert(`Cleared ${keysToRemove.length} test data keys. Click Load Data to refresh.`);
+        }
+        
+        async function debugScoring() {
+            const contestDate = document.getElementById('contest-date').value;
+            if (!contestDate) {
+                alert('Please select a contest date first');
+                return;
+            }
+            
+            if (currentEntries.length === 0) {
+                alert('No entries loaded. Please load contest data first.');
+                return;
+            }
+            
+            console.log('🔍 DEBUG SCORING - Starting detailed analysis...');
+            console.log('📅 Contest Date:', contestDate);
+            console.log('📊 Total Entries:', currentEntries.length);
+            
+            // Analyze entry structure
+            currentEntries.forEach((entry, index) => {
+                console.log(`\n👤 Entry ${index + 1}: ${entry.userName}`);
+                console.log('  📋 Picks:', entry.picks);
+                console.log('  🏆 Current Score:', entry.score);
+                console.log('  🎯 Total Picks:', entry.picks ? Object.keys(entry.picks).length : 0);
+                
+                if (entry.picks) {
+                    Object.entries(entry.picks).forEach(([gameId, pick]) => {
+                        console.log(`    🎮 Game ${gameId}: picked ${pick}`);
+                    });
+                }
+            });
+            
+            // Try to fetch game results
+            console.log('\n🔄 Fetching game results...');
+            try {
+                const gameResults = await fetchRealGameResults(contestDate, false);
+                console.log('🎮 Game Results:', gameResults);
+                console.log('🎮 Game Result Keys:', Object.keys(gameResults));
+                
+                if (Object.keys(gameResults).length === 0) {
+                    console.log('❌ No game results returned');
+                    alert('No game results found for this date. This might be because:\n\n1. Games haven\'t been played yet\n2. Games are still in progress\n3. MLB API connection issue\n\nCheck the console for more details.');
+                    return;
+                }
+                
+                // Manually calculate scores for debugging
+                console.log('\n🧮 Manual Score Calculation:');
+                currentEntries.forEach((entry, index) => {
+                    if (!entry.picks) return;
+                    
+                    let calculatedScore = 0;
+                    console.log(`\n🔍 Processing ${entry.userName}:`);
+                    
+                    Object.entries(entry.picks).forEach(([gameId, pick]) => {
+                        const gameResult = gameResults[gameId];
+                        console.log(`  🎯 Game ${gameId}: picked ${pick}`);
+                        
+                        if (gameResult) {
+                            console.log(`    📊 Result: ${gameResult.winner} won (${gameResult.status})`);
+                            const isCorrect = pick === gameResult.winner;
+                            if (isCorrect) {
+                                calculatedScore++;
+                                console.log(`    ✅ CORRECT!`);
+                            } else {
+                                console.log(`    ❌ Wrong`);
+                            }
+                        } else {
+                            console.log(`    ❓ No result found for this game ID`);
+                        }
+                    });
+                    
+                    console.log(`  📊 Calculated Score: ${calculatedScore}`);
+                });
+                
+                console.log('\n✅ Debug analysis complete - check console for detailed breakdown');
+                alert('Debug analysis complete! Check the browser console (F12) for detailed scoring breakdown.');
+                
+            } catch (error) {
+                console.error('❌ Debug error:', error);
+                alert('Debug failed: ' + error.message);
+            }
         }
         
         async function saveScoresToDatabase() {
