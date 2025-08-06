@@ -1268,23 +1268,66 @@
             }
             
             console.log('🏆 Updating entry scores with real game results...');
+            console.log('🎮 Game Results:', gameResults);
+            console.log('📋 Available game IDs in results:', Object.keys(gameResults));
             
             let updatedEntries = 0;
             
             currentEntries.forEach(entry => {
-                if (!entry.picks) return;
+                if (!entry.picks) {
+                    console.log(`❌ ${entry.userName}: No picks found`);
+                    return;
+                }
+                
+                console.log(`🔍 Processing ${entry.userName} picks:`, entry.picks);
                 
                 let newScore = 0;
+                let pickDetails = [];
                 
                 // Calculate score based on real game results
                 Object.keys(entry.picks).forEach(gameId => {
                     const userPick = entry.picks[gameId]; // 'home' or 'away'
-                    const gameResult = gameResults[gameId];
+                    console.log(`  🎯 Game ${gameId}: User picked ${userPick}`);
                     
-                    if (gameResult && gameResult.status === 'completed') {
-                        if (userPick === gameResult.winner) {
-                            newScore++;
+                    // Try exact match first
+                    let gameResult = gameResults[gameId];
+                    
+                    // If no exact match, try to find a similar game ID
+                    if (!gameResult) {
+                        // Try to match by team abbreviations or partial IDs
+                        const possibleMatches = Object.keys(gameResults).filter(resultGameId => 
+                            resultGameId.includes(gameId) || gameId.includes(resultGameId)
+                        );
+                        
+                        if (possibleMatches.length > 0) {
+                            gameResult = gameResults[possibleMatches[0]];
+                            console.log(`  🔄 Found similar game ID: ${possibleMatches[0]} for ${gameId}`);
                         }
+                    }
+                    
+                    if (gameResult) {
+                        console.log(`  📊 Game result:`, gameResult);
+                        
+                        if (gameResult.status === 'completed' || gameResult.status === 'Final') {
+                            const isCorrect = userPick === gameResult.winner;
+                            if (isCorrect) {
+                                newScore++;
+                                console.log(`  ✅ CORRECT! User picked ${userPick}, winner was ${gameResult.winner}`);
+                            } else {
+                                console.log(`  ❌ Wrong. User picked ${userPick}, winner was ${gameResult.winner}`);
+                            }
+                            
+                            pickDetails.push({
+                                gameId: gameId,
+                                userPick: userPick,
+                                winner: gameResult.winner,
+                                correct: isCorrect
+                            });
+                        } else {
+                            console.log(`  ⏳ Game not completed yet (status: ${gameResult.status})`);
+                        }
+                    } else {
+                        console.log(`  ❓ No game result found for ${gameId}`);
                     }
                 });
                 
@@ -1294,6 +1337,7 @@
                 
                 if (newScore !== oldScore) {
                     console.log(`📊 ${entry.userName}: ${oldScore} → ${newScore} points`);
+                    console.log(`📋 Pick breakdown:`, pickDetails);
                     updatedEntries++;
                 }
             });
