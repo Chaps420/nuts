@@ -333,13 +333,14 @@ class ContestBackend {
         }
 
         // Calculate winners (force calculation since admin is processing results)
-        return this.calculateWinners(updatedEntries, true);
+        // Pass gameResults to get the real lastGameRuns for tiebreaker
+        return this.calculateWinners(updatedEntries, true, gameResults);
     }
 
     /**
      * Calculate contest winners
      */
-    calculateWinners(entries, forceCalculation = false) {
+    calculateWinners(entries, forceCalculation = false, gameResults = {}) {
         const minimumEntries = window.config?.contest?.minimumEntries || 4;
         
         // Only allow winner calculation if forced (admin action) or contest is completed
@@ -368,7 +369,9 @@ class ContestBackend {
         }
 
         // Sort by score (descending), then by tiebreaker difference
-        const lastGameActualRuns = 10; // This would come from actual game data
+        // Get the actual total runs from the last game
+        const lastGameActualRuns = gameResults.lastGameRuns || 0;
+        console.log(`🏃 Tiebreaker: Last game total runs = ${lastGameActualRuns}`);
         
         entries.sort((a, b) => {
             // First sort by score
@@ -377,8 +380,10 @@ class ContestBackend {
             }
             
             // If tied, use tiebreaker (closest to actual runs)
-            const aDiff = Math.abs(a.tiebreakerRuns - lastGameActualRuns);
-            const bDiff = Math.abs(b.tiebreakerRuns - lastGameActualRuns);
+            const aDiff = Math.abs((a.tiebreakerRuns || 0) - lastGameActualRuns);
+            const bDiff = Math.abs((b.tiebreakerRuns || 0) - lastGameActualRuns);
+            
+            console.log(`🔍 Tiebreaker: ${a.userName} guessed ${a.tiebreakerRuns} (diff: ${aDiff}) vs ${b.userName} guessed ${b.tiebreakerRuns} (diff: ${bDiff})`);
             
             return aDiff - bDiff;
         });

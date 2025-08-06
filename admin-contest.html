@@ -594,9 +594,16 @@
                         id: currentEntries[0].id,
                         userName: currentEntries[0].userName,
                         score: currentEntries[0].score,
+                        tiebreakerRuns: currentEntries[0].tiebreakerRuns,
                         picks: currentEntries[0].picks,
                         totalPicksCount: currentEntries[0].picks ? Object.keys(currentEntries[0].picks).length : 0,
                         sampleGameIds: currentEntries[0].picks ? Object.keys(currentEntries[0].picks).slice(0, 3) : []
+                    });
+                    
+                    // Show tiebreaker info for all entries
+                    console.log('🏃 Tiebreaker values for all entries:');
+                    currentEntries.forEach((entry, index) => {
+                        console.log(`  ${index + 1}. ${entry.userName}: ${entry.tiebreakerRuns || 'No tiebreaker'} runs`);
                     });
                 }
                 
@@ -2182,6 +2189,10 @@
                 const completedGames = Object.keys(gameResults).filter(key => key !== 'lastGameRuns').length;
                 
                 console.log(`📅 Found ${completedGames} completed games for ${dateToCheck}`);
+                
+                // Store the last game total runs globally for tiebreaker calculations
+                window.lastGameActualRuns = gameResults.lastGameRuns || 0;
+                console.log(`🏃 Last game total runs for tiebreaker: ${window.lastGameActualRuns}`);
                 
                 if (completedGames === 0) {
                     if (showAlert) {
