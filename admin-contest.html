@@ -266,6 +266,14 @@
                 <button onclick="clearAllContestData()" class="refresh-btn" style="background: #ff6600; margin-left: 5px;">Clear All</button>
                 <button onclick="clearTestData()" class="refresh-btn" style="background: #ff0000; margin-left: 5px;">Clear Test Data</button>
             </div>
+            
+            <!-- Game Progress Display -->
+            <div id="game-progress" style="background: #2a2a2a; border: 1px solid #444; border-radius: 8px; padding: 15px; margin-bottom: 20px; display: none;">
+                <h3 style="color: #ffa500; margin: 0 0 10px 0;">📊 Live Game Status</h3>
+                <div id="game-progress-content">
+                    <p style="color: #888; margin: 0;">Click "Update Game Results" to see live game status</p>
+                </div>
+            </div>
         </div>
         
         <!-- NFL Contest Controls -->
@@ -1136,6 +1144,10 @@
                 // Use the new getGameResults method that returns processed results
                 const gameResults = await window.mlbSchedule.getGameResults(gameDate);
                 
+                // Always get games to show progress (regardless of completed games)
+                const allGames = await window.mlbSchedule.getGamesForDate(gameDate);
+                updateGameProgressDisplay(allGames);
+                
                 const completedGames = Object.keys(gameResults).filter(key => key !== 'lastGameRuns').length;
                 
                 console.log(`📅 Found ${completedGames} completed games for ${dateToCheck}`);
@@ -1673,6 +1685,67 @@
                 console.error('Failed to update payout status:', error);
                 alert('Failed to update payout status: ' + error.message);
             }
+        }
+        
+        // Function to update game progress display
+        function updateGameProgressDisplay(games) {
+            const progressDiv = document.getElementById('game-progress');
+            const contentDiv = document.getElementById('game-progress-content');
+            
+            if (!games || games.length === 0) {
+                progressDiv.style.display = 'none';
+                return;
+            }
+            
+            const completed = games.filter(g => g.status === 'Final').length;
+            const inProgress = games.filter(g => g.status === 'Live' || g.status === 'In Progress').length;
+            const scheduled = games.filter(g => g.status === 'Preview' || g.status === 'Scheduled').length;
+            const warmup = games.filter(g => g.status === 'Warmup').length;
+            
+            let html = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5em; color: #4CAF50; font-weight: bold;">${completed}</div>
+                        <div style="color: #888; font-size: 0.9em;">✅ Completed</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5em; color: #ff9900; font-weight: bold;">${inProgress}</div>
+                        <div style="color: #888; font-size: 0.9em;">🔄 Live</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5em; color: #2196F3; font-weight: bold;">${warmup}</div>
+                        <div style="color: #888; font-size: 0.9em;">🔥 Warmup</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5em; color: #666; font-weight: bold;">${scheduled}</div>
+                        <div style="color: #888; font-size: 0.9em;">📅 Scheduled</div>
+                    </div>
+                </div>
+            `;
+            
+            // Show some game details if there are live games
+            if (inProgress > 0) {
+                html += `<div style="border-top: 1px solid #444; padding-top: 10px;">`;
+                html += `<h4 style="color: #ff9900; margin: 0 0 10px 0;">🔴 Live Games:</h4>`;
+                
+                const liveGames = games.filter(g => g.status === 'Live' || g.status === 'In Progress');
+                liveGames.slice(0, 3).forEach(game => {
+                    html += `
+                        <div style="background: #1a1a1a; padding: 8px; margin: 5px 0; border-radius: 4px; font-size: 0.9em;">
+                            <strong>${game.awayTeam} @ ${game.homeTeam}</strong>
+                            ${game.awayScore !== undefined ? ` - ${game.awayScore}-${game.homeScore}` : ''}
+                        </div>
+                    `;
+                });
+                
+                if (liveGames.length > 3) {
+                    html += `<div style="color: #888; font-size: 0.8em;">...and ${liveGames.length - 3} more games</div>`;
+                }
+                html += `</div>`;
+            }
+            
+            contentDiv.innerHTML = html;
+            progressDiv.style.display = 'block';
         }
         
         // Initialize page when loaded

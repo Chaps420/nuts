@@ -35,7 +35,7 @@ class MLBScheduleFree {
             const formattedDate = this.formatDate(date);
             console.log(`📡 Fetching MLB games from free API for ${formattedDate}...`);
             
-            const url = `${this.baseUrl}/schedule?sportId=1&date=${dateStr}`;
+            const url = `${this.baseUrl}/schedule?sportId=1&date=${formattedDate}`;
             const response = await fetch(url);
             
             if (!response.ok) {
