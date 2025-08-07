@@ -112,20 +112,26 @@ async function displayEnhancedResults(entries, sport = 'mlb') {
 /**
  * Enhanced admin portal display
  */
-function displayAdminEntries(entries) {
+function displayAdminEntries(entries, contestDate) {
+    console.log('🎯 displayAdminEntries called with', entries.length, 'entries');
+    
     const container = document.getElementById('entries-tbody') || document.getElementById('entries-container');
     if (!container) {
         console.warn('⚠️ Admin entries container not found');
         return;
     }
     
-    if (entries.length === 0) {
-        container.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #888;">No entries found</td></tr>';
+    if (!entries || entries.length === 0) {
+        console.log('📝 No entries to display, showing empty message');
+        container.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #888;">No entries found</td></tr>';
         return;
     }
     
+    console.log('📊 Processing', entries.length, 'entries for display');
+    
     // Sort by score descending
     const sortedEntries = [...entries].sort((a, b) => (b.score || 0) - (a.score || 0));
+    console.log('📋 Sorted entries:', sortedEntries.map(e => ({ name: e.userName, score: e.score })));
     
     const html = sortedEntries.map((entry, index) => {
         const rank = index + 1;
@@ -134,13 +140,16 @@ function displayAdminEntries(entries) {
                          rank === 3 ? 'color: #CD7F32; font-weight: bold;' : 
                          'color: #888;';
         
+        console.log(`🎯 Processing entry ${rank}: ${entry.userName} (ID: ${entry.id})`);
+        
         // Build enhanced picks display
         let picksDisplay = '';
         
         if (entry.gamesDetailed && Array.isArray(entry.gamesDetailed)) {
+            console.log(`📊 Entry ${entry.userName} has ${entry.gamesDetailed.length} detailed games`);
             picksDisplay = `
                 <div class="admin-picks-grid">
-                    ${entry.gamesDetailed.map(game => {
+                    ${entry.gamesDetailed.slice(0, 5).map(game => {
                         let statusClass = '';
                         let statusIcon = '';
                         let statusText = '';
@@ -160,41 +169,40 @@ function displayAdminEntries(entries) {
                         }
                         
                         return `
-                            <div class="admin-pick-item ${statusClass}">
-                                <div class="pick-teams">
-                                    <strong>${game.pickedTeam || game.pickedDirection}</strong> 
-                                    ${game.opposingTeam ? `vs ${game.opposingTeam}` : ''}
+                            <div class="admin-pick-item ${statusClass}" style="margin: 2px; padding: 4px; border: 1px solid #444; border-radius: 4px; background: #222;">
+                                <div class="pick-teams" style="font-weight: bold; font-size: 0.8em;">
+                                    ${game.pickedTeam || game.pickedDirection || 'Unknown'} 
                                 </div>
-                                <div class="pick-result">
+                                <div class="pick-result" style="font-size: 0.75em;">
                                     ${statusIcon} ${statusText}
                                 </div>
-                                ${game.actualScore ? `
-                                    <div class="pick-score">Score: ${game.actualScore}</div>
-                                ` : ''}
-                                ${game.venue ? `
-                                    <div class="pick-venue">${game.venue}</div>
-                                ` : ''}
                             </div>
                         `;
                     }).join('')}
+                    ${entry.gamesDetailed.length > 5 ? `<div style="font-size: 0.75em; color: #888;">+${entry.gamesDetailed.length - 5} more...</div>` : ''}
                 </div>
             `;
         } else if (entry.picks) {
+            console.log(`📊 Entry ${entry.userName} has basic picks:`, Object.keys(entry.picks));
             // Fallback for old format - show basic picks
             picksDisplay = `
-                <div class="admin-picks-simple">
-                    ${Object.entries(entry.picks).map(([gameId, pick]) => {
+                <div class="admin-picks-simple" style="display: flex; flex-wrap: wrap; gap: 4px;">
+                    ${Object.entries(entry.picks).slice(0, 8).map(([gameId, pick]) => {
                         // Try to extract team info from gameId
                         const teamInfo = extractTeamInfoFromGameId(gameId);
                         return `
-                            <div class="admin-pick-basic">
-                                <span class="pick-team">${pick}</span>
-                                ${teamInfo ? `<span class="pick-game">${teamInfo}</span>` : ''}
+                            <div class="admin-pick-basic" style="background: #333; padding: 2px 6px; border-radius: 4px; font-size: 0.75em;">
+                                <span class="pick-team" style="font-weight: bold;">${pick}</span>
+                                ${teamInfo ? `<br><span class="pick-game" style="font-size: 0.7em; color: #888;">${teamInfo}</span>` : ''}
                             </div>
                         `;
                     }).join('')}
+                    ${Object.keys(entry.picks).length > 8 ? `<div style="font-size: 0.75em; color: #888;">+${Object.keys(entry.picks).length - 8} more...</div>` : ''}
                 </div>
             `;
+        } else {
+            console.log(`⚠️ Entry ${entry.userName} has no picks data`);
+            picksDisplay = '<div style="color: #888; font-style: italic;">No picks data</div>';
         }
         
         const statusClass = entry.status === 'won' ? 'status-won' : 
@@ -209,39 +217,45 @@ function displayAdminEntries(entries) {
                 </td>
                 <td>
                     <div class="player-info">
-                        <strong>${entry.userName}</strong>
+                        <strong>${entry.userName || entry.twitterHandle || 'Anonymous'}</strong>
                         ${rank <= 3 ? `<br><small style="${rankStyle}">${rank === 1 ? '👑 Leader' : rank === 2 ? '🥈 2nd Place' : '🥉 3rd Place'}</small>` : ''}
-                        ${entry.twitterHandle ? `<br><span style="color: #1DA1F2;">@${entry.twitterHandle}</span>` : ''}
-                        ${entry.walletAddress ? `<br><span class="wallet-addr" title="${entry.walletAddress}">${entry.walletAddress.substring(0, 8)}...</span>` : ''}
                     </div>
                 </td>
-                <td style="max-width: 400px; overflow: auto;">
+                <td style="text-align: center;">
+                    ${entry.twitterHandle || entry.xHandle || 'No X handle'}
+                </td>
+                <td style="font-family: monospace; font-size: 0.8em;">
+                    ${entry.walletAddress || entry.playerWallet || entry.wallet || entry.xrpAddress || 'No wallet'}
+                </td>
+                <td style="max-width: 300px; overflow: auto;">
                     ${picksDisplay}
+                </td>
+                <td style="text-align: center;">
+                    <strong>${entry.tiebreakerRuns || entry.tiebreakerPoints || 0}</strong>
                 </td>
                 <td style="text-align: center;">
                     <strong style="font-size: 1.1em; ${rank <= 3 ? 'color: #4CAF50;' : ''}">${entry.score || 0}</strong> 
                     <br><small>/ ${entry.totalGames || entry.gamesDetailed?.length || Object.keys(entry.picks || {}).length}</small>
                 </td>
                 <td style="text-align: center;">
-                    <strong>${entry.tiebreakerRuns || entry.tiebreakerPoints || 0}</strong>
+                    ${entry.prizeWon > 0 ? `<strong style="color: #4CAF50;">${entry.prizeWon} NUTS</strong>` : '-'}
                 </td>
                 <td style="text-align: center;">
                     <span class="status-badge ${statusClass}">
                         ${entry.status || 'Active'}
                     </span>
                 </td>
-                <td style="text-align: center;">
-                    ${entry.prizeWon > 0 ? `<strong style="color: #4CAF50;">${entry.prizeWon} NUTS</strong>` : '-'}
-                </td>
-                <td style="text-align: center;">
-                    <button onclick="viewEntryDetails('${entry.id}')" class="btn-small">View</button>
-                    ${entry.score !== undefined ? '' : `<br><button onclick="calculateEntryScore('${entry.id}')" class="btn-small" style="margin-top: 4px;">Score</button>`}
+                <td style="text-align: center; font-size: 0.8em;">
+                    ${entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString() : 'N/A'}
                 </td>
             </tr>
         `;
     }).join('');
     
+    console.log('📝 Generated HTML for', sortedEntries.length, 'entries');
     container.innerHTML = html;
+    console.log('✅ Table updated successfully');
+}
 }
 
 /**
