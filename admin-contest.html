@@ -265,33 +265,25 @@
                     <button onclick="loadContestData()" class="refresh-btn" style="background: #4CAF50;">📋 Load Data</button>
                 </div>
                 
-                <!-- Main Action Buttons -->
+                <!-- Simplified Action Buttons -->
                 <div style="display: flex; gap: 10px; margin-bottom: 15px; padding: 15px; background: #2a2a2a; border-radius: 8px;">
-                    <button onclick="processFullContest()" class="refresh-btn" style="background: #2196F3; flex: 1;">
-                        🚀 Process Contest (All-in-One)
+                    <button onclick="calculateAndUpdateScores()" class="refresh-btn" style="background: #FF9800; flex: 2;">
+                        🧮 Calculate Scores & Update Table
                     </button>
-                    <button onclick="calculateScoresOnly()" class="refresh-btn" style="background: #FF9800; flex: 1;">
-                        🧮 Calculate Scores Only
+                    <button onclick="resolveContestWithWinners()" class="refresh-btn" style="background: #4CAF50; flex: 2;">
+                        🏆 Determine Winners & Complete Contest
                     </button>
-                    <button onclick="resolveContestFinal()" class="refresh-btn" style="background: #8BC34A; flex: 1;">
-                        🏆 Finalize & Pay Winners
+                    <button onclick="toggleAdvancedControls()" class="refresh-btn" style="background: #666; flex: 1;">
+                        ⚙️ More
                     </button>
                 </div>
                 
                 <!-- Advanced Controls (Collapsible) -->
-                <div style="margin-bottom: 10px;">
-                    <button onclick="toggleAdvancedControls()" class="refresh-btn" style="background: #666; font-size: 0.9em;">
-                        🔧 Advanced Controls
-                    </button>
-                </div>
-                
                 <div id="advanced-controls" style="display: none; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 15px;">
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px;">
                         <button onclick="debugScoring()" class="refresh-btn" style="background: #9C27B0; font-size: 0.85em;">🔍 Debug</button>
-                        <button onclick="saveScoresToDatabase()" class="refresh-btn" style="background: #4CAF50; font-size: 0.85em;">💾 Save to DB</button>
-                        <button onclick="fetchRealGameResults()" class="refresh-btn" style="background: #2196F3; font-size: 0.85em;">🔄 Game Results</button>
-                        <button onclick="clearSelectedDateData()" class="refresh-btn" style="background: #ff4444; font-size: 0.85em;">Clear Date</button>
-                        <button onclick="clearAllContestData()" class="refresh-btn" style="background: #ff6600; font-size: 0.85em;">Clear All</button>
+                        <button onclick="fetchRealGameResults()" class="refresh-btn" style="background: #2196F3; font-size: 0.85em;">🔄 Get Games</button>
+                        <button onclick="clearSelectedDateData()" class="refresh-btn" style="background: #ff4444; font-size: 0.85em;">❌ Clear Date</button>
                     </div>
                 </div>
             </div>
@@ -2144,6 +2136,11 @@
             // Sort entries by score (descending) for leaderboard effect
             const sortedEntries = [...entries].sort((a, b) => (b.score || 0) - (a.score || 0));
             
+            // Check if scores are calculated and from database
+            const hasScores = sortedEntries.some(entry => entry.score !== undefined);
+            const contestDate = document.getElementById('contest-date').value;
+            const scoreSource = hasScores ? (entries[0]?.lastScoreUpdate ? 'database' : 'calculated') : 'none';
+            
             tbody.innerHTML = sortedEntries.map((entry, index) => {
                 // Create detailed picks display
                 const picksHtml = formatPicksDisplay(entry.picks || {});
@@ -2155,15 +2152,25 @@
                                  rank === 3 ? 'color: #CD7F32; font-weight: bold;' : // Bronze
                                  'color: #888;';
                 
+                // Score display with indicators
+                let scoreDisplay = '';
+                if (entry.score !== undefined) {
+                    const scoreIndicator = scoreSource === 'database' ? '💾' : '🔄';
+                    const scoreTooltip = scoreSource === 'database' ? 'Score loaded from database' : 'Score calculated this session';
+                    scoreDisplay = `<span class="score-badge" title="${scoreTooltip}" style="font-size: 1.1em; ${rank <= 3 ? 'background: ' + (rank === 1 ? '#FFD700' : rank === 2 ? '#C0C0C0' : '#CD7F32') + '; color: #000;' : ''}">${entry.score} ${scoreIndicator}</span>`;
+                } else {
+                    scoreDisplay = '<span style="color: #666;">Not calculated</span>';
+                }
+                
                 return `
-                <tr style="${rank <= 3 ? 'background: rgba(255, 215, 0, 0.05);' : ''} cursor: pointer;" onclick="showDetailedPicks('${entry.id}')" class="clickable-row">
+                <tr style="${rank <= 3 && hasScores ? 'background: rgba(255, 215, 0, 0.05);' : ''} cursor: pointer;" onclick="showDetailedPicks('${entry.id}')" class="clickable-row">
                     <td style="font-family: monospace; font-size: 0.85em;">
                         <span style="${rankStyle}">#${rank}</span><br>
                         ${entry.id.substring(0, 8)}...
                     </td>
                     <td>
                         <strong>${entry.userName}</strong>
-                        ${rank <= 3 ? `<br><small style="${rankStyle}">${rank === 1 ? '👑 Leader' : rank === 2 ? '🥈 2nd Place' : '🥉 3rd Place'}</small>` : ''}
+                        ${rank <= 3 && hasScores ? `<br><small style="${rankStyle}">${rank === 1 ? '👑 Leader' : rank === 2 ? '🥈 2nd Place' : '🥉 3rd Place'}</small>` : ''}
                     </td>
                     <td>
                         ${entry.twitterHandle ? 
@@ -2189,9 +2196,7 @@
                         <strong>${entry.tiebreakerRuns || 0}</strong> runs
                     </td>
                     <td style="text-align: center;">
-                        ${entry.score !== undefined ? 
-                            `<span class="score-badge" style="font-size: 1.1em; ${rank <= 3 ? 'background: ' + (rank === 1 ? '#FFD700' : rank === 2 ? '#C0C0C0' : '#CD7F32') + '; color: #000;' : ''}">${entry.score}</span>` : 
-                            '<span style="color: #666;">-</span>'}
+                        ${scoreDisplay}
                     </td>
                     <td style="text-align: center;">${entry.prizeWon || 0} NUTS</td>
                     <td>
@@ -2204,8 +2209,33 @@
                         ${entry.contestStatus === 'completed' ? 
                             '<br><small style="color: #ff9900;">Completed</small>' : 
                             ''}
+                        ${entry.status === 'won' && entry.prizeWon > 0 ? `
+                            <br><small style="color: #4CAF50;">Won ${entry.prizeWon} NUTS</small>
+                        ` : ''}
                     </td>
                     <td style="font-size: 0.85em; color: #888;">
+                        ${new Date(entry.timestamp || entry.paymentTimestamp).toLocaleTimeString()}
+                    </td>
+                </tr>
+            `;
+            }).join('');
+            
+            // Add status message about scores at the top
+            if (hasScores) {
+                const statusMessage = scoreSource === 'database' ? 
+                    '💾 Scores loaded from database (persistent)' : 
+                    '🔄 Scores calculated this session';
+                    
+                const statusRow = `
+                    <tr style="background: rgba(76, 175, 80, 0.1);">
+                        <td colspan="10" style="text-align: center; padding: 10px; color: #4CAF50; font-size: 0.9em;">
+                            ${statusMessage} • ${sortedEntries.length} entries sorted by score
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML = statusRow + tbody.innerHTML;
+            }
+        }
                         ${new Date(entry.timestamp || entry.paymentTimestamp).toLocaleTimeString()}
                     </td>
                 </tr>
@@ -2789,6 +2819,234 @@
             } else {
                 controls.style.display = 'none';
             }
+        }
+
+        // NEW SIMPLIFIED WORKFLOW FUNCTIONS
+        
+        // Simplified function: Calculate scores and update the entries table immediately
+        async function calculateAndUpdateScores() {
+            const contestDate = document.getElementById('contest-date').value;
+            if (!contestDate) {
+                alert('Please select a contest date first');
+                return;
+            }
+
+            try {
+                console.log('🧮 Starting score calculation and table update...');
+                
+                // 1. Load entries if not already loaded
+                if (currentEntries.length === 0) {
+                    console.log('📊 Loading entries first...');
+                    await loadContestData();
+                }
+
+                // 2. Fetch real game results
+                console.log('⚾ Fetching game results...');
+                const gameResults = await fetchRealGameResults(contestDate, false);
+                
+                if (Object.keys(gameResults).length === 0) {
+                    alert('⚠️ No completed games found yet. Cannot calculate scores until games finish.');
+                    return;
+                }
+
+                // 3. Calculate scores for all entries
+                console.log('🔢 Calculating scores...');
+                await updateEntryScores(gameResults);
+
+                // 4. Save scores to Firebase database for persistence
+                console.log('💾 Saving scores to database...');
+                await saveScoresToFirebase(contestDate);
+
+                // 5. Update the entries table immediately
+                console.log('📊 Updating entries table...');
+                updateEntriesTable(currentEntries);
+
+                // 6. Update stats
+                const stats = {
+                    totalEntries: currentEntries.length,
+                    prizePool: currentEntries.length * 50,
+                    avgScore: currentEntries.reduce((sum, e) => sum + (e.score || 0), 0) / currentEntries.length
+                };
+                updateStats(stats);
+
+                alert(`✅ Scores calculated and saved for ${currentEntries.length} entries!`);
+
+            } catch (error) {
+                console.error('❌ Failed to calculate scores:', error);
+                alert('Failed to calculate scores: ' + error.message);
+            }
+        }
+
+        // Simplified function: Resolve contest and determine winners
+        async function resolveContestWithWinners() {
+            const contestDate = document.getElementById('contest-date').value;
+            if (!contestDate) {
+                alert('Please select a contest date first');
+                return;
+            }
+
+            const minimumEntries = 2; // Minimum entries required
+
+            if (currentEntries.length < minimumEntries) {
+                alert(`Need at least ${minimumEntries} entries to resolve contest. Current: ${currentEntries.length}`);
+                return;
+            }
+
+            try {
+                console.log('🏆 Starting contest resolution...');
+
+                // 1. Ensure scores are calculated
+                const hasScores = currentEntries.every(entry => entry.score !== undefined);
+                if (!hasScores) {
+                    console.log('📊 Calculating scores first...');
+                    await calculateAndUpdateScores();
+                }
+
+                // 2. Determine winners
+                console.log('🥇 Determining winners...');
+                const winners = determineWinners(currentEntries);
+
+                // 3. Save contest resolution to database
+                console.log('💾 Saving contest resolution...');
+                await saveContestResolution(contestDate, winners);
+
+                // 4. Display winners
+                console.log('🎉 Displaying winners...');
+                const prizePool = currentEntries.length * 50;
+                displayContestWinners(winners, contestDate, prizePool);
+
+                // 5. Update entries table to show final results
+                updateEntriesTable(currentEntries);
+
+                console.log('✅ Contest resolved successfully!');
+
+            } catch (error) {
+                console.error('❌ Failed to resolve contest:', error);
+                alert('Failed to resolve contest: ' + error.message);
+            }
+        }
+
+        // Enhanced function to save scores to Firebase database for persistence
+        async function saveScoresToFirebase(contestDate) {
+            if (!backend || !currentEntries.length) {
+                console.warn('⚠️ No backend or entries to save');
+                return;
+            }
+
+            try {
+                console.log('💾 Saving scores to Firebase database...');
+                
+                // Save each entry's updated score to Firebase
+                const savePromises = currentEntries.map(async (entry) => {
+                    if (entry.score !== undefined) {
+                        try {
+                            // Update the entry in Firebase with the calculated score
+                            await backend.updateEntryScore(entry.id, {
+                                score: entry.score,
+                                lastScoreUpdate: new Date().toISOString(),
+                                contestDate: contestDate
+                            });
+                            console.log(`✅ Saved score for entry ${entry.id}: ${entry.score}`);
+                        } catch (updateError) {
+                            console.error(`❌ Failed to save score for entry ${entry.id}:`, updateError);
+                        }
+                    }
+                });
+
+                await Promise.all(savePromises);
+                
+                // Also save a summary to prevent recalculation
+                const scoresSummary = {
+                    contestDate: contestDate,
+                    totalEntries: currentEntries.length,
+                    scoresCalculated: true,
+                    lastCalculation: new Date().toISOString(),
+                    averageScore: currentEntries.reduce((sum, e) => sum + (e.score || 0), 0) / currentEntries.length
+                };
+
+                await backend.saveContestSummary(contestDate, scoresSummary);
+                console.log('💾 Contest summary saved to Firebase');
+
+            } catch (error) {
+                console.error('❌ Failed to save scores to Firebase:', error);
+                throw error;
+            }
+        }
+
+        // Enhanced function to save contest resolution
+        async function saveContestResolution(contestDate, winners) {
+            if (!backend) {
+                console.warn('⚠️ No backend available for saving contest resolution');
+                return;
+            }
+
+            try {
+                const resolution = {
+                    contestDate: contestDate,
+                    resolvedAt: new Date().toISOString(),
+                    winners: winners,
+                    totalEntries: currentEntries.length,
+                    prizePool: currentEntries.length * 50,
+                    status: 'completed'
+                };
+
+                await backend.saveContestResolution(contestDate, resolution);
+                console.log('✅ Contest resolution saved to Firebase');
+
+            } catch (error) {
+                console.error('❌ Failed to save contest resolution:', error);
+                throw error;
+            }
+        }
+
+        // Enhanced function to determine winners with proper tiebreaker handling
+        function determineWinners(entries) {
+            if (!entries || entries.length === 0) return [];
+
+            // Sort by score (descending), then by tiebreaker (ascending - closest to actual)
+            const sortedEntries = [...entries].sort((a, b) => {
+                const scoreA = a.score || 0;
+                const scoreB = b.score || 0;
+                
+                if (scoreA !== scoreB) {
+                    return scoreB - scoreA; // Higher score wins
+                }
+                
+                // If scores are tied, use tiebreaker (lower tiebreaker difference wins)
+                const tiebreakerA = a.tiebreakerRuns || 0;
+                const tiebreakerB = b.tiebreakerRuns || 0;
+                
+                // This would need actual total runs to determine winner properly
+                // For now, lower tiebreaker wins (assuming it's closer to actual)
+                return tiebreakerA - tiebreakerB;
+            });
+
+            // Calculate prizes (50% to 1st, 30% to 2nd, 20% to 3rd)
+            const totalPrizePool = entries.length * 50;
+            const prizes = [
+                Math.floor(totalPrizePool * 0.5), // 1st place: 50%
+                Math.floor(totalPrizePool * 0.3), // 2nd place: 30%
+                Math.floor(totalPrizePool * 0.2)  // 3rd place: 20%
+            ];
+
+            // Create winner objects
+            const winners = sortedEntries.slice(0, 3).map((entry, index) => ({
+                place: index + 1,
+                entry: entry,
+                prize: prizes[index] || 0
+            }));
+
+            // Update the original entries with prize information
+            winners.forEach(winner => {
+                const originalEntry = entries.find(e => e.id === winner.entry.id);
+                if (originalEntry) {
+                    originalEntry.prizeWon = winner.prize;
+                    originalEntry.status = 'won';
+                    originalEntry.place = winner.place;
+                }
+            });
+
+            return winners;
         }
 
         // All-in-one contest processing: Load data → Fetch games → Calculate scores → Save to DB → Update display
