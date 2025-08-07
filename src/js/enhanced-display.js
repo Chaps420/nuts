@@ -256,7 +256,6 @@ function displayAdminEntries(entries, contestDate) {
     container.innerHTML = html;
     console.log('✅ Table updated successfully');
 }
-}
 
 /**
  * Show detailed entry modal
