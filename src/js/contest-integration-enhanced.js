@@ -62,8 +62,8 @@ async function initializeLeaderboard() {
 async function initializeAdminPortal() {
     console.log('🔧 Setting up enhanced admin portal...');
     
-    // Add enhanced display functions to global scope
-    window.displayAdminEntries = window.displayAdminEntries || displayAdminEntries;
+    // Add enhanced display functions to global scope (from enhanced-display.js)
+    window.displayAdminEntries = window.displayAdminEntries || window.enhancedDisplay?.displayAdminEntries;
     
     // Add resolve contest functionality
     setupResolveContestButton();
