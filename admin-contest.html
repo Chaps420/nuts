@@ -259,17 +259,41 @@
         <!-- MLB Contest Controls -->
         <div id="mlb-controls" class="contest-controls">
             <div style="margin-bottom: 30px;">
-                <label style="margin-right: 10px;">Contest Date:</label>
-                <input type="date" id="contest-date" class="date-selector">
-                <button onclick="loadContestData()" class="refresh-btn">Load Data</button>
-                <button onclick="fetchRealGameResults()" class="refresh-btn" style="background: #2196F3; margin-left: 10px;">🔄 Update Game Results</button>
-                <button onclick="calculateAndSaveScores()" class="refresh-btn" style="background: #FF9800; margin-left: 10px;">🧮 Calculate & Save Scores</button>
-                <button onclick="resolveContestEnhanced()" class="refresh-btn" style="background: #8BC34A; margin-left: 10px;">🏆 Resolve Contest (Enhanced)</button>
-                <button onclick="debugScoring()" class="refresh-btn" style="background: #9C27B0; margin-left: 10px;">🔍 Debug Scoring</button>
-                <button onclick="saveScoresToDatabase()" class="refresh-btn" style="background: #4CAF50; margin-left: 10px;">💾 Save Scores to Database</button>
-                <button onclick="clearSelectedDateData()" class="refresh-btn" style="background: #ff4444; margin-left: 10px;">Clear Data</button>
-                <button onclick="clearAllContestData()" class="refresh-btn" style="background: #ff6600; margin-left: 5px;">Clear All</button>
-                <button onclick="clearTestData()" class="refresh-btn" style="background: #ff0000; margin-left: 5px;">Clear Test Data</button>
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                    <label style="color: #ffa500; font-weight: bold;">Contest Date:</label>
+                    <input type="date" id="contest-date" class="date-selector">
+                    <button onclick="loadContestData()" class="refresh-btn" style="background: #4CAF50;">📋 Load Data</button>
+                </div>
+                
+                <!-- Main Action Buttons -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; padding: 15px; background: #2a2a2a; border-radius: 8px;">
+                    <button onclick="processFullContest()" class="refresh-btn" style="background: #2196F3; flex: 1;">
+                        🚀 Process Contest (All-in-One)
+                    </button>
+                    <button onclick="calculateScoresOnly()" class="refresh-btn" style="background: #FF9800; flex: 1;">
+                        🧮 Calculate Scores Only
+                    </button>
+                    <button onclick="resolveContestFinal()" class="refresh-btn" style="background: #8BC34A; flex: 1;">
+                        🏆 Finalize & Pay Winners
+                    </button>
+                </div>
+                
+                <!-- Advanced Controls (Collapsible) -->
+                <div style="margin-bottom: 10px;">
+                    <button onclick="toggleAdvancedControls()" class="refresh-btn" style="background: #666; font-size: 0.9em;">
+                        🔧 Advanced Controls
+                    </button>
+                </div>
+                
+                <div id="advanced-controls" style="display: none; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 15px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <button onclick="debugScoring()" class="refresh-btn" style="background: #9C27B0; font-size: 0.85em;">🔍 Debug</button>
+                        <button onclick="saveScoresToDatabase()" class="refresh-btn" style="background: #4CAF50; font-size: 0.85em;">💾 Save to DB</button>
+                        <button onclick="fetchRealGameResults()" class="refresh-btn" style="background: #2196F3; font-size: 0.85em;">🔄 Game Results</button>
+                        <button onclick="clearSelectedDateData()" class="refresh-btn" style="background: #ff4444; font-size: 0.85em;">Clear Date</button>
+                        <button onclick="clearAllContestData()" class="refresh-btn" style="background: #ff6600; font-size: 0.85em;">Clear All</button>
+                    </div>
+                </div>
             </div>
             
             <!-- Game Progress Display -->
@@ -969,6 +993,11 @@
             // Sort entries by score (descending) for leaderboard effect
             const sortedEntries = [...entries].sort((a, b) => (b.score || 0) - (a.score || 0));
             
+            // Check if scores are calculated
+            const hasScores = sortedEntries.some(entry => entry.score !== undefined);
+            const contestDate = document.getElementById('contest-date').value;
+            const hasLocalScores = contestDate && localStorage.getItem(`scores_${contestDate}`);
+            
             tbody.innerHTML = sortedEntries.map((entry, index) => {
                 // Create detailed picks display
                 const picksHtml = formatPicksDisplay(entry.picks || {});
@@ -980,15 +1009,24 @@
                                  rank === 3 ? 'color: #CD7F32; font-weight: bold;' : // Bronze
                                  'color: #888;';
                 
+                // Score display with indicators
+                let scoreDisplay = '';
+                if (entry.score !== undefined) {
+                    const scoreIndicator = hasLocalScores ? '💾' : '🔄';
+                    scoreDisplay = `<span class="score-badge" style="font-size: 1.1em; ${rank <= 3 ? 'background: ' + (rank === 1 ? '#FFD700' : rank === 2 ? '#C0C0C0' : '#CD7F32') + '; color: #000;' : ''}">${entry.score} ${scoreIndicator}</span>`;
+                } else {
+                    scoreDisplay = '<span style="color: #666;">Not calculated</span>';
+                }
+                
                 return `
-                <tr style="${rank <= 3 ? 'background: rgba(255, 215, 0, 0.05);' : ''}">
+                <tr style="${rank <= 3 && hasScores ? 'background: rgba(255, 215, 0, 0.05);' : ''}">
                     <td style="font-family: monospace; font-size: 0.85em;">
                         <span style="${rankStyle}">#${rank}</span><br>
                         ${entry.id.substring(0, 8)}...
                     </td>
                     <td>
                         <strong>${entry.userName}</strong>
-                        ${rank <= 3 ? `<br><small style="${rankStyle}">${rank === 1 ? '👑 Leader' : rank === 2 ? '🥈 2nd Place' : '🥉 3rd Place'}</small>` : ''}
+                        ${rank <= 3 && hasScores ? `<br><small style="${rankStyle}">${rank === 1 ? '👑 Leader' : rank === 2 ? '🥈 2nd Place' : '🥉 3rd Place'}</small>` : ''}
                     </td>
                     <td>
                         ${entry.twitterHandle ? 
@@ -1013,9 +1051,7 @@
                         <strong>${entry.tiebreakerRuns || 0}</strong> runs
                     </td>
                     <td style="text-align: center;">
-                        ${entry.score !== undefined ? 
-                            `<span class="score-badge" style="font-size: 1.1em; ${rank <= 3 ? 'background: ' + (rank === 1 ? '#FFD700' : rank === 2 ? '#C0C0C0' : '#CD7F32') + '; color: #000;' : ''}">${entry.score}</span>` : 
-                            '<span style="color: #666;">-</span>'}
+                        ${scoreDisplay}
                     </td>
                     <td style="text-align: center;">${entry.prizeWon || 0} NUTS</td>
                     <td>
@@ -1044,6 +1080,22 @@
                 </tr>
             `;
             }).join('');
+            
+            // Add status message about scores
+            if (hasScores) {
+                const statusMessage = hasLocalScores ? 
+                    '💾 Scores loaded from local backup' : 
+                    '🔄 Scores calculated and saved to database';
+                    
+                const statusRow = `
+                    <tr style="background: rgba(76, 175, 80, 0.1);">
+                        <td colspan="10" style="text-align: center; padding: 10px; color: #4CAF50; font-size: 0.9em;">
+                            ${statusMessage}
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML = statusRow + tbody.innerHTML;
+            }
         }
         
         // NEW FUNCTION: Format picks for display
@@ -2724,6 +2776,307 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize with MLB contest as default
         });
+
+        // ===============================================
+        // SIMPLIFIED WORKFLOW FUNCTIONS
+        // ===============================================
+        
+        // Toggle advanced controls visibility
+        function toggleAdvancedControls() {
+            const controls = document.getElementById('advanced-controls');
+            if (controls.style.display === 'none') {
+                controls.style.display = 'block';
+            } else {
+                controls.style.display = 'none';
+            }
+        }
+
+        // All-in-one contest processing: Load data → Fetch games → Calculate scores → Save to DB → Update display
+        async function processFullContest() {
+            const contestDate = document.getElementById('contest-date').value;
+            if (!contestDate) {
+                alert('Please select a contest date first');
+                return;
+            }
+
+            try {
+                console.log('🚀 Starting full contest processing...');
+                
+                // Step 1: Load contest data
+                console.log('📋 Step 1: Loading contest data...');
+                await loadContestData();
+                
+                if (currentEntries.length === 0) {
+                    alert('No entries found for this date. Contest processing cancelled.');
+                    return;
+                }
+
+                // Step 2: Fetch real game results
+                console.log('🎮 Step 2: Fetching game results...');
+                const gameResults = await fetchRealGameResults(contestDate, false);
+                
+                if (Object.keys(gameResults).length === 0) {
+                    alert('⚠️ No completed games found yet. Cannot process contest until games finish.');
+                    return;
+                }
+
+                // Step 3: Calculate and save scores
+                console.log('🧮 Step 3: Calculating scores...');
+                await calculateScoresWithGameResults(gameResults);
+
+                // Step 4: Save to database
+                console.log('💾 Step 4: Saving scores to database...');
+                await saveScoresToDatabaseWithResults();
+
+                // Step 5: Refresh display
+                console.log('🔄 Step 5: Refreshing display...');
+                await loadContestData();
+
+                alert('✅ Contest processing complete! Scores calculated and saved to database.');
+
+            } catch (error) {
+                console.error('❌ Contest processing failed:', error);
+                alert(`Contest processing failed: ${error.message}`);
+            }
+        }
+
+        // Calculate scores only (without resolving winners)
+        async function calculateScoresOnly() {
+            const contestDate = document.getElementById('contest-date').value;
+            if (!contestDate) {
+                alert('Please select a contest date first');
+                return;
+            }
+
+            if (currentEntries.length === 0) {
+                alert('No entries loaded. Please load contest data first.');
+                return;
+            }
+
+            try {
+                console.log('🧮 Calculating scores only...');
+                
+                // Fetch game results
+                const gameResults = await fetchRealGameResults(contestDate, false);
+                
+                if (Object.keys(gameResults).length === 0) {
+                    alert('⚠️ No completed games found yet. Cannot calculate scores until games finish.');
+                    return;
+                }
+
+                // Calculate scores and update entries table
+                await calculateScoresWithGameResults(gameResults);
+                
+                // Save calculated scores to database
+                await saveScoresToDatabaseWithResults();
+
+                // Refresh the entries table to show updated scores
+                await loadContestData();
+
+                alert('✅ Scores calculated and saved! Check the entries table for updated scores.');
+
+            } catch (error) {
+                console.error('❌ Score calculation failed:', error);
+                alert(`Score calculation failed: ${error.message}`);
+            }
+        }
+
+        // Helper function to calculate scores with game results
+        async function calculateScoresWithGameResults(gameResults) {
+            console.log('🎯 Calculating scores for all entries...');
+            
+            let updatedCount = 0;
+            
+            for (const entry of currentEntries) {
+                if (!entry.picks) continue;
+                
+                let score = 0;
+                
+                // Calculate score based on correct picks
+                for (const [gameId, pick] of Object.entries(entry.picks)) {
+                    if (gameResults[gameId] && gameResults[gameId].result === pick) {
+                        score++;
+                    }
+                }
+                
+                // Update entry with calculated score
+                entry.score = score;
+                updatedCount++;
+                
+                console.log(`📊 ${entry.userName}: ${score} correct picks`);
+            }
+            
+            console.log(`✅ Updated scores for ${updatedCount} entries`);
+            
+            // Update the entries table immediately
+            updateEntriesTable(currentEntries);
+        }
+
+        // Enhanced function to save scores to database with better persistence
+        async function saveScoresToDatabaseWithResults() {
+            if (currentEntries.length === 0) {
+                alert('No entries to save');
+                return;
+            }
+
+            const contestDate = document.getElementById('contest-date').value;
+            if (!contestDate) {
+                alert('Please select a contest date first');
+                return;
+            }
+
+            try {
+                console.log('💾 Saving scores to database...');
+                
+                let savedCount = 0;
+                const errors = [];
+
+                for (const entry of currentEntries) {
+                    if (entry.score === undefined) continue;
+
+                    try {
+                        const response = await fetch(`${backend.baseUrl}/updateEntryScore`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                entryId: entry.id,
+                                score: entry.score,
+                                contestDate: contestDate,
+                                timestamp: new Date().toISOString()
+                            })
+                        });
+
+                        if (response.ok) {
+                            savedCount++;
+                            console.log(`✅ Saved score for ${entry.userName}: ${entry.score}`);
+                        } else {
+                            const errorText = await response.text();
+                            errors.push(`${entry.userName}: ${errorText}`);
+                        }
+                    } catch (error) {
+                        errors.push(`${entry.userName}: ${error.message}`);
+                    }
+                }
+
+                if (savedCount > 0) {
+                    console.log(`✅ Successfully saved ${savedCount} scores to database`);
+                    
+                    // Store in local storage as backup
+                    const scoresBackup = {
+                        contestDate,
+                        timestamp: new Date().toISOString(),
+                        entries: currentEntries.map(entry => ({
+                            id: entry.id,
+                            userName: entry.userName,
+                            score: entry.score
+                        }))
+                    };
+                    localStorage.setItem(`scores_${contestDate}`, JSON.stringify(scoresBackup));
+                    
+                    alert(`✅ Successfully saved ${savedCount} scores to database`);
+                } else {
+                    throw new Error('No scores were saved successfully');
+                }
+
+                if (errors.length > 0) {
+                    console.warn('⚠️ Some scores failed to save:', errors);
+                }
+
+            } catch (error) {
+                console.error('❌ Failed to save scores:', error);
+                alert(`Failed to save scores: ${error.message}`);
+            }
+        }
+
+        // Final contest resolution with winner determination and prize distribution
+        async function resolveContestFinal() {
+            const contestDate = document.getElementById('contest-date').value;
+            if (!contestDate) {
+                alert('Please select a contest date first');
+                return;
+            }
+
+            if (currentEntries.length === 0) {
+                alert('No entries loaded. Please load contest data first.');
+                return;
+            }
+
+            // Check if scores are calculated
+            const hasScores = currentEntries.some(entry => entry.score !== undefined);
+            if (!hasScores) {
+                const shouldCalculate = confirm('Scores not calculated yet. Calculate scores first?');
+                if (shouldCalculate) {
+                    await calculateScoresOnly();
+                } else {
+                    return;
+                }
+            }
+
+            try {
+                console.log('🏆 Finalizing contest and determining winners...');
+                
+                // Use the enhanced contest resolution
+                if (window.resolveContest) {
+                    const result = await window.resolveContest(contestDate);
+                    
+                    if (result && result.winners) {
+                        // Display the winners
+                        displayContestWinners(result.winners, contestDate, result.totalPrizePool || 0);
+                        
+                        // Show success message
+                        alert(`🏆 Contest finalized successfully!\n\nWinners: ${result.winners.length}\nTotal Prize Pool: ${result.totalPrizePool || 0} NUTS\n\nCheck the winners section above for payout details.`);
+                        
+                        // Reload the data to show final results
+                        await loadContestData();
+                    } else {
+                        alert('Contest resolution completed, but no result details available. Please check the console for more information.');
+                    }
+                } else {
+                    throw new Error('Contest resolution function not available');
+                }
+
+            } catch (error) {
+                console.error('❌ Failed to finalize contest:', error);
+                alert(`Failed to finalize contest: ${error.message}`);
+            }
+        }
+
+        // Enhanced loadContestData to check for saved scores
+        const originalLoadContestData = loadContestData;
+        loadContestData = async function() {
+            await originalLoadContestData();
+            
+            // Check for locally saved scores as backup
+            const contestDate = document.getElementById('contest-date').value;
+            if (contestDate) {
+                const savedScores = localStorage.getItem(`scores_${contestDate}`);
+                if (savedScores) {
+                    try {
+                        const scoresData = JSON.parse(savedScores);
+                        console.log('📋 Found locally saved scores:', scoresData);
+                        
+                        // Apply saved scores to current entries if they don't have scores
+                        currentEntries.forEach(entry => {
+                            if (entry.score === undefined) {
+                                const savedEntry = scoresData.entries.find(saved => saved.id === entry.id);
+                                if (savedEntry) {
+                                    entry.score = savedEntry.score;
+                                    console.log(`✅ Restored score for ${entry.userName}: ${entry.score}`);
+                                }
+                            }
+                        });
+                        
+                        // Update display with restored scores
+                        updateEntriesTable(currentEntries);
+                    } catch (error) {
+                        console.warn('⚠️ Failed to restore saved scores:', error);
+                    }
+                }
+            }
+        };
+    
     </script>
 </body>
 </html>
