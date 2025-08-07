@@ -2236,12 +2236,6 @@
                 tbody.innerHTML = statusRow + tbody.innerHTML;
             }
         }
-                        ${new Date(entry.timestamp || entry.paymentTimestamp).toLocaleTimeString()}
-                    </td>
-                </tr>
-            `;
-            }).join('');
-        }
         
         // NEW FUNCTION: Format picks for display
         function formatPicksDisplay(picks) {
@@ -2275,14 +2269,6 @@
             
             html += `</div>`;
             return html;
-        }
-        
-        // Helper function to extract team names from game ID
-        function getTeamNamesFromGameId(gameId) {
-            return {
-                away: 'Away',
-                home: 'Home'
-            };
         }
         
         // NEW FUNCTION: Fetch real game results from MLB API
