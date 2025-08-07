@@ -1829,86 +1829,40 @@
                 return;
             }
             
-            if (!confirm(`Save current scores for ${currentEntries.length} entries to Firebase database?\n\nThis will update the leaderboard permanently.`)) {
+            if (!confirm(`Calculate and save scores for ${currentEntries.length} entries to Firebase database?\n\nThis will update the leaderboard permanently.`)) {
                 return;
             }
             
             try {
-                console.log('💾 Manual save to database initiated...');
+                console.log('💾 Calculating and saving scores using enhanced backend...');
                 
                 // Get real game results first
                 const gameResults = await fetchRealGameResults(contestDate, false);
                 
                 if (Object.keys(gameResults).length === 0) {
-                    if (!confirm('No completed games found. Save current scores anyway?')) {
-                        return;
-                    }
+                    alert('⚠️ No completed games found yet. Cannot calculate scores until games finish.');
+                    return;
                 }
                 
-                // Use production backend to update scores via cloud function
-                console.log('💾 Updating scores via production backend...');
-                
-                let successCount = 0;
-                let errorCount = 0;
-                
-                for (const entry of currentEntries) {
-                    if (!entry.picks) continue;
-                    
-                    // Calculate score for this entry
-                    let newScore = 0;
-                    Object.entries(entry.picks).forEach(([gameId, pick]) => {
-                        const gameResult = gameResults[gameId];
-                        if (gameResult && pick === gameResult.winner) {
-                            newScore++;
-                        }
-                    });
-                    
-                    try {
-                        // Use the same backend base URL that's working for reads
-                        const response = await fetch(`${backend.baseUrl}/updateEntryScore`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                entryId: entry.id,
-                                score: newScore,
-                                contestDate: contestDate
-                            })
-                        });
-                        
-                        if (response.ok) {
-                            const result = await response.json();
-                            if (result.success) {
-                                console.log(`💾 Updated ${entry.userName}: ${newScore} points`);
-                                entry.score = newScore; // Update local entry
-                                successCount++;
-                            } else {
-                                console.error(`❌ Backend error for ${entry.userName}:`, result.error);
-                                errorCount++;
-                            }
-                        } else {
-                            console.error(`❌ HTTP ${response.status} for ${entry.userName}`);
-                            errorCount++;
-                        }
-                    } catch (error) {
-                        console.error(`❌ Request failed for ${entry.userName}:`, error);
-                        errorCount++;
-                    }
+                // Use the enhanced backend method that calculates scores AND saves to Firebase
+                console.log('📊 Using enhancedBackend.updateGameResults method...');
+                if (!window.enhancedBackend) {
+                    console.log('🚀 Creating enhanced backend instance...');
+                    window.enhancedBackend = new ContestBackendEnhanced();
+                    await window.enhancedBackend.init();
                 }
+                
+                const winners = await window.enhancedBackend.updateGameResults(contestDate, gameResults);
                 
                 // Reload the contest data to show updated scores
                 await loadContestData();
                 
-                if (successCount > 0) {
-                    alert(`✅ Scores saved successfully!\n\nUpdated: ${successCount}\nFailed: ${errorCount}\n\nThe contest leaderboard should now show the correct scores.`);
-                } else {
-                    alert(`❌ Failed to save any scores.\n\nPlease check that the backend updateEntryScore function is available.`);
-                }
+                console.log('✅ Scores calculated and saved to Firebase successfully!');
+                alert(`✅ Scores calculated and saved successfully!\n\nUpdated: ${currentEntries.length} entries\n\nThe contest leaderboard now shows the correct scores.`);
                 
             } catch (error) {
-                console.error('❌ Failed to save scores:', error);
-                alert(`Failed to save scores to database: ${error.message}\n\nPlease check the console for more details.`);
+                console.error('❌ Failed to calculate and save scores:', error);
+                alert(`Failed to calculate and save scores: ${error.message}\n\nPlease check the console for more details.`);
             }
         }
         
@@ -2835,13 +2789,19 @@
                     return;
                 }
 
-                // 3. Calculate scores for all entries
-                console.log('🔢 Calculating scores...');
-                await updateEntryScores(gameResults);
+                // 3. Use the enhanced backend method that calculates scores AND saves to Firebase
+                console.log('📊 Using enhancedBackend.updateGameResults method...');
+                if (!window.enhancedBackend) {
+                    console.log('🚀 Creating enhanced backend instance...');
+                    window.enhancedBackend = new ContestBackendEnhanced();
+                    await window.enhancedBackend.init();
+                }
+                
+                const winners = await window.enhancedBackend.updateGameResults(contestDate, gameResults);
 
-                // 4. Save scores to Firebase database for persistence
-                console.log('💾 Saving scores to database...');
-                await saveScoresToFirebase(contestDate);
+                // 4. Reload contest data to get the updated scores from Firebase
+                console.log('📊 Reloading contest data with updated scores...');
+                await loadContestData();
 
                 // 5. Update the entries table immediately
                 console.log('📊 Updating entries table...');
@@ -2855,7 +2815,8 @@
                 };
                 updateStats(stats);
 
-                alert(`✅ Scores calculated and saved for ${currentEntries.length} entries!`);
+                console.log('✅ Scores calculated and saved successfully!');
+                alert(`✅ Scores calculated and saved for ${currentEntries.length} entries!\n\nThe leaderboard now shows the correct scores.`);
 
             } catch (error) {
                 console.error('❌ Failed to calculate scores:', error);
@@ -2881,22 +2842,30 @@
             try {
                 console.log('🏆 Starting contest resolution...');
 
-                // 1. Ensure scores are calculated
-                const hasScores = currentEntries.every(entry => entry.score !== undefined);
-                if (!hasScores) {
-                    console.log('📊 Calculating scores first...');
-                    await calculateAndUpdateScores();
+                // 1. Fetch real game results
+                console.log('⚾ Fetching game results...');
+                const gameResults = await fetchRealGameResults(contestDate, false);
+                
+                if (Object.keys(gameResults).length === 0) {
+                    alert('⚠️ No completed games found yet. Cannot resolve contest until games finish.');
+                    return;
                 }
 
-                // 2. Determine winners
-                console.log('🥇 Determining winners...');
-                const winners = determineWinners(currentEntries);
+                // 2. Use enhanced backend to calculate scores and determine winners
+                console.log('🥇 Calculating scores and determining winners...');
+                if (!window.enhancedBackend) {
+                    console.log('🚀 Creating enhanced backend instance...');
+                    window.enhancedBackend = new ContestBackendEnhanced();
+                    await window.enhancedBackend.init();
+                }
+                
+                const winners = await window.enhancedBackend.updateGameResults(contestDate, gameResults);
 
-                // 3. Save contest resolution to database
-                console.log('💾 Saving contest resolution...');
-                await saveContestResolution(contestDate, winners);
+                // 3. Reload contest data to get updated scores
+                console.log('� Reloading contest data with final scores...');
+                await loadContestData();
 
-                // 4. Display winners
+                // 4. Display winners using the calculated results
                 console.log('🎉 Displaying winners...');
                 const prizePool = currentEntries.length * 50;
                 displayContestWinners(winners, contestDate, prizePool);
@@ -2905,6 +2874,7 @@
                 updateEntriesTable(currentEntries);
 
                 console.log('✅ Contest resolved successfully!');
+                alert(`✅ Contest resolved successfully!\n\nWinners determined and prizes calculated.\nCheck the Winners section below.`);
 
             } catch (error) {
                 console.error('❌ Failed to resolve contest:', error);
@@ -2914,37 +2884,20 @@
 
         // Enhanced function to save scores to Firebase database for persistence
         async function saveScoresToFirebase(contestDate) {
-            if (!backend || !currentEntries.length) {
-                console.warn('⚠️ No backend or entries to save');
-                return;
-            }
-
-            try {
-                console.log('💾 Scores already saved via enhanced backend during calculation');
-                console.log('✅ Contest scores are persisted in Firebase database');
-                
-                // The enhanced backend already saved the scores during the calculation process
-                // No additional saving needed here
-                
-            } catch (error) {
-                console.error('❌ Failed to save scores to Firebase:', error);
-                throw error;
-            }
+            console.log('💾 Scores automatically saved via enhanced backend during calculation');
+            console.log('✅ Contest scores are persisted in Firebase database');
+            
+            // The enhanced backend.updateGameResults already saved the scores during the calculation process
+            // No additional saving needed here - this function is just for logging/status
         }
 
         // Enhanced function to save contest resolution
         async function saveContestResolution(contestDate, winners) {
-            try {
-                console.log('💾 Contest resolution saved via enhanced backend');
-                console.log('✅ Winners and final results are persisted in Firebase');
-                
-                // The enhanced backend already handled the contest resolution
-                // No additional saving needed here
-                
-            } catch (error) {
-                console.error('❌ Failed to save contest resolution:', error);
-                throw error;
-            }
+            console.log('💾 Contest resolution automatically saved via enhanced backend');
+            console.log('✅ Winners and final results are persisted in Firebase');
+            
+            // The enhanced backend.updateGameResults already handled the contest resolution
+            // No additional saving needed here - this function is just for logging/status
         }
 
         // Enhanced function to determine winners with proper tiebreaker handling
@@ -3132,67 +3085,35 @@
             }
 
             try {
-                console.log('💾 Saving scores to database...');
+                console.log('💾 Calculating and saving scores using enhanced backend...');
                 
-                let savedCount = 0;
-                const errors = [];
-
-                for (const entry of currentEntries) {
-                    if (entry.score === undefined) continue;
-
-                    try {
-                        const response = await fetch(`${backend.baseUrl}/updateEntryScore`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                entryId: entry.id,
-                                score: entry.score,
-                                contestDate: contestDate,
-                                timestamp: new Date().toISOString()
-                            })
-                        });
-
-                        if (response.ok) {
-                            savedCount++;
-                            console.log(`✅ Saved score for ${entry.userName}: ${entry.score}`);
-                        } else {
-                            const errorText = await response.text();
-                            errors.push(`${entry.userName}: ${errorText}`);
-                        }
-                    } catch (error) {
-                        errors.push(`${entry.userName}: ${error.message}`);
-                    }
+                // Get real game results first
+                const gameResults = await fetchRealGameResults(contestDate, false);
+                
+                if (Object.keys(gameResults).length === 0) {
+                    alert('⚠️ No completed games found yet. Cannot calculate scores until games finish.');
+                    return;
                 }
-
-                if (savedCount > 0) {
-                    console.log(`✅ Successfully saved ${savedCount} scores to database`);
-                    
-                    // Store in local storage as backup
-                    const scoresBackup = {
-                        contestDate,
-                        timestamp: new Date().toISOString(),
-                        entries: currentEntries.map(entry => ({
-                            id: entry.id,
-                            userName: entry.userName,
-                            score: entry.score
-                        }))
-                    };
-                    localStorage.setItem(`scores_${contestDate}`, JSON.stringify(scoresBackup));
-                    
-                    alert(`✅ Successfully saved ${savedCount} scores to database`);
-                } else {
-                    throw new Error('No scores were saved successfully');
+                
+                // Use the enhanced backend method that calculates scores AND saves to Firebase
+                console.log('📊 Using enhancedBackend.updateGameResults method...');
+                if (!window.enhancedBackend) {
+                    console.log('🚀 Creating enhanced backend instance...');
+                    window.enhancedBackend = new ContestBackendEnhanced();
+                    await window.enhancedBackend.init();
                 }
-
-                if (errors.length > 0) {
-                    console.warn('⚠️ Some scores failed to save:', errors);
-                }
+                
+                const winners = await window.enhancedBackend.updateGameResults(contestDate, gameResults);
+                
+                // Reload contest data to get updated scores
+                await loadContestData();
+                
+                console.log(`✅ Successfully calculated and saved ${currentEntries.length} scores to database`);
+                alert(`✅ Successfully calculated and saved ${currentEntries.length} scores to database`);
 
             } catch (error) {
-                console.error('❌ Failed to save scores:', error);
-                alert(`Failed to save scores: ${error.message}`);
+                console.error('❌ Failed to calculate and save scores:', error);
+                alert(`Failed to calculate and save scores: ${error.message}`);
             }
         }
 
