@@ -218,8 +218,9 @@ async function resolveContest(providedDate = null) {
         
         console.log(`🏁 Resolving contest for ${contestDate}...`);
         
-        // Ensure we have a valid date for the API
-        const gameDate = new Date(contestDate + 'T00:00:00.000Z');
+        // Ensure we have a valid date for the API - use the contest date directly without timezone conversion
+        const gameDate = new Date(contestDate + 'T04:00:00.000Z'); // 4 AM UTC to ensure correct day
+        console.log(`🗓️ Using game date: ${gameDate.toISOString()} for contest date: ${contestDate}`);
         
         // Get game results
         const gameResults = await window.mlbSchedule.getGameResults(gameDate);
