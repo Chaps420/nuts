@@ -328,7 +328,7 @@ class ContestBackendEnhanced extends ContestBackend {
                     await window.contestBackendProduction.updateEntryScore(
                         updatedEntry.id, 
                         updatedEntry.score, 
-                        contestDay
+                        contestDate
                     );
                     console.log(`💾 Saved score ${updatedEntry.score} for entry ${updatedEntry.id} to production Firebase`);
                 } catch (error) {
