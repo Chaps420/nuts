@@ -416,6 +416,22 @@ class MLBContestManager {
                 return;
             }
 
+            // Get user information
+            const playerName = document.getElementById('player-name')?.value?.trim() || '';
+            const twitterHandle = document.getElementById('twitter-handle')?.value?.trim() || '';
+            const tiebreakerRuns = document.getElementById('tiebreaker-runs')?.value;
+
+            // Validate required fields
+            if (!playerName) {
+                this.showError('Please enter your display name.');
+                return;
+            }
+
+            if (!tiebreakerRuns || tiebreakerRuns < 0) {
+                this.showError('Please enter a valid tiebreaker prediction.');
+                return;
+            }
+
             console.log('💳 Starting contest entry process...');
             
             // Create contest entry data
@@ -425,6 +441,9 @@ class MLBContestManager {
                 picks: this.userPicks,
                 games: currentDayGames,
                 entryFee: 50, // $NUTS
+                userName: playerName,
+                twitterHandle: twitterHandle || null,
+                tiebreakerRuns: parseInt(tiebreakerRuns),
                 timestamp: new Date().toISOString()
             };
 
@@ -462,8 +481,9 @@ class MLBContestManager {
                 await this.storeContestEntry({
                     ...contestEntry,
                     transactionId: paymentResult.transactionId,
-                    walletAddress: paymentResult.walletAddress,
-                    userName: paymentResult.userName || 'Anonymous'
+                    walletAddress: paymentResult.walletAddress || paymentResult.account || null,
+                    userName: contestEntry.userName, // Use the userName from form, not payment
+                    twitterHandle: contestEntry.twitterHandle
                 });
                 
                 this.showSuccess('Contest entry successful! Good luck!');
