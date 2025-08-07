@@ -425,7 +425,6 @@
     <script src="src/js/contest-backend-enhanced.js"></script>
     <script src="src/js/enhanced-display.js"></script>
     <script src="src/js/mlb-schedule-free.js"></script>
-    <script src="src/js/firebase-score-updater.js"></script>
     <script src="src/js/contest-integration-enhanced.js"></script>
     
     <script>
@@ -1783,40 +1782,65 @@
                     }
                 }
                 
-                // Ensure we're using production Firebase backend
-                if (!backend || backend.constructor.name !== 'ContestBackendProduction') {
-                    console.error('❌ Production Firebase backend required');
-                    alert('Error: Production Firebase backend required for saving scores');
-                    return;
-                }
+                // Use production backend to update scores via cloud function
+                console.log('💾 Updating scores via production backend...');
                 
-                // Calculate and save scores using Firebase SDK directly
-                console.log('💾 Calculating scores and saving to Firebase...');
+                let successCount = 0;
+                let errorCount = 0;
                 
-                // Initialize the Firebase score updater
-                const scoreUpdater = new FirebaseScoreUpdater();
-                await scoreUpdater.init();
-                
-                // Update entry scores using direct Firebase integration
-                const updateResult = await scoreUpdater.updateEntryScores(contestDate, currentEntries, gameResults);
-                
-                if (updateResult.success) {
-                    console.log(`💾 Successfully updated ${updateResult.updatedCount} entries`);
+                for (const entry of currentEntries) {
+                    if (!entry.picks) continue;
                     
-                    // Update local entries with new scores
-                    updateResult.updatedEntries.forEach(updatedEntry => {
-                        const localEntry = currentEntries.find(e => e.id === updatedEntry.entryId);
-                        if (localEntry) {
-                            localEntry.score = updatedEntry.score;
+                    // Calculate score for this entry
+                    let newScore = 0;
+                    Object.entries(entry.picks).forEach(([gameId, pick]) => {
+                        const gameResult = gameResults[gameId];
+                        if (gameResult && pick === gameResult.winner) {
+                            newScore++;
                         }
                     });
                     
-                    // Reload the contest data to show updated scores
-                    await loadContestData();
-                    
-                    alert(`✅ Scores saved successfully!\n\nUpdated ${updateResult.updatedCount} of ${currentEntries.length} entries in the Firebase database.\nThe contest leaderboard should now show the correct scores.`);
+                    try {
+                        // Use the same backend base URL that's working for reads
+                        const response = await fetch(`${backend.baseUrl}/updateEntryScore`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                entryId: entry.id,
+                                score: newScore,
+                                contestDate: contestDate
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            const result = await response.json();
+                            if (result.success) {
+                                console.log(`💾 Updated ${entry.userName}: ${newScore} points`);
+                                entry.score = newScore; // Update local entry
+                                successCount++;
+                            } else {
+                                console.error(`❌ Backend error for ${entry.userName}:`, result.error);
+                                errorCount++;
+                            }
+                        } else {
+                            console.error(`❌ HTTP ${response.status} for ${entry.userName}`);
+                            errorCount++;
+                        }
+                    } catch (error) {
+                        console.error(`❌ Request failed for ${entry.userName}:`, error);
+                        errorCount++;
+                    }
+                }
+                
+                // Reload the contest data to show updated scores
+                await loadContestData();
+                
+                if (successCount > 0) {
+                    alert(`✅ Scores saved successfully!\n\nUpdated: ${successCount}\nFailed: ${errorCount}\n\nThe contest leaderboard should now show the correct scores.`);
                 } else {
-                    throw new Error(updateResult.error || 'Failed to update scores');
+                    alert(`❌ Failed to save any scores.\n\nPlease check that the backend updateEntryScore function is available.`);
                 }
                 
             } catch (error) {

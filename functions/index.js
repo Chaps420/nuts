@@ -378,3 +378,58 @@ exports.resolveDailyContest = functions.https.onRequest(corsHandler(async (req, 
     res.status(500).json({ error: 'Internal server error' });
   }
 }));
+
+// Update Entry Score - For Admin Panel
+exports.updateEntryScore = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { entryId, score, contestDate } = req.body;
+    
+    // Validate required fields
+    if (!entryId || score === undefined || score === null) {
+      return res.status(400).json({ error: 'Missing required fields: entryId, score' });
+    }
+
+    // Validate score is a number
+    const numericScore = parseInt(score);
+    if (isNaN(numericScore)) {
+      return res.status(400).json({ error: 'Score must be a valid number' });
+    }
+
+    console.log(`Updating entry ${entryId} with score ${numericScore}`);
+
+    // Find and update the entry in Firestore
+    const entryDoc = await db.collection('contestEntries').doc(entryId).get();
+    
+    if (!entryDoc.exists) {
+      return res.status(404).json({ error: 'Contest entry not found' });
+    }
+
+    // Update the entry with the new score
+    await db.collection('contestEntries').doc(entryId).update({
+      score: numericScore,
+      scoredAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    console.log(`Successfully updated entry ${entryId} with score ${numericScore}`);
+
+    res.status(200).json({ 
+      success: true, 
+      message: `Entry ${entryId} updated with score ${numericScore}`,
+      entryId: entryId,
+      score: numericScore
+    });
+
+  } catch (error) {
+    console.error('Error updating entry score:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error',
+      details: error.message 
+    });
+  }
+}));
