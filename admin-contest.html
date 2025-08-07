@@ -2280,7 +2280,7 @@
             }
         }
         
-        // NEW FUNCTION: Display contest winners
+        // ENHANCED FUNCTION: Display contest winners with proper data structure handling
         function displayContestWinners(winners, contestDate, prizePool) {
             if (!winners || winners.length === 0) {
                 console.log('⚠️ No winners to display');
@@ -2293,11 +2293,20 @@
             if (winners.length > 0) {
                 console.log('🔍 First winner object structure:', Object.keys(winners[0]));
                 console.log('🔍 First winner full object:', winners[0]);
-                console.log('🔍 Checking wallet fields:');
+                console.log('🔍 Checking wallet fields in winner object:');
                 console.log('  - walletAddress:', winners[0].walletAddress);
                 console.log('  - playerWallet:', winners[0].playerWallet);
                 console.log('  - wallet:', winners[0].wallet);
                 console.log('  - xrpAddress:', winners[0].xrpAddress);
+                
+                // Also check if winner has entry object
+                if (winners[0].entry) {
+                    console.log('🔍 Checking wallet fields in entry object:');
+                    console.log('  - entry.walletAddress:', winners[0].entry.walletAddress);
+                    console.log('  - entry.playerWallet:', winners[0].entry.playerWallet);
+                    console.log('  - entry.wallet:', winners[0].entry.wallet);
+                    console.log('  - entry.xrpAddress:', winners[0].entry.xrpAddress);
+                }
             }
             
             const winnersDisplay = document.getElementById('winners-display');
@@ -2318,14 +2327,22 @@
             `;
             
             winners.forEach((winner, index) => {
-                const place = index + 1;
+                const place = winner.place || (index + 1);
                 const medal = place === 1 ? '🥇' : place === 2 ? '🥈' : place === 3 ? '🥉' : '🏅';
                 const bgColor = place === 1 ? 'rgba(255, 215, 0, 0.1)' : 
                                place === 2 ? 'rgba(192, 192, 192, 0.1)' : 
                                place === 3 ? 'rgba(205, 127, 50, 0.1)' : 'rgba(136, 136, 136, 0.1)';
                 
-                // Check multiple possible wallet address fields
-                const walletAddress = winner.walletAddress || winner.playerWallet || winner.wallet || winner.xrpAddress;
+                // Access entry data correctly - winner.entry contains the entry object
+                const entry = winner.entry || winner;
+                const walletAddress = entry.walletAddress || entry.playerWallet || entry.wallet || entry.xrpAddress ||
+                                    winner.walletAddress || winner.playerWallet || winner.wallet || winner.xrpAddress;
+                const score = entry.score !== undefined ? entry.score : winner.score || 0;
+                const tiebreakerRuns = entry.tiebreakerRuns || entry.tiebreakerPoints || winner.tiebreakerRuns || winner.tiebreakerPoints || 0;
+                const prize = winner.prize || winner.prizeWon || entry.prizeWon || 0;
+                const userName = entry.userName || entry.name || winner.userName || winner.name || 'Anonymous Player';
+                const twitterHandle = entry.twitterHandle || winner.twitterHandle;
+                const entryId = entry.id || entry.entryId || winner.id || winner.entryId;
                 
                 winnersHtml += `
                     <div style="
@@ -2341,10 +2358,10 @@
                         <div style="font-size: 2em;">${medal}</div>
                         <div>
                             <div style="color: #4CAF50; font-weight: bold; font-size: 1.1em;">
-                                ${winner.userName || winner.name || 'Anonymous Player'}
+                                ${userName}
                             </div>
                             <div style="color: #888; font-size: 0.9em; margin: 5px 0;">
-                                ${winner.twitterHandle ? `X: ${winner.twitterHandle}` : 'No X handle'}
+                                ${twitterHandle ? `X: ${twitterHandle}` : 'No X handle'}
                             </div>
                             ${walletAddress ? `
                                 <div style="color: #4CAF50; font-size: 0.85em; font-family: monospace; background: rgba(76, 175, 80, 0.1); padding: 4px 8px; border-radius: 4px; margin-top: 8px;">
@@ -2360,18 +2377,18 @@
                             `}
                         </div>
                         <div style="text-align: center;">
-                            <div style="color: #4CAF50; font-weight: bold;">Score: ${winner.score || 0}</div>
-                            <div style="color: #888; font-size: 0.9em;">Tiebreaker: ${winner.tiebreakerRuns || winner.tiebreakerPoints || 0}</div>
+                            <div style="color: #4CAF50; font-weight: bold;">Score: ${score}</div>
+                            <div style="color: #888; font-size: 0.9em;">Tiebreaker: ${tiebreakerRuns}</div>
                         </div>
                         <div style="text-align: center;">
                             <div style="color: #4CAF50; font-weight: bold; font-size: 1.2em;">
-                                ${winner.prizeWon || 0} NUTS
+                                ${prize} NUTS
                             </div>
                             <div style="color: #888; font-size: 0.8em;">${place === 1 ? '50%' : place === 2 ? '30%' : place === 3 ? '20%' : '0%'} of pool</div>
                         </div>
                         <div>
                             ${walletAddress ? `
-                                <button onclick="showPayoutOptions('${winner.id || winner.entryId}')" 
+                                <button onclick="showPayoutOptions('${entryId}')" 
                                         style="background: #4CAF50; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
                                     💰 Payout
                                 </button>
