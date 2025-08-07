@@ -2289,6 +2289,17 @@
             
             console.log('🏆 Displaying contest winners:', winners);
             
+            // Debug: Log the first winner's properties to see what fields are available
+            if (winners.length > 0) {
+                console.log('🔍 First winner object structure:', Object.keys(winners[0]));
+                console.log('🔍 First winner full object:', winners[0]);
+                console.log('🔍 Checking wallet fields:');
+                console.log('  - walletAddress:', winners[0].walletAddress);
+                console.log('  - playerWallet:', winners[0].playerWallet);
+                console.log('  - wallet:', winners[0].wallet);
+                console.log('  - xrpAddress:', winners[0].xrpAddress);
+            }
+            
             const winnersDisplay = document.getElementById('winners-display');
             const winnersContent = document.getElementById('winners-content');
             
@@ -2313,6 +2324,9 @@
                                place === 2 ? 'rgba(192, 192, 192, 0.1)' : 
                                place === 3 ? 'rgba(205, 127, 50, 0.1)' : 'rgba(136, 136, 136, 0.1)';
                 
+                // Check multiple possible wallet address fields
+                const walletAddress = winner.walletAddress || winner.playerWallet || winner.wallet || winner.xrpAddress;
+                
                 winnersHtml += `
                     <div style="
                         background: ${bgColor}; 
@@ -2332,11 +2346,11 @@
                             <div style="color: #888; font-size: 0.9em; margin: 5px 0;">
                                 ${winner.twitterHandle ? `X: ${winner.twitterHandle}` : 'No X handle'}
                             </div>
-                            ${winner.walletAddress ? `
+                            ${walletAddress ? `
                                 <div style="color: #4CAF50; font-size: 0.85em; font-family: monospace; background: rgba(76, 175, 80, 0.1); padding: 4px 8px; border-radius: 4px; margin-top: 8px;">
                                     <div style="color: #888; font-size: 0.8em; margin-bottom: 2px;">Wallet Address:</div>
                                     <div style="word-break: break-all; line-height: 1.3;">
-                                        ${winner.walletAddress}
+                                        ${walletAddress}
                                     </div>
                                 </div>
                             ` : `
@@ -2356,13 +2370,13 @@
                             <div style="color: #888; font-size: 0.8em;">${place === 1 ? '50%' : place === 2 ? '30%' : place === 3 ? '20%' : '0%'} of pool</div>
                         </div>
                         <div>
-                            ${winner.walletAddress ? `
+                            ${walletAddress ? `
                                 <button onclick="showPayoutOptions('${winner.id || winner.entryId}')" 
                                         style="background: #4CAF50; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
                                     💰 Payout
                                 </button>
                                 <div style="margin-top: 5px;">
-                                    <button onclick="navigator.clipboard.writeText('${winner.walletAddress}')" 
+                                    <button onclick="navigator.clipboard.writeText('${walletAddress}')" 
                                             style="background: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em;"
                                             title="Copy wallet address">
                                         📋 Copy
