@@ -2845,10 +2845,18 @@
                 return;
             }
 
-            const minimumEntries = 2; // Minimum entries required
+            const minimumEntries = window.config?.contest?.minimumEntries || 4;
 
             if (currentEntries.length < minimumEntries) {
-                alert(`Need at least ${minimumEntries} entries to resolve contest. Current: ${currentEntries.length}`);
+                const confirmRefund = confirm(
+                    `Only ${currentEntries.length} entries (minimum ${minimumEntries} required).\n\n` +
+                    `The contest will be cancelled and all entry fees will be refunded.\n\n` +
+                    `Process refunds?`
+                );
+                
+                if (confirmRefund) {
+                    await processRefunds();
+                }
                 return;
             }
 
@@ -2875,7 +2883,7 @@
                 const result = await window.enhancedBackend.updateGameResults(contestDate, gameResults);
 
                 // 3. Reload contest data to get updated scores
-                console.log('� Reloading contest data with final scores...');
+                console.log('📊 Reloading contest data with final scores...');
                 await loadContestData();
 
                 // 4. Display winners using the calculated results
@@ -2888,8 +2896,40 @@
                 // 5. Update entries table to show final results
                 updateEntriesTable(currentEntries);
 
+                // 6. Show winner details and process payouts
+                if (result.status === 'cancelled') {
+                    alert(`Contest cancelled: ${result.reason}\nRefunds required for ${result.totalEntries} entries.`);
+                    await processRefunds();
+                } else if (result.winners && result.winners.length > 0) {
+                    // Show winners message
+                    let winnerMessage = '🏆 CONTEST RESULTS 🏆\n\n';
+                    winnerMessage += `Total Prize Pool: ${prizePool} NUTS\n\n`;
+                    
+                    result.winners.forEach(winner => {
+                        const placeEmoji = winner.place === 1 ? '🥇' : winner.place === 2 ? '🥈' : '🥉';
+                        winnerMessage += `${placeEmoji} ${winner.place === 1 ? '1st' : winner.place === 2 ? '2nd' : '3rd'} Place: ${winner.entry.userName}\n`;
+                        winnerMessage += `   Score: ${winner.entry.score} correct picks\n`;
+                        winnerMessage += `   Prize: ${winner.prize} NUTS\n\n`;
+                    });
+                    
+                    winnerMessage += '\n📋 NOTE: All payouts are MANUAL\nWould you like to process payouts now?';
+                    
+                    if (confirm(winnerMessage)) {
+                        await processAllPayouts(result.winners);
+                    }
+                }
+
+                // 7. Mark contest as completed
+                console.log('🏁 Marking contest as completed...');
+                if (backend) {
+                    const completeResult = await backend.completeContest(contestDate);
+                    if (completeResult.success) {
+                        console.log(`✅ Contest completed! ${completeResult.entriesCompleted} entries marked as completed.`);
+                    }
+                }
+
                 console.log('✅ Contest resolved successfully!');
-                alert(`✅ Contest resolved successfully!\n\nWinners determined and prizes calculated.\nCheck the Winners section below.`);
+                alert(`✅ Contest resolved successfully!\n\nWinners determined, scores saved, and contest completed.\nCheck the Winners section below.`);
 
             } catch (error) {
                 console.error('❌ Failed to resolve contest:', error);
