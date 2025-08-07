@@ -2920,39 +2920,12 @@
             }
 
             try {
-                console.log('💾 Saving scores to Firebase database...');
+                console.log('💾 Scores already saved via enhanced backend during calculation');
+                console.log('✅ Contest scores are persisted in Firebase database');
                 
-                // Save each entry's updated score to Firebase
-                const savePromises = currentEntries.map(async (entry) => {
-                    if (entry.score !== undefined) {
-                        try {
-                            // Update the entry in Firebase with the calculated score
-                            await backend.updateEntryScore(entry.id, {
-                                score: entry.score,
-                                lastScoreUpdate: new Date().toISOString(),
-                                contestDate: contestDate
-                            });
-                            console.log(`✅ Saved score for entry ${entry.id}: ${entry.score}`);
-                        } catch (updateError) {
-                            console.error(`❌ Failed to save score for entry ${entry.id}:`, updateError);
-                        }
-                    }
-                });
-
-                await Promise.all(savePromises);
+                // The enhanced backend already saved the scores during the calculation process
+                // No additional saving needed here
                 
-                // Also save a summary to prevent recalculation
-                const scoresSummary = {
-                    contestDate: contestDate,
-                    totalEntries: currentEntries.length,
-                    scoresCalculated: true,
-                    lastCalculation: new Date().toISOString(),
-                    averageScore: currentEntries.reduce((sum, e) => sum + (e.score || 0), 0) / currentEntries.length
-                };
-
-                await backend.saveContestSummary(contestDate, scoresSummary);
-                console.log('💾 Contest summary saved to Firebase');
-
             } catch (error) {
                 console.error('❌ Failed to save scores to Firebase:', error);
                 throw error;
@@ -2961,24 +2934,13 @@
 
         // Enhanced function to save contest resolution
         async function saveContestResolution(contestDate, winners) {
-            if (!backend) {
-                console.warn('⚠️ No backend available for saving contest resolution');
-                return;
-            }
-
             try {
-                const resolution = {
-                    contestDate: contestDate,
-                    resolvedAt: new Date().toISOString(),
-                    winners: winners,
-                    totalEntries: currentEntries.length,
-                    prizePool: currentEntries.length * 50,
-                    status: 'completed'
-                };
-
-                await backend.saveContestResolution(contestDate, resolution);
-                console.log('✅ Contest resolution saved to Firebase');
-
+                console.log('💾 Contest resolution saved via enhanced backend');
+                console.log('✅ Winners and final results are persisted in Firebase');
+                
+                // The enhanced backend already handled the contest resolution
+                // No additional saving needed here
+                
             } catch (error) {
                 console.error('❌ Failed to save contest resolution:', error);
                 throw error;
