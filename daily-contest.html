@@ -422,6 +422,52 @@
                                 </div>
                             </div>
                             
+                            <!-- Contact Information Section -->
+                            <div class="contact-info-section" style="background: #1a1a1a; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #333;">
+                                <h4 style="color: #4CAF50; margin: 0 0 15px 0;">Contact Information</h4>
+                                <p style="color: #ccc; font-size: 0.9em; margin-bottom: 15px;">
+                                    Required for prize payments and winner announcements
+                                </p>
+                                
+                                <!-- Wallet Address -->
+                                <div style="margin-bottom: 15px;">
+                                    <label style="color: #888; display: block; margin-bottom: 5px;">💰 XRPL Wallet Address: <span style="color: #ff6b00;">*</span></label>
+                                    <input type="text" 
+                                           id="wallet-address" 
+                                           style="background: #2a2a2a; 
+                                                  border: 1px solid #444; 
+                                                  color: white; 
+                                                  padding: 8px 12px; 
+                                                  border-radius: 4px; 
+                                                  width: 100%; 
+                                                  max-width: 400px;"
+                                           placeholder="r... (Your XRPL wallet address)"
+                                           maxlength="50"
+                                           required>
+                                    <span style="color: #666; font-size: 0.85em;">(Required - for prize payments)</span>
+                                </div>
+                                
+                                <!-- Twitter Handle -->
+                                <div>
+                                    <label style="color: #888; display: block; margin-bottom: 5px;">🐦 Twitter Handle: <span style="color: #ff6b00;">*</span></label>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <span style="color: #666;">@</span>
+                                        <input type="text" 
+                                               id="twitter-handle" 
+                                               style="background: #2a2a2a; 
+                                                      border: 1px solid #444; 
+                                                      color: white; 
+                                                      padding: 8px 12px; 
+                                                      border-radius: 4px; 
+                                                      width: 200px;"
+                                               placeholder="your_handle"
+                                               maxlength="15"
+                                               required>
+                                        <span style="color: #666; font-size: 0.85em;">(Required - for announcements)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <button id="submit-picks-btn" class="btn btn-success">
                                 <span>Submit Your Picks</span>
                                 <div class="btn-glow"></div>

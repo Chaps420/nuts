@@ -16,7 +16,7 @@
         .results-container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 100px 20px 20px 20px;
         }
         
         .contest-header {
@@ -523,17 +523,6 @@
                             <h2>⚠️ Contest Cancelled</h2>
                             <p>This contest was cancelled due to insufficient entries (${entries.length}/${minimumEntries} minimum).</p>
                             <p>All entry fees will be refunded to participants.</p>
-                        </div>
-                    `;
-                } else if (!isContestCompleted) {
-                    // Contest is still active - show status
-                    document.getElementById('winner-section').style.display = 'block';
-                    document.getElementById('winner-section').innerHTML = `
-                        <div style="background: #2a2a2a; border: 2px solid #4CAF50; padding: 20px; border-radius: 8px; text-align: center;">
-                            <h2 style="color: #4CAF50;">🏃‍♂️ Contest Active</h2>
-                            <p style="color: #ccc;">This contest is currently accepting entries.</p>
-                            <p style="color: #ffa500;">Current entries: ${entries.length} (Minimum ${minimumEntries} required)</p>
-                            <p style="color: #888; font-size: 0.9em;">Results will be available after the contest deadline.</p>
                         </div>
                     `;
                 } else if (hasWinners) {

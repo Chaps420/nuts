@@ -575,6 +575,29 @@ class NFLContestManager {
             const twitterInput = document.getElementById('twitter-handle');
             const twitterHandle = twitterInput ? twitterInput.value.trim() : '';
 
+            if (!twitterHandle) {
+                alert('Please enter your Twitter handle. This is required for winner announcements.');
+                if (twitterInput) twitterInput.focus();
+                return;
+            }
+
+            // Get wallet address
+            const walletInput = document.getElementById('wallet-address');
+            const walletAddress = walletInput ? walletInput.value.trim() : '';
+
+            if (!walletAddress) {
+                alert('Please enter your XRPL wallet address. This is required for prize payments.');
+                if (walletInput) walletInput.focus();
+                return;
+            }
+
+            // Basic wallet address validation
+            if (!walletAddress.startsWith('r') || walletAddress.length < 25 || walletAddress.length > 35) {
+                alert('Please enter a valid XRPL wallet address (should start with "r" and be 25-35 characters).');
+                if (walletInput) walletInput.focus();
+                return;
+            }
+
             console.log('🏈 Submitting NFL contest entry...', {
                 week: this.currentWeek,
                 picks: this.userPicks,
@@ -587,6 +610,7 @@ class NFLContestManager {
                 userId: 'USER_' + Date.now(),
                 userName: twitterHandle ? `@${twitterHandle}` : 'Player #' + Math.floor(Math.random() * 9999),
                 twitterHandle: twitterHandle ? `@${twitterHandle}` : null,
+                walletAddress: walletAddress,
                 sport: 'nfl',
                 picks: this.userPicks,
                 tiebreakerPoints: tiebreakerPoints,
