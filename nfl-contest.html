@@ -61,7 +61,7 @@
 
         @media (max-width: 768px) {
             .nfl-container {
-                padding-bottom: 280px; /* Increase bottom padding for mobile */
+                padding-bottom: 350px; /* Increase even more for mobile */
             }
             
             .week-selector {
@@ -72,10 +72,27 @@
         }
 
         @media (max-width: 480px) {
+            .nfl-container {
+                padding-bottom: 400px; /* Even more padding for smaller screens */
+            }
+            
             .week-selector {
                 grid-template-columns: repeat(4, 1fr);
                 gap: 6px;
                 padding: 12px;
+            }
+
+            .contest-controls {
+                max-height: 50vh;
+                padding: 8px 10px;
+            }
+
+            .controls-row {
+                gap: 12px;
+            }
+
+            .missing-picks-container {
+                max-height: 50px !important;
             }
         }
 
@@ -597,29 +614,48 @@
             }
 
             .contest-controls {
-                padding: 12px 15px;
-                max-height: 40vh;
+                padding: 10px 15px;
+                max-height: 45vh;
                 overflow-y: auto;
+                border-radius: 12px 12px 0 0;
             }
 
             .missing-picks-container {
-                max-height: 80px !important;
+                max-height: 60px !important;
                 overflow-y: auto !important;
             }
 
             .missing-picks-list span {
                 font-size: 0.65em !important;
                 padding: 1px 4px !important;
+                margin: 1px;
+            }
+
+            .picks-progress {
+                margin-bottom: 8px;
             }
 
             .controls-row {
                 flex-direction: column;
-                gap: 10px;
+                gap: 15px;
+                align-items: stretch;
             }
 
             .tiebreaker-section,
             .twitter-section {
                 min-width: auto;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .tiebreaker-input,
+            .twitter-input,
+            .wallet-input {
+                width: 100%;
+                max-width: 200px;
+                margin: 0 auto;
             }
 
             .submit-picks-btn {
