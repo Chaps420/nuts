@@ -321,15 +321,6 @@ class ContestBackendEnhanced extends ContestBackend {
             
             updatedEntries.push(updatedEntry);
             
-<<<<<<< HEAD
-            // Update storage (only if we're using our enhanced backend for storage)
-            if (!window.contestBackendProduction) {
-                if (this.firebaseEnabled) {
-                    await this.updateFirebaseEntry(updatedEntry);
-                } else {
-                    this.updateLocalStorageEntry(updatedEntry);
-                }
-=======
             // Update storage based on backend type
             if (window.contestBackendProduction) {
                 // Using production backend - save score to Firebase
@@ -360,7 +351,6 @@ class ContestBackendEnhanced extends ContestBackend {
             } else {
                 // Using local storage
                 this.updateLocalStorageEntry(updatedEntry);
->>>>>>> main
             }
         }
         

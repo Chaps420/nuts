@@ -265,34 +265,11 @@
                     <button onclick="loadContestData()" class="refresh-btn" style="background: #4CAF50;">📋 Load Data</button>
                 </div>
                 
-<<<<<<< HEAD
-                <!-- Simplified Action Buttons -->
-                <div style="display: flex; gap: 10px; margin-bottom: 15px; padding: 15px; background: #2a2a2a; border-radius: 8px;">
-                    <button onclick="calculateAndUpdateScores()" class="refresh-btn" style="background: #FF9800; flex: 2;">
-                        🧮 Calculate Scores & Update Table
-                    </button>
-                    <button onclick="resolveContestWithWinners()" class="refresh-btn" style="background: #4CAF50; flex: 2;">
-                        🏆 Determine Winners & Complete Contest
-                    </button>
-                    <button onclick="toggleAdvancedControls()" class="refresh-btn" style="background: #666; flex: 1;">
-                        ⚙️ More
-                    </button>
-                </div>
-                
-                <!-- Advanced Controls (Collapsible) -->
-                <div id="advanced-controls" style="display: none; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 15px;">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px;">
-                        <button onclick="debugScoring()" class="refresh-btn" style="background: #9C27B0; font-size: 0.85em;">🔍 Debug</button>
-                        <button onclick="fetchRealGameResults()" class="refresh-btn" style="background: #2196F3; font-size: 0.85em;">🔄 Get Games</button>
-                        <button onclick="clearSelectedDateData()" class="refresh-btn" style="background: #ff4444; font-size: 0.85em;">❌ Clear Date</button>
-                    </div>
-=======
                 <!-- Main Action Buttons -->
                 <div style="display: flex; gap: 15px; margin-bottom: 15px; padding: 15px; background: #2a2a2a; border-radius: 8px;">
                     <button onclick="calculateAndUpdateScores()" class="refresh-btn" style="background: #FFD700; color: #000; flex: 1;">
                         📊 Update Scores and Table
                     </button>
->>>>>>> main
                 </div>
             </div>
             
@@ -367,19 +344,7 @@
         <div id="winners-display" style="background: #1a1a1a; border: 2px solid #4CAF50; border-radius: 12px; padding: 20px; margin-bottom: 20px; display: none;">
             <h2 style="color: #4CAF50; text-align: center; margin: 0 0 20px 0;">🏆 Contest Winners 🏆</h2>
             <div id="winners-content">
-<<<<<<< HEAD
-                <!-- Winner details will be populated here -->
-            </div>
-            <div style="text-align: center; margin-top: 20px;">
-                <button onclick="hideWinners()" style="background: #666; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">
-                    Hide Winners
-                </button>
-                <button onclick="exportWinners()" style="background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin-left: 10px;">
-                    📋 Export Winners List
-                </button>
-=======
                 <!-- Winner details and action buttons will be populated here dynamically -->
->>>>>>> main
             </div>
         </div>
         
@@ -702,8 +667,6 @@
                     }
                 }
                 
-<<<<<<< HEAD
-=======
                 // Merge with enhanced results if available from previous score calculations
                 if (window.enhancedEntryResults && window.enhancedEntryResults[contestDate]) {
                     console.log('🔄 Merging with enhanced entry results from session...');
@@ -722,7 +685,6 @@
                     console.log('✅ Enhanced results merged successfully');
                 }
                 
->>>>>>> main
                 // Use enhanced display if available, otherwise fall back to standard
                 if (window.enhancedDisplay && window.enhancedDisplay.displayAdminEntries) {
                     console.log('🌟 Using enhanced admin display function');
@@ -2344,8 +2306,6 @@
             
             console.log('🏆 Displaying contest winners:', winners);
             
-<<<<<<< HEAD
-=======
             // Validate that winners is an array
             if (!Array.isArray(winners)) {
                 console.error('❌ Winners is not an array:', typeof winners, winners);
@@ -2359,7 +2319,6 @@
                 return;
             }
             
->>>>>>> main
             // Debug: Log the first winner's properties to see what fields are available
             if (winners.length > 0) {
                 console.log('🔍 First winner object structure:', Object.keys(winners[0]));
@@ -2422,11 +2381,7 @@
                         border-radius: 8px; 
                         padding: 15px; 
                         display: grid; 
-<<<<<<< HEAD
-                        grid-template-columns: auto 1fr auto auto auto; 
-=======
                         grid-template-columns: auto 1fr auto auto; 
->>>>>>> main
                         align-items: center; 
                         gap: 15px;
                     ">
@@ -2439,15 +2394,9 @@
                                 ${twitterHandle ? `X: ${twitterHandle}` : 'No X handle'}
                             </div>
                             ${walletAddress ? `
-<<<<<<< HEAD
-                                <div style="color: #4CAF50; font-size: 0.85em; font-family: monospace; background: rgba(76, 175, 80, 0.1); padding: 4px 8px; border-radius: 4px; margin-top: 8px;">
-                                    <div style="color: #888; font-size: 0.8em; margin-bottom: 2px;">Wallet Address:</div>
-                                    <div style="word-break: break-all; line-height: 1.3;">
-=======
                                 <div style="color: #888; font-size: 0.85em; background: rgba(76, 175, 80, 0.1); padding: 4px 8px; border-radius: 4px; margin-top: 8px;">
                                     <div style="color: #888; font-size: 0.8em; margin-bottom: 2px;">Wallet Address:</div>
                                     <div style="word-break: break-all; line-height: 1.3; font-family: monospace; color: #4CAF50;">
->>>>>>> main
                                         ${walletAddress}
                                     </div>
                                 </div>
@@ -2467,35 +2416,10 @@
                             </div>
                             <div style="color: #888; font-size: 0.8em;">${place === 1 ? '50%' : place === 2 ? '30%' : place === 3 ? '20%' : '0%'} of pool</div>
                         </div>
-<<<<<<< HEAD
-                        <div>
-                            ${walletAddress ? `
-                                <button onclick="showPayoutOptions('${entryId}')" 
-                                        style="background: #4CAF50; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
-                                    💰 Payout
-                                </button>
-                                <div style="margin-top: 5px;">
-                                    <button onclick="navigator.clipboard.writeText('${walletAddress}')" 
-                                            style="background: #2196F3; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em;"
-                                            title="Copy wallet address">
-                                        📋 Copy
-                                    </button>
-                                </div>
-                            ` : `
-                                <div style="color: #ff4444; font-size: 0.8em; text-align: center;">
-                                    No wallet<br>address
-                                </div>
-                            `}
-                        </div>
-=======
->>>>>>> main
                     </div>
                 `;
             });
             
-<<<<<<< HEAD
-            winnersHtml += `</div>`;
-=======
             winnersHtml += `
                 </div>
                 
@@ -2511,7 +2435,6 @@
                     </button>
                 </div>
             `;
->>>>>>> main
             
             winnersContent.innerHTML = winnersHtml;
             winnersDisplay.style.display = 'block';
@@ -2904,24 +2827,15 @@
             }
         }
 
-<<<<<<< HEAD
-        // Simplified function: Resolve contest and determine winners
-        async function resolveContestWithWinners() {
-=======
         // Simplified function: Resolve contest and show winners (no payouts)
         async function resolveContestAndShowWinners() {
->>>>>>> main
             const contestDate = document.getElementById('contest-date').value;
             if (!contestDate) {
                 alert('Please select a contest date first');
                 return;
             }
 
-<<<<<<< HEAD
-            const minimumEntries = 2; // Minimum entries required
-=======
             const minimumEntries = window.config?.contest?.minimumEntries || 4;
->>>>>>> main
 
             if (currentEntries.length < minimumEntries) {
                 alert(`Need at least ${minimumEntries} entries to resolve contest. Current: ${currentEntries.length}`);
@@ -2948,24 +2862,6 @@
                     await window.enhancedBackend.init();
                 }
                 
-<<<<<<< HEAD
-                const winners = await window.enhancedBackend.updateGameResults(contestDate, gameResults);
-
-                // 3. Reload contest data to get updated scores
-                console.log('� Reloading contest data with final scores...');
-                await loadContestData();
-
-                // 4. Display winners using the calculated results
-                console.log('🎉 Displaying winners...');
-                const prizePool = currentEntries.length * 50;
-                displayContestWinners(winners, contestDate, prizePool);
-
-                // 5. Update entries table to show final results
-                updateEntriesTable(currentEntries);
-
-                console.log('✅ Contest resolved successfully!');
-                alert(`✅ Contest resolved successfully!\n\nWinners determined and prizes calculated.\nCheck the Winners section below.`);
-=======
                 const result = await window.enhancedBackend.updateGameResults(contestDate, gameResults);
 
                 // 3. Reload contest data to get updated scores
@@ -3000,7 +2896,6 @@
 
                 console.log('✅ Contest resolved successfully!');
                 alert(`✅ Contest resolved successfully!\n\nWinners determined and displayed.\nScores have been saved to the database.`);
->>>>>>> main
 
             } catch (error) {
                 console.error('❌ Failed to resolve contest:', error);
@@ -3329,8 +3224,6 @@
                 }
             }
         };
-<<<<<<< HEAD
-=======
         
         // Function to show all picks for an entry
         function showAllPicks(entryId) {
@@ -3453,7 +3346,6 @@
                 modal.style.display = 'none';
             }
         }
->>>>>>> main
     
     </script>
 </body>
