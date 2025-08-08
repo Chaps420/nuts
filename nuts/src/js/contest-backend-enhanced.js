@@ -321,15 +321,6 @@ class ContestBackendEnhanced extends ContestBackend {
             
             updatedEntries.push(updatedEntry);
             
-<<<<<<< HEAD
-            // Update storage (only if we're using our enhanced backend for storage)
-            if (!window.contestBackendProduction) {
-                if (this.firebaseEnabled) {
-                    await this.updateFirebaseEntry(updatedEntry);
-                } else {
-                    this.updateLocalStorageEntry(updatedEntry);
-                }
-=======
             // Update storage based on backend type
             if (window.contestBackendProduction) {
                 // Using production backend - save score to Firebase
@@ -337,30 +328,18 @@ class ContestBackendEnhanced extends ContestBackend {
                     await window.contestBackendProduction.updateEntryScore(
                         updatedEntry.id, 
                         updatedEntry.score, 
-                        contestDate
+                        contestDay
                     );
                     console.log(`💾 Saved score ${updatedEntry.score} for entry ${updatedEntry.id} to production Firebase`);
                 } catch (error) {
                     console.error(`❌ Failed to save score for entry ${updatedEntry.id}:`, error);
                 }
-                
-                // Store enhanced entry details in session for display purposes
-                if (!window.enhancedEntryResults) {
-                    window.enhancedEntryResults = {};
-                }
-                if (!window.enhancedEntryResults[contestDate]) {
-                    window.enhancedEntryResults[contestDate] = {};
-                }
-                window.enhancedEntryResults[contestDate][updatedEntry.id] = updatedEntry;
-                console.log(`💾 Stored enhanced entry details for ${updatedEntry.id} in session`);
-                
             } else if (this.firebaseEnabled) {
                 // Using local Firebase
                 await this.updateFirebaseEntry(updatedEntry);
             } else {
                 // Using local storage
                 this.updateLocalStorageEntry(updatedEntry);
->>>>>>> main
             }
         }
         

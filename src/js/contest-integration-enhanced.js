@@ -209,6 +209,12 @@ async function resolveContest(providedDate = null) {
                        document.getElementById('date-selector')?.value ||
                        new Date().toISOString().split('T')[0];
     
+<<<<<<< HEAD
+=======
+    console.log(`🏁 Resolving contest for ${contestDate}...`);
+    console.log(`📅 Date sources: provided=${providedDate}, contest-date=${document.getElementById('contest-date')?.value}, date-selector=${document.getElementById('date-selector')?.value}`);
+    
+>>>>>>> main
     try {
         // Only try to modify button if it exists
         if (resolveBtn) {
@@ -281,6 +287,18 @@ async function resolveContest(providedDate = null) {
             window.displayAdminEntries(result.allEntries);
         }
         
+<<<<<<< HEAD
+=======
+        // Display winners banner if we have winners and the function exists
+        if (result.winners && result.winners.length > 0 && window.displayContestWinners) {
+            console.log('🎉 Displaying contest winners banner...');
+            const prizePool = result.totalPrizePool || (entries.length * 50);
+            window.displayContestWinners(result.winners, contestDate, prizePool);
+        } else if (result.winners && result.winners.length > 0) {
+            console.warn('⚠️ Winners calculated but displayContestWinners function not available');
+        }
+        
+>>>>>>> main
         return result;
         
         // Show success message

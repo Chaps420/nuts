@@ -3,6 +3,21 @@
  * Provides improved visualization for both leaderboard and admin portal
  */
 
+<<<<<<< HEAD
+=======
+// Make showAllPicks available globally for the admin portal
+window.showAllPicks = function(entryId) {
+    // This will be overridden by the admin portal's implementation
+    console.log('showAllPicks called for entry:', entryId);
+    if (window.currentEntries) {
+        const entry = window.currentEntries.find(e => e.id === entryId);
+        if (entry && entry.gamesDetailed) {
+            console.log('Entry found with', entry.gamesDetailed.length, 'games');
+        }
+    }
+};
+
+>>>>>>> main
 /**
  * Enhanced results display for leaderboard
  */
@@ -148,12 +163,18 @@ function displayAdminEntries(entries, contestDate) {
         if (entry.gamesDetailed && Array.isArray(entry.gamesDetailed)) {
             console.log(`📊 Entry ${entry.userName} has ${entry.gamesDetailed.length} detailed games`);
             picksDisplay = `
+<<<<<<< HEAD
                 <div class="admin-picks-grid">
                     ${entry.gamesDetailed.slice(0, 5).map(game => {
+=======
+                <div class="admin-picks-grid" style="display: flex; flex-wrap: wrap; gap: 3px; max-width: 100%;">
+                    ${entry.gamesDetailed.slice(0, 12).map(game => {
+>>>>>>> main
                         let statusClass = '';
                         let statusIcon = '';
                         let statusText = '';
                         
+<<<<<<< HEAD
                         if (game.isCorrect === true) {
                             statusClass = 'correct';
                             statusIcon = '✅';
@@ -180,6 +201,45 @@ function displayAdminEntries(entries, contestDate) {
                         `;
                     }).join('')}
                     ${entry.gamesDetailed.length > 5 ? `<div style="font-size: 0.75em; color: #888;">+${entry.gamesDetailed.length - 5} more...</div>` : ''}
+=======
+                        // Check multiple result indicators for compatibility
+                        const isCorrect = game.isCorrect !== undefined ? game.isCorrect : 
+                                        (game.result === 'win' || game.result === 'correct');
+                        const isIncorrect = game.isCorrect === false || 
+                                          (game.result === 'loss' || game.result === 'incorrect');
+                        
+                        if (isCorrect) {
+                            statusClass = 'correct';
+                            statusIcon = '✅';
+                            statusText = 'WIN';
+                        } else if (isIncorrect) {
+                            statusClass = 'incorrect';
+                            statusIcon = '❌';
+                            statusText = `LOSS${game.actualWinner ? ` (${game.actualWinner})` : ''}`;
+                        } else {
+                            statusClass = 'pending';
+                            statusIcon = '⏳';
+                            statusText = game.status === 'completed' ? 'Final' : 'Pending';
+                        }
+                        
+                        return `
+                            <div class="admin-pick-item ${statusClass}" style="margin: 2px; padding: 4px; border: 1px solid #444; border-radius: 4px; background: #222; min-width: 80px;">
+                                <div class="pick-teams" style="font-weight: bold; font-size: 0.8em; white-space: nowrap;">
+                                    ${game.pickedTeam || game.pickedDirection || 'Unknown'} 
+                                </div>
+                                <div class="pick-result" style="font-size: 0.75em; white-space: nowrap;">
+                                    ${statusIcon} ${statusText}
+                                </div>
+                                ${game.actualScore ? `<div style="font-size: 0.7em; color: #888;">${game.actualScore}</div>` : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                    ${entry.gamesDetailed.length > 12 ? `
+                        <div style="font-size: 0.75em; color: #888; padding: 4px; cursor: pointer; background: #333; border-radius: 4px; min-width: 60px; text-align: center;" 
+                             onclick="showAllPicks('${entry.id}')" title="Click to see all ${entry.gamesDetailed.length} picks">
+                            +${entry.gamesDetailed.length - 12} more...
+                        </div>` : ''}
+>>>>>>> main
                 </div>
             `;
         } else if (entry.picks) {
@@ -227,8 +287,15 @@ function displayAdminEntries(entries, contestDate) {
                 <td style="font-family: monospace; font-size: 0.8em;">
                     ${entry.walletAddress || entry.playerWallet || entry.wallet || entry.xrpAddress || 'No wallet'}
                 </td>
+<<<<<<< HEAD
                 <td style="max-width: 300px; overflow: auto;">
                     ${picksDisplay}
+=======
+                <td style="max-width: 450px; min-width: 350px; overflow-x: auto; overflow-y: visible; padding: 8px;">
+                    <div style="max-height: 180px; overflow-y: auto; overflow-x: hidden;">
+                        ${picksDisplay}
+                    </div>
+>>>>>>> main
                 </td>
                 <td style="text-align: center;">
                     <strong>${entry.tiebreakerRuns || entry.tiebreakerPoints || 0}</strong>

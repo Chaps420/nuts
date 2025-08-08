@@ -181,8 +181,6 @@ class ContestBackendProduction {
             };
         }
     }
-<<<<<<< HEAD
-=======
 
     /**
      * Update entry score in Firebase
@@ -213,37 +211,6 @@ class ContestBackendProduction {
             throw error;
         }
     }
-
-    /**
-     * Update complete entry details in Firebase
-     */
-    async updateEntryDetails(entryId, entryData, contestDate) {
-        try {
-            const response = await fetch(`${this.baseUrl}/updateEntryDetails`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    entryId: entryId,
-                    entryData: entryData,
-                    contestDate: contestDate
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-            console.log(`📊 Updated entry ${entryId} details:`, result);
-            return result;
-        } catch (error) {
-            console.error(`❌ Failed to update entry ${entryId} details:`, error);
-            throw error;
-        }
-    }
->>>>>>> main
 }
 
 // Export for use in other modules

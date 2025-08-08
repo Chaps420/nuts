@@ -75,6 +75,7 @@
 
 /* Admin portal styles */
 .admin-picks-grid {
+<<<<<<< HEAD
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 8px;
@@ -89,6 +90,46 @@
     border: 1px solid #444;
     background: #2a2a2a;
     transition: all 0.2s ease;
+=======
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+}
+
+/* Custom scrollbar for admin picks */
+.admin-picks-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.admin-picks-grid::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 3px;
+}
+
+.admin-picks-grid::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 3px;
+}
+
+.admin-picks-grid::-webkit-scrollbar-thumb:hover {
+    background: #666;
+}
+
+.admin-pick-item {
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    border: 1px solid #444;
+    background: #2a2a2a;
+    transition: all 0.2s ease;
+    min-width: 80px;
+    flex-shrink: 0;
+    white-space: nowrap;
+>>>>>>> main
 }
 
 .admin-pick-item:hover {

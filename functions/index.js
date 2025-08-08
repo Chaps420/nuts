@@ -432,4 +432,62 @@ exports.updateEntryScore = functions.https.onRequest(corsHandler(async (req, res
       details: error.message 
     });
   }
+<<<<<<< HEAD
+=======
+}));
+
+// Update Entry Details - For Admin Panel with Complete Entry Data
+exports.updateEntryDetails = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { entryId, entryData, contestDate } = req.body;
+    
+    // Validate required fields
+    if (!entryId || !entryData) {
+      return res.status(400).json({ error: 'Missing required fields: entryId, entryData' });
+    }
+
+    console.log(`Updating entry ${entryId} with complete details`);
+
+    // Find and update the entry in Firestore
+    const entryDoc = await db.collection('contestEntries').doc(entryId).get();
+    
+    if (!entryDoc.exists) {
+      return res.status(404).json({ error: 'Contest entry not found' });
+    }
+
+    // Prepare update data - keep existing fields and update with new data
+    const updateData = {
+      ...entryData,
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    // Ensure score is numeric if provided
+    if (updateData.score !== undefined) {
+      updateData.score = parseInt(updateData.score) || 0;
+    }
+
+    await db.collection('contestEntries').doc(entryId).update(updateData);
+
+    console.log(`Successfully updated entry ${entryId} with complete details`);
+
+    res.status(200).json({ 
+      success: true, 
+      message: `Entry ${entryId} updated with complete details`,
+      entryId: entryId,
+      updatedFields: Object.keys(updateData)
+    });
+
+  } catch (error) {
+    console.error('Error updating entry details:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error',
+      details: error.message 
+    });
+  }
+>>>>>>> main
 }));
