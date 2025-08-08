@@ -73,7 +73,7 @@
 
         @media (max-width: 480px) {
             .nfl-container {
-                padding-bottom: 400px; /* Even more padding for smaller screens */
+                padding: 80px 10px 380px 10px; /* Even more bottom padding for small screens */
             }
             
             .week-selector {
@@ -83,16 +83,7 @@
             }
 
             .contest-controls {
-                max-height: 50vh;
-                padding: 8px 10px;
-            }
-
-            .controls-row {
-                gap: 12px;
-            }
-
-            .missing-picks-container {
-                max-height: 50px !important;
+                padding: 12px;
             }
         }
 
@@ -591,8 +582,7 @@
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .nfl-container {
-                padding: 80px 10px 10px 10px; /* Reduced top padding on mobile */
-                padding-bottom: 180px;
+                padding: 80px 10px 350px 10px; /* Much more bottom padding */
             }
 
             .week-selector {
@@ -614,10 +604,9 @@
             }
 
             .contest-controls {
-                padding: 10px 15px;
-                max-height: 45vh;
-                overflow-y: auto;
-                border-radius: 12px 12px 0 0;
+                padding: 15px;
+                max-height: none; /* Remove height restriction */
+                overflow-y: visible; /* Remove scroll */
             }
 
             .missing-picks-container {
@@ -637,25 +626,22 @@
 
             .controls-row {
                 flex-direction: column;
-                gap: 15px;
-                align-items: stretch;
+                gap: 12px;
             }
 
             .tiebreaker-section,
             .twitter-section {
                 min-width: auto;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
+                text-align: left; /* Normal text alignment */
             }
 
-            .tiebreaker-input,
+            .tiebreaker-input {
+                width: 80px; /* Keep original size */
+            }
+
             .twitter-input,
             .wallet-input {
-                width: 100%;
-                max-width: 200px;
-                margin: 0 auto;
+                width: 200px; /* Reasonable width */
             }
 
             .submit-picks-btn {
