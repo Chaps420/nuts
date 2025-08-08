@@ -124,6 +124,33 @@ class ContestBackendEnhanced extends ContestBackend {
                 
                 if (game) {
                     console.log(`✅ Found game details for ${gameId}: ${game.awayTeam} @ ${game.homeTeam}`);
+                    
+                    // Determine if game is completed and calculate isCorrect
+                    let isCorrect = null;
+                    let actualWinner = null;
+                    let gameStatus = 'pending';
+                    let actualScore = null;
+                    
+                    if (game.status === 'Final' || game.status === 'completed' || game.status === 'final') {
+                        gameStatus = 'completed';
+                        const homeScore = game.homeScore || 0;
+                        const awayScore = game.awayScore || 0;
+                        actualScore = `${game.awayTeam} ${awayScore} - ${homeScore} ${game.homeTeam}`;
+                        
+                        if (homeScore > awayScore) {
+                            actualWinner = 'home';
+                            isCorrect = (pickDirection === 'home');
+                        } else if (awayScore > homeScore) {
+                            actualWinner = 'away';
+                            isCorrect = (pickDirection === 'away');
+                        } else {
+                            actualWinner = 'tie';
+                            isCorrect = false; // In MLB, ties are rare and usually count as losses for betting
+                        }
+                        
+                        console.log(`🎯 Game ${gameId} completed: ${actualScore}, winner: ${actualWinner}, pick: ${pickDirection}, correct: ${isCorrect}`);
+                    }
+                    
                     enrichedGames.push({
                         gameId: gameId,
                         originalGameId: game.gameId,
@@ -137,12 +164,13 @@ class ContestBackendEnhanced extends ContestBackend {
                         opposingTeam: pickDirection === 'home' ? game.awayTeam : game.homeTeam,
                         gameTime: game.gameTime,
                         venue: game.venue,
-                        result: null,
-                        actualWinner: null,
-                        isCorrect: null,
-                        homeScore: null,
-                        awayScore: null,
-                        status: 'pending'
+                        result: isCorrect === true ? 'win' : isCorrect === false ? 'loss' : null,
+                        actualWinner: actualWinner,
+                        isCorrect: isCorrect,
+                        homeScore: game.homeScore || null,
+                        awayScore: game.awayScore || null,
+                        actualScore: actualScore,
+                        status: gameStatus
                     });
                 } else {
                     console.warn(`⚠️ Could not find game details for ID: ${gameId}`);
@@ -199,6 +227,57 @@ class ContestBackendEnhanced extends ContestBackend {
                 status: 'error'
             }));
         }
+    }
+
+    /**
+     * Enrich existing contest entries with detailed game information
+     */
+    async enrichEntriesWithGameDetails(entries, contestDate) {
+        console.log(`📊 Enriching ${entries.length} entries with detailed game information for ${contestDate}`);
+        
+        if (!entries || entries.length === 0) {
+            console.log('⚠️ No entries to enrich');
+            return [];
+        }
+        
+        const enrichedEntries = [];
+        
+        for (const entry of entries) {
+            try {
+                // If entry already has gamesDetailed, keep it
+                if (entry.gamesDetailed && Array.isArray(entry.gamesDetailed)) {
+                    console.log(`✅ Entry ${entry.userName} already has detailed games`);
+                    enrichedEntries.push(entry);
+                    continue;
+                }
+                
+                // If entry has picks but no gamesDetailed, enrich it
+                if (entry.picks && typeof entry.picks === 'object') {
+                    console.log(`🔄 Enriching entry ${entry.userName} with ${Object.keys(entry.picks).length} picks`);
+                    
+                    const gamesDetailed = await this.enrichPicksWithGameDetails(entry.picks, contestDate);
+                    
+                    const enrichedEntry = {
+                        ...entry,
+                        gamesDetailed: gamesDetailed,
+                        totalGames: gamesDetailed.length
+                    };
+                    
+                    enrichedEntries.push(enrichedEntry);
+                    console.log(`✅ Enriched entry ${entry.userName} with ${gamesDetailed.length} detailed games`);
+                } else {
+                    console.log(`⚠️ Entry ${entry.userName} has no picks to enrich`);
+                    enrichedEntries.push(entry);
+                }
+            } catch (error) {
+                console.error(`❌ Failed to enrich entry ${entry.userName}:`, error);
+                // Add entry without enrichment to avoid losing data
+                enrichedEntries.push(entry);
+            }
+        }
+        
+        console.log(`✅ Enrichment complete: ${enrichedEntries.length} entries processed`);
+        return enrichedEntries;
     }
 
     /**
