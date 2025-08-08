@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+functions/firebase-debug.log
+functions/.runtimeconfig.json
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build files
+dist/
+build/
+
+# Local test files
+# test-*.html  # Temporarily commented for GitHub Pages test
+debug*.html
+simple-test.html
+check-trustline.html
+
+# Server logs
+xumm-server.log
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test MLB API</title>
+</head>
+<body>
+    <h1>MLB API Test</h1>
+    <div id="output"></div>
+    
+    <script src="src/js/mlb-schedule-free.js"></script>
+    <script>
+        async function testMLBAPI() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<p>Testing MLB API...</p>';
+            
+            try {
+                // Initialize MLB Schedule
+                window.mlbSchedule = new MLBScheduleFree();
+                
+                let results = '<h2>MLB API Test Results</h2>';
+                
+                // Test multiple dates
+                for (let i = 0; i < 7; i++) {
+                    const testDate = new Date();
+                    testDate.setDate(testDate.getDate() + i);
+                    
+                    console.log('Testing for date:', testDate.toDateString());
+                    
+                    try {
+                        const games = await window.mlbSchedule.getGamesForDate(testDate);
+                        
+                        results += `
+                            <h3>${testDate.toDateString()}</h3>
+                            <p>Found ${games.length} games</p>
+                        `;
+                        
+                        if (games.length > 0) {
+                            results += `<ul>`;
+                            games.forEach(game => {
+                                results += `<li>${game.team1} vs ${game.team2} at ${game.time}</li>`;
+                            });
+                            results += `</ul>`;
+                        }
+                        
+                        console.log(`${testDate.toDateString()}: ${games.length} games`);
+                        
+                    } catch (dateError) {
+                        results += `<p style="color: orange;">Error for ${testDate.toDateString()}: ${dateError.message}</p>`;
+                    }
+                }
+                
+                output.innerHTML = results;
+                
+            } catch (error) {
+                output.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                console.error('Error:', error);
+            }
+        }
+        
+        // Test when page loads
+        window.onload = testMLBAPI;
+    </script>
+</body>
+</html>

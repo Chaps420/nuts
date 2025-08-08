@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contest Creator - $NUTS Sports Pick'em</title>
+    <link rel="stylesheet" href="src/css/styles.css">
+    <style>
+        .contest-creator {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        
+        .creator-form {
+            display: grid;
+            gap: 1.5rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 0.75rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .games-selection {
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .game-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+        }
+        
+        .game-option:hover {
+            background: var(--hover-color);
+        }
+        
+        .game-option input[type="checkbox"] {
+            margin: 0;
+            transform: scale(1.2);
+        }
+        
+        .game-info {
+            flex: 1;
+        }
+        
+        .game-teams {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .game-time {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .contest-preview {
+            background: var(--surface-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        
+        .preview-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+        
+        .preview-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 0.75rem;
+            background: var(--card-bg);
+            border-radius: 6px;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+        
+        .btn-primary,
+        .btn-secondary {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: var(--text-primary);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--secondary-hover);
+        }
+        
+        .error-message {
+            background: #ff4444;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .success-message {
+            background: #44ff44;
+            color: #333;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                🥜 $NUTS Sports Pick'em
+            </a>
+            <div class="nav-menu">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="daily-contest.html" class="nav-link">MLB Contest</a>
+                <a href="nfl-contest.html" class="nav-link">NFL Contest</a>
+                <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+                <a href="contest-creator.html" class="nav-link active">Create Contest</a>
+            </div>
+            <div class="wallet-section">
+                <button id="wallet-connect" class="wallet-btn">
+                    <span id="wallet-status">Connect Wallet</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="contest-creator">
+            <div class="section-header">
+                <h1>Create New Contest</h1>
+                <p>Set up daily or weekly contests with custom parameters</p>
+            </div>
+
+            <div id="messages"></div>
+
+            <form class="creator-form" id="contest-form">
+                <div class="form-group">
+                    <label for="contest-type">Contest Type</label>
+                    <select id="contest-type" required>
+                        <option value="">Select contest type</option>
+                        <option value="daily">MLB Contest</option>
+                        <option value="weekly">Weekly Contest</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="contest-name">Contest Name</label>
+                    <input type="text" id="contest-name" placeholder="e.g., Monday MLB Madness" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="entry-fee">Entry Fee (NUTS tokens)</label>
+                    <input type="number" id="entry-fee" min="1" placeholder="50" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="max-participants">Maximum Participants</label>
+                    <input type="number" id="max-participants" min="2" placeholder="100" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="contest-description">Description</label>
+                    <textarea id="contest-description" rows="3" placeholder="Describe your contest..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="deadline">Registration Deadline</label>
+                    <input type="datetime-local" id="deadline" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Select Games</label>
+                    <div class="games-selection" id="games-selection">
+                        <div class="loading-spinner">Loading available games...</div>
+                    </div>
+                </div>
+
+                <div class="contest-preview" id="contest-preview" style="display: none;">
+                    <h3 class="preview-title">Contest Preview</h3>
+                    <div class="preview-stats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="preview-games">0</div>
+                            <div class="stat-label">Games</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="preview-fee">0</div>
+                            <div class="stat-label">Entry Fee (NUTS)</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="preview-max">0</div>
+                            <div class="stat-label">Max Players</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="preview-prize">0</div>
+                            <div class="stat-label">Prize Pool (NUTS)</div>
+                        </div>
+                    </div>
+                    <div id="preview-details"></div>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="button" class="btn-secondary" onclick="resetForm()">Reset</button>
+                    <button type="submit" class="btn-primary">Create Contest</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="config/config-browser.js"></script>
+    <script src="src/js/odds-api-browser.js"></script>
+    <script src="src/js/wallet-browser.js"></script>
+    <script src="src/js/contest-creator.js"></script>
+</body>
+</html>

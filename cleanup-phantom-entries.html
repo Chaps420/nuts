@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cleanup Phantom Contest Entries</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 { color: #ff6b00; }
+        
+        .entry {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        
+        .phantom {
+            border-color: #ff4444;
+            background: #2a1111;
+        }
+        
+        button {
+            background: #ff6b00;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #ff5500;
+        }
+        
+        .delete-btn {
+            background: #ff4444;
+        }
+        
+        .status-msg {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .success {
+            background: #1a4a1a;
+            border: 1px solid #4CAF50;
+            color: #4CAF50;
+        }
+        
+        .error {
+            background: #4a1a1a;
+            border: 1px solid #ff4444;
+            color: #ff4444;
+        }
+        
+        pre {
+            background: #0a0a0a;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧹 Cleanup Phantom Contest Entries</h1>
+    
+    <div id="status"></div>
+    
+    <div>
+        <button onclick="findPhantomEntries()">Find Phantom Entries</button>
+        <button onclick="cleanupOldEntries()">Cleanup Old/Test Entries</button>
+        <button onclick="viewAllEntries()">View All Entries</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- App Configuration -->
+    <script src="config/config-browser.js"></script>
+    <script src="config/environment.js"></script>
+    <script src="src/js/firebase-integration.js"></script>
+    
+    <script>
+        let db;
+        
+        async function initFirebase() {
+            if (window.firebaseIntegration) {
+                await window.firebaseIntegration.initialize();
+                db = firebase.firestore();
+                showStatus('✅ Firebase initialized', 'success');
+            }
+        }
+        
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status-msg ${type}">${message}</div>`;
+        }
+        
+        async function findPhantomEntries() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Searching for phantom entries...</p>';
+            
+            try {
+                // Get all entries
+                const snapshot = await db.collection('contest_entries').get();
+                
+                let html = `<h2>Analysis of ${snapshot.size} Entries</h2>`;
+                
+                const phantomCriteria = [];
+                const suspiciousEntries = [];
+                const todayDate = new Date().toISOString().split('T')[0];
+                
+                snapshot.forEach(doc => {
+                    const entry = { id: doc.id, ...doc.data() };
+                    const issues = [];
+                    
+                    // Check for various phantom indicators
+                    if (!entry.userName || entry.userName === 'Anonymous') {
+                        issues.push('No userName');
+                    }
+                    
+                    if (!entry.walletAddress) {
+                        issues.push('No walletAddress');
+                    }
+                    
+                    if (!entry.transactionId) {
+                        issues.push('No transactionId');
+                    }
+                    
+                    if (!entry.picks || Object.keys(entry.picks).length === 0) {
+                        issues.push('No picks');
+                    }
+                    
+                    if (!entry.timestamp) {
+                        issues.push('No timestamp');
+                    }
+                    
+                    // Check if it's a test entry
+                    if (entry.userName?.toLowerCase().includes('test') || 
+                        entry.id?.toLowerCase().includes('test')) {
+                        issues.push('Test entry');
+                    }
+                    
+                    // Check for future dated entries
+                    if (entry.contestDate > todayDate) {
+                        issues.push(`Future date: ${entry.contestDate}`);
+                    }
+                    
+                    // Check for suspicious patterns
+                    if (entry.contestDate === '2025-06-19') {
+                        issues.push('Suspicious date 2025-06-19');
+                    }
+                    
+                    if (issues.length > 0) {
+                        entry.issues = issues;
+                        suspiciousEntries.push(entry);
+                    }
+                });
+                
+                // Display suspicious entries
+                if (suspiciousEntries.length > 0) {
+                    html += `<h3>🚨 Found ${suspiciousEntries.length} Suspicious Entries</h3>`;
+                    
+                    suspiciousEntries.forEach(entry => {
+                        html += `
+                            <div class="entry phantom">
+                                <strong>ID:</strong> ${entry.id}<br>
+                                <strong>User:</strong> ${entry.userName || 'NONE'}<br>
+                                <strong>Date:</strong> ${entry.contestDate || entry.contestDay || 'NONE'}<br>
+                                <strong>Status:</strong> ${entry.status} / Contest: ${entry.contestStatus || 'NONE'}<br>
+                                <strong>Issues:</strong> <span style="color: #ff4444">${entry.issues.join(', ')}</span><br>
+                                <button class="delete-btn" onclick="deleteEntry('${entry.id}')">Delete This Entry</button>
+                                <details>
+                                    <summary>Full Data</summary>
+                                    <pre>${JSON.stringify(entry, null, 2)}</pre>
+                                </details>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `<br><button class="delete-btn" onclick="deletePhantomEntries()">Delete All Phantom Entries</button>`;
+                } else {
+                    html += '<p style="color: #4CAF50;">✅ No phantom entries found!</p>';
+                }
+                
+                results.innerHTML = html;
+                
+            } catch (error) {
+                results.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                console.error(error);
+            }
+        }
+        
+        async function cleanupOldEntries() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Finding old/test entries...</p>';
+            
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const snapshot = await db.collection('contest_entries').get();
+                
+                const entriesToDelete = [];
+                
+                snapshot.forEach(doc => {
+                    const entry = doc.data();
+                    
+                    // Delete if:
+                    // 1. Contest date is in the future
+                    // 2. Contest date is more than 7 days old
+                    // 3. Entry has test data
+                    const entryDate = entry.contestDate || entry.contestDay;
+                    const daysDiff = (new Date(today) - new Date(entryDate)) / (1000 * 60 * 60 * 24);
+                    
+                    if (entryDate > today || 
+                        daysDiff > 7 || 
+                        entry.userName?.toLowerCase().includes('test') ||
+                        !entry.transactionId) {
+                        entriesToDelete.push({ id: doc.id, ...entry });
+                    }
+                });
+                
+                if (entriesToDelete.length > 0) {
+                    let html = `<h3>Found ${entriesToDelete.length} entries to cleanup</h3>`;
+                    
+                    for (const entry of entriesToDelete) {
+                        html += `<p>Deleting ${entry.id} - ${entry.userName} - ${entry.contestDate}...</p>`;
+                        await db.collection('contest_entries').doc(entry.id).delete();
+                    }
+                    
+                    html += '<p style="color: #4CAF50;">✅ Cleanup complete!</p>';
+                    results.innerHTML = html;
+                } else {
+                    results.innerHTML = '<p style="color: #4CAF50;">✅ No old/test entries found!</p>';
+                }
+                
+            } catch (error) {
+                results.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                console.error(error);
+            }
+        }
+        
+        async function viewAllEntries() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Loading all entries...</p>';
+            
+            try {
+                const snapshot = await db.collection('contest_entries')
+                    .orderBy('timestamp', 'desc')
+                    .get();
+                
+                let html = `<h2>All Entries (${snapshot.size} total)</h2>`;
+                
+                const entriesByDate = {};
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const date = data.contestDate || data.contestDay || 'unknown';
+                    if (!entriesByDate[date]) {
+                        entriesByDate[date] = [];
+                    }
+                    entriesByDate[date].push({ id: doc.id, ...data });
+                });
+                
+                // Sort dates descending
+                const sortedDates = Object.keys(entriesByDate).sort().reverse();
+                
+                sortedDates.forEach(date => {
+                    const entries = entriesByDate[date];
+                    const activeCount = entries.filter(e => !e.contestStatus || e.contestStatus === 'active').length;
+                    
+                    html += `
+                        <h3>${date} - ${entries.length} entries (${activeCount} active)</h3>
+                        ${entries.map(entry => `
+                            <div class="entry ${entry.issues ? 'phantom' : ''}">
+                                <strong>ID:</strong> ${entry.id}<br>
+                                <strong>User:</strong> ${entry.userName || 'NONE'}<br>
+                                <strong>Wallet:</strong> ${entry.walletAddress || 'NONE'}<br>
+                                <strong>Status:</strong> ${entry.status} / Contest: ${entry.contestStatus || 'active'}<br>
+                                <strong>Timestamp:</strong> ${entry.timestamp || 'NONE'}<br>
+                                <button class="delete-btn" onclick="deleteEntry('${entry.id}')">Delete</button>
+                                <button onclick="markCompleted('${entry.id}')">Mark Completed</button>
+                            </div>
+                        `).join('')}
+                    `;
+                });
+                
+                results.innerHTML = html;
+                
+            } catch (error) {
+                results.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                console.error(error);
+            }
+        }
+        
+        async function deleteEntry(id) {
+            if (confirm(`Delete entry ${id}?`)) {
+                try {
+                    await db.collection('contest_entries').doc(id).delete();
+                    showStatus('✅ Entry deleted', 'success');
+                    // Refresh current view
+                    const currentView = document.querySelector('#results h2')?.textContent;
+                    if (currentView?.includes('All Entries')) {
+                        viewAllEntries();
+                    } else {
+                        findPhantomEntries();
+                    }
+                } catch (error) {
+                    showStatus('❌ Error: ' + error.message, 'error');
+                }
+            }
+        }
+        
+        async function markCompleted(id) {
+            try {
+                await db.collection('contest_entries').doc(id).update({
+                    contestStatus: 'completed',
+                    completedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showStatus('✅ Entry marked as completed', 'success');
+                viewAllEntries();
+            } catch (error) {
+                showStatus('❌ Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function deletePhantomEntries() {
+            if (!confirm('Delete all phantom entries? This cannot be undone!')) return;
+            
+            const results = document.getElementById('results');
+            
+            try {
+                const snapshot = await db.collection('contest_entries').get();
+                let deleted = 0;
+                
+                for (const doc of snapshot.docs) {
+                    const entry = doc.data();
+                    
+                    // Delete if it matches phantom criteria
+                    if (!entry.transactionId || 
+                        !entry.userName || 
+                        entry.userName === 'Anonymous' ||
+                        entry.contestDate === '2025-06-19') {
+                        
+                        await db.collection('contest_entries').doc(doc.id).delete();
+                        deleted++;
+                    }
+                }
+                
+                showStatus(`✅ Deleted ${deleted} phantom entries`, 'success');
+                findPhantomEntries(); // Refresh view
+                
+            } catch (error) {
+                showStatus('❌ Error: ' + error.message, 'error');
+            }
+        }
+        
+        // Initialize on load
+        initFirebase();
+    </script>
+</body>
+</html>

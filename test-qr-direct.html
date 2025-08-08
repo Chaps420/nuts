@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct QR Code Test</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            text-align: center;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            font-size: 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 20px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .log {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 800px;
+            border-radius: 8px;
+            text-align: left;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Direct QR Code Test</h1>
+    <p>This bypasses all contest logic and directly tests the payment system</p>
+    
+    <button id="test-btn" type="button">Generate QR Code</button>
+    
+    <div id="log" class="log"></div>
+
+    <script src="src/js/xaman-payment-api.js"></script>
+    
+    <script>
+        function log(msg) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<div>[${time}] ${msg}</div>`;
+            console.log(msg);
+        }
+        
+        async function testPayment() {
+            log('🚀 Starting direct payment test...');
+            
+            // Check if window.xamanPayment exists
+            if (window.xamanPayment) {
+                log('✅ Using window.xamanPayment');
+                try {
+                    log('📞 Calling createContestPayment on window.xamanPayment...');
+                    const result = await window.xamanPayment.createContestPayment();
+                    log('✅ Payment completed: ' + JSON.stringify(result));
+                } catch (error) {
+                    log('❌ Error from window.xamanPayment: ' + error.message);
+                    console.error('Full error:', error);
+                }
+            } else {
+                log('⚠️ window.xamanPayment not found, creating new instance');
+                // Create payment instance directly
+                const payment = new XamanPaymentAPI();
+                log('✅ Payment instance created');
+                log('📍 Server URL: ' + payment.serverUrl);
+                log('💰 Entry fee: ' + payment.entryFee);
+                
+                try {
+                    log('📞 Calling createContestPayment...');
+                    const result = await payment.createContestPayment();
+                    log('✅ Payment completed: ' + JSON.stringify(result));
+                } catch (error) {
+                    log('❌ Error: ' + error.message);
+                    console.error('Full error:', error);
+                }
+            }
+        }
+        
+        // Check if everything loaded
+        window.onload = () => {
+            log('✅ Page loaded');
+            log('🔍 XamanPaymentAPI available: ' + (typeof XamanPaymentAPI !== 'undefined'));
+            
+            // Add click handler
+            const btn = document.getElementById('test-btn');
+            log('🔍 Button found: ' + (btn !== null));
+            if (btn) {
+                btn.addEventListener('click', function(e) {
+                    log('🖱️ BUTTON CLICKED!');
+                    e.preventDefault();
+                    testPayment();
+                });
+                log('✅ Click handler attached');
+                
+                // Also add a direct onclick as backup
+                btn.onclick = function() {
+                    log('🖱️ BUTTON CLICKED via onclick!');
+                    testPayment();
+                    return false;
+                };
+            } else {
+                log('❌ Button not found!');
+            }
+        };
+    </script>
+</body>
+</html>

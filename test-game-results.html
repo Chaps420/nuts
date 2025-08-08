@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Real Game Results</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: white; }
+        .game { background: #2a2a2a; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .completed { border-left: 4px solid #4CAF50; }
+        .in-progress { border-left: 4px solid #ff9900; }
+        .scheduled { border-left: 4px solid #666; }
+        button { background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #45a049; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🔄 Test Real MLB Game Results System</h1>
+    
+    <div>
+        <label>Select Date: </label>
+        <input type="date" id="test-date" />
+        <button onclick="testGameResults()">Fetch Real Game Results</button>
+        <button onclick="testTodaysGames()">Test Today's Games</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <script src="src/js/mlb-schedule-free.js"></script>
+    
+    <script>
+        // Set default to today
+        document.getElementById('test-date').value = new Date().toISOString().split('T')[0];
+        
+        async function testGameResults() {
+            const resultsDiv = document.getElementById('results');
+            const dateInput = document.getElementById('test-date');
+            const selectedDate = new Date(dateInput.value);
+            
+            resultsDiv.innerHTML = '<p>🔄 Fetching real game results...</p>';
+            
+            try {
+                console.log('Testing real game results for', selectedDate.toDateString());
+                
+                // Get games using our enhanced API
+                const games = await window.mlbSchedule.getGamesForDate(selectedDate);
+                
+                console.log('Raw games data:', games);
+                
+                let html = `<h2>📅 Games for ${selectedDate.toDateString()}</h2>`;
+                
+                if (games.length === 0) {
+                    html += '<p>❌ No games found for this date. This might be an off-day or off-season.</p>';
+                } else {
+                    html += `<p>Found ${games.length} games:</p>`;
+                    
+                    let completedGames = 0;
+                    let inProgressGames = 0;
+                    let scheduledGames = 0;
+                    
+                    games.forEach(game => {
+                        const statusClass = game.status === 'Final' ? 'completed' : 
+                                          game.status === 'Live' || game.status === 'In Progress' ? 'in-progress' : 'scheduled';
+                        
+                        if (statusClass === 'completed') completedGames++;
+                        else if (statusClass === 'in-progress') inProgressGames++;
+                        else scheduledGames++;
+                        
+                        html += `
+                            <div class="game ${statusClass}">
+                                <h3>${game.awayTeam} @ ${game.homeTeam}</h3>
+                                <p><strong>Status:</strong> ${game.status}</p>
+                                <p><strong>Time:</strong> ${game.gameTimeFormatted}</p>
+                                <p><strong>Venue:</strong> ${game.venue}</p>
+                                ${game.status === 'Final' ? `
+                                    <p><strong>Score:</strong> ${game.awayTeam} ${game.awayScore} - ${game.homeScore} ${game.homeTeam}</p>
+                                    <p><strong>Winner:</strong> ${game.winner === 'home' ? game.homeTeam : game.awayTeam}</p>
+                                    <p><strong>Total Runs:</strong> ${game.totalRuns}</p>
+                                ` : ''}
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                        <div style="background: #333; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                            <h3>📊 Game Status Summary</h3>
+                            <p>✅ Completed: ${completedGames}</p>
+                            <p>🔄 In Progress: ${inProgressGames}</p>
+                            <p>📅 Scheduled: ${scheduledGames}</p>
+                        </div>
+                    `;
+                    
+                    // Test the contest scoring function
+                    if (completedGames > 0) {
+                        const gameResults = await window.mlbSchedule.getGameResults(selectedDate);
+                        console.log('Contest scoring data:', gameResults);
+                        
+                        html += `
+                            <div style="background: #2a4a2a; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                                <h3>🏆 Contest Scoring Data</h3>
+                                <p><strong>Completed Games for Scoring:</strong> ${Object.keys(gameResults).filter(k => k !== 'lastGameRuns').length}</p>
+                                <p><strong>Total Runs (Tiebreaker):</strong> ${gameResults.lastGameRuns || 0}</p>
+                                <pre style="background: #1a1a1a; padding: 10px; border-radius: 4px; font-size: 12px;">
+${JSON.stringify(gameResults, null, 2)}
+                                </pre>
+                            </div>
+                        `;
+                    }
+                }
+                
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Test failed:', error);
+                resultsDiv.innerHTML = `<p style="color: #ff4444;">❌ Test failed: ${error.message}</p>`;
+            }
+        }
+        
+        async function testTodaysGames() {
+            document.getElementById('test-date').value = new Date().toISOString().split('T')[0];
+            await testGameResults();
+        }
+        
+        // Auto-test today's games on load
+        window.addEventListener('load', () => {
+            setTimeout(testTodaysGames, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard - $NUTS Sports Pick'em</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="src/assets/images/nuts-logo.jpg">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/css/styles.css">
+    <link rel="stylesheet" href="src/css/enhanced-contest.css">
+    
+    <style>
+        .results-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .contest-header {
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            border: 2px solid #ff6b00;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .winner-announcement {
+            background: linear-gradient(135deg, #4CAF50, #00ff88);
+            color: #000;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            box-shadow: 0 0 30px rgba(76, 175, 80, 0.5);
+        }
+        
+        .winner-name {
+            font-size: 2em;
+            margin: 10px 0;
+        }
+        
+        .prize-amount {
+            font-size: 3em;
+            color: #1a1a1a;
+        }
+        
+        .entries-table {
+            background: #1a1a1a;
+            border-radius: 12px;
+            overflow: hidden;
+            width: 100%;
+            margin-top: 30px;
+        }
+        
+        .entries-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .entries-table th {
+            background: #2a2a2a;
+            padding: 15px;
+            text-align: left;
+            color: #ff6b00;
+            font-weight: 600;
+            border-bottom: 2px solid #444;
+        }
+        
+        .entries-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #333;
+            color: #ccc;
+        }
+        
+        .entries-table tr:hover {
+            background: #252525;
+        }
+        
+        .rank-1 {
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .rank-1 td {
+            color: #FFD700;
+            font-weight: bold;
+        }
+        
+        .rank-2 {
+            background: rgba(192, 192, 192, 0.1);
+        }
+        
+        .rank-2 td {
+            color: #C0C0C0;
+            font-weight: bold;
+        }
+        
+        .rank-3 {
+            background: rgba(205, 127, 50, 0.1);
+        }
+        
+        .rank-3 td {
+            color: #CD7F32;
+            font-weight: bold;
+        }
+        
+        .date-selector {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-right: 10px;
+        }
+        
+        .refresh-btn {
+            background: #ff6b00;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .refresh-btn:hover {
+            background: #ff5500;
+        }
+        
+        .game-result {
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 25px;
+            margin: 0 2px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .game-result.win {
+            background: #4CAF50;
+            color: #000;
+        }
+        
+        .game-result.loss {
+            background: #f44336;
+            color: #fff;
+        }
+        
+        .game-result.pending {
+            background: #666;
+            color: #fff;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="src/assets/images/nuts-logo.jpg" alt="$NUTS Logo" class="logo" style="width: 40px; height: 40px; border-radius: 50%;">
+                <span class="brand-text">$NUTS Leaderboard</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="daily-contest.html" class="nav-link">MLB Contest</a>
+                <a href="nfl-contest.html" class="nav-link">NFL Contest</a>
+                <a href="contest-results.html" class="nav-link active">Leaderboard</a>
+                <a href="https://firstledger.net/token/rBpdegD7kqHdczjKzTKNEUZj1Fg1eYZRbe/4E75747300000000000000000000000000000000" target="_blank" class="nav-link">Buy $NUTS</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="results-container">
+        <div class="contest-header">
+            <h1 style="color: #ff6b00; margin-bottom: 10px;">Contest Leaderboard</h1>
+            <p style="color: #ccc;">View live standings and contest results</p>
+        </div>
+        
+        <!-- Date and Sport Selector -->
+        <div style="margin-bottom: 30px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+            <div>
+                <label style="margin-right: 10px; color: #ccc;">Sport:</label>
+                <select id="sport-selector" class="date-selector" style="min-width: 120px;" onchange="toggleDateWeekSelector()">
+                    <option value="mlb">⚾ MLB</option>
+                    <option value="nfl">🏈 NFL</option>
+                    <option value="daily">📅 Daily Contest</option>
+                </select>
+            </div>
+            <div id="date-selector-container">
+                <label style="margin-right: 10px; color: #ccc;">Contest Date:</label>
+                <input type="date" id="contest-date" class="date-selector">
+            </div>
+            <div id="week-selector-container" style="display: none;">
+                <label style="margin-right: 10px; color: #ccc;">NFL Week:</label>
+                <select id="nfl-week" class="date-selector" style="min-width: 100px;">
+                    <option value="1">Week 1</option>
+                    <option value="2">Week 2</option>
+                    <option value="3">Week 3</option>
+                    <option value="4">Week 4</option>
+                    <option value="5">Week 5</option>
+                    <option value="6">Week 6</option>
+                    <option value="7">Week 7</option>
+                    <option value="8">Week 8</option>
+                    <option value="9">Week 9</option>
+                    <option value="10">Week 10</option>
+                    <option value="11">Week 11</option>
+                    <option value="12">Week 12</option>
+                    <option value="13">Week 13</option>
+                    <option value="14">Week 14</option>
+                    <option value="15">Week 15</option>
+                    <option value="16">Week 16</option>
+                    <option value="17">Week 17</option>
+                    <option value="18">Week 18</option>
+                    <option value="wildcard">Wild Card</option>
+                    <option value="divisional">Divisional</option>
+                    <option value="conference">Conference</option>
+                    <option value="superbowl">Super Bowl</option>
+                </select>
+            </div>
+            <button onclick="loadResults()" class="refresh-btn">Load Results</button>
+        </div>
+        
+        <!-- Winner Announcement (hidden by default) -->
+        <div id="winner-section" style="display: none;">
+            <div class="winner-announcement">
+                🏆 WINNER 🏆
+                <div class="winner-name" id="winner-name">-</div>
+                <div>Score: <span id="winner-score">0</span> correct picks</div>
+                <div class="prize-amount" id="prize-amount">0 NUTS</div>
+            </div>
+        </div>
+        
+        <!-- Results Table -->
+        <div class="entries-table">
+            <h2 style="padding: 20px; color: #ff6b00;">Contest Leaderboard</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Player</th>
+                        <th>Sport</th>
+                        <th>Score</th>
+                        <th>Game Results</th>
+                        <th>Tiebreaker</th>
+                        <th>Prize</th>
+                        <th>Entry Time</th>
+                    </tr>
+                </thead>
+                <tbody id="results-tbody">
+                    <tr>
+                        <td colspan="8" style="text-align: center; color: #888;">
+                            Select a date and sport, then click Load Results
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+    <script src="config/config-browser.js"></script>
+    <script src="config/environment.js"></script>
+    <script src="src/js/firebase-integration.js"></script>
+    <script src="src/js/firebase-xaman-integration.js"></script>
+    <script src="src/js/contest-backend.js"></script>
+    <script src="src/js/contest-backend-production.js"></script>
+    <script src="src/js/contest-backend-enhanced.js"></script>
+    <script src="src/js/enhanced-display.js"></script>
+    
+    <!-- Daily Contest API -->
+    <script src="src/js/daily-contest-api.js"></script>
+    <script src="src/js/mlb-schedule-free.js"></script>
+    <script src="src/js/contest-integration-enhanced.js"></script>
+    
+    <script>
+        let backend;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const dateParam = urlParams.get('date');
+            const entryParam = urlParams.get('entry');
+            
+            // Set date from URL or default to today
+            const contestDate = dateParam || new Date().toISOString().split('T')[0];
+            document.getElementById('contest-date').value = contestDate;
+            
+            // Set default sport to MLB
+            document.getElementById('sport-selector').value = 'mlb';
+            
+            // Set default NFL week to current week (estimate based on date)
+            const currentWeek = estimateNFLWeek();
+            document.getElementById('nfl-week').value = currentWeek;
+            
+            // Store entry ID to highlight
+            window.highlightEntryId = entryParam;
+            
+            // Initialize production backend
+            console.log('🌐 Using production Firebase backend only');
+            backend = new ContestBackendProduction();
+            await backend.init();
+            
+            // Initialize Firebase
+            // Wait for firebaseIntegration to be available
+            let retries = 0;
+            const maxRetries = 50;
+            
+            while (!window.firebaseIntegration && retries < maxRetries) {
+                console.log('⏳ Waiting for Firebase Integration to load...');
+                await new Promise(resolve => setTimeout(resolve, 100));
+                retries++;
+            }
+            
+            if (window.firebaseIntegration) {
+                console.log('🔄 Starting Firebase initialization...');
+                await window.firebaseIntegration.initialize();
+            } else {
+                console.warn('⚠️ Firebase Integration not found after waiting');
+            }
+            
+            // Load results
+            loadResults();
+            
+            // If coming from a new entry, show success message
+            if (entryParam) {
+                const banner = document.createElement('div');
+                banner.style.cssText = `
+                    background: #4CAF50;
+                    color: white;
+                    padding: 15px;
+                    text-align: center;
+                    font-weight: bold;
+                    margin-bottom: 20px;
+                    border-radius: 8px;
+                `;
+                banner.textContent = '✅ Your contest entry has been submitted successfully!';
+                document.querySelector('.results-container').insertBefore(banner, document.querySelector('.contest-header'));
+                
+                // Remove after 5 seconds
+                setTimeout(() => banner.remove(), 5000);
+            }
+        });
+        
+        async function loadResults() {
+            const sportSelector = document.getElementById('sport-selector');
+            const selectedSport = sportSelector.value;
+            
+            let queryParam = '';
+            let displayText = '';
+            
+            if (selectedSport === 'mlb') {
+                const dateInput = document.getElementById('contest-date');
+                const contestDate = dateInput.value;
+                
+                if (!contestDate) {
+                    alert('Please select a date');
+                    return;
+                }
+                
+                queryParam = contestDate;
+                displayText = `MLB contest for ${contestDate}`;
+                console.log('Loading MLB results for', contestDate);
+                
+            } else if (selectedSport === 'nfl') {
+                const weekSelector = document.getElementById('nfl-week');
+                const selectedWeek = weekSelector.value;
+                
+                if (!selectedWeek) {
+                    alert('Please select an NFL week');
+                    return;
+                }
+                
+                queryParam = selectedWeek;
+                if (isNaN(selectedWeek)) {
+                    displayText = `NFL ${selectedWeek.charAt(0).toUpperCase() + selectedWeek.slice(1)} round`;
+                } else {
+                    displayText = `NFL Week ${selectedWeek}`;
+                }
+                console.log('Loading NFL results for week', selectedWeek);
+                
+            } else if (selectedSport === 'daily') {
+                const dateInput = document.getElementById('contest-date');
+                const contestDate = dateInput.value;
+                
+                if (!contestDate) {
+                    alert('Please select a date');
+                    return;
+                }
+                
+                queryParam = contestDate;
+                displayText = `Daily Contest for ${contestDate}`;
+                console.log('Loading Daily Contest results for', contestDate);
+            }
+            
+            try {
+                // Get entries based on sport
+                let entries = [];
+                
+                if (selectedSport === 'mlb') {
+                    // Use date for MLB
+                    entries = await backend.getContestEntries(queryParam, 'mlb');
+                    
+                    // If no entries with sport filter, try without filter for backward compatibility
+                    if (entries.length === 0) {
+                        console.log('🔄 No MLB entries with sport filter, trying without filter for backward compatibility...');
+                        const allEntries = await backend.getContestEntries(queryParam);
+                        entries = allEntries.filter(entry => !entry.sport || entry.sport === 'mlb');
+                    }
+                    
+                } else if (selectedSport === 'nfl') {
+                    // For NFL, use weekNumber parameter instead of contestDay
+                    let weekNumber;
+                    if (isNaN(queryParam)) {
+                        // Special weeks like 'wildcard', 'divisional', etc.
+                        console.log('📊 Loading NFL entries for special week:', queryParam);
+                        // Create a special query for non-numeric weeks
+                        entries = await backend.getNFLEntriesByWeek(queryParam);
+                    } else {
+                        // Regular season weeks - use numeric week
+                        weekNumber = parseInt(queryParam);
+                        console.log('📊 Loading NFL entries for week number:', weekNumber);
+                        entries = await backend.getNFLEntriesByWeek(weekNumber);
+                    }
+                    
+                } else if (selectedSport === 'daily') {
+                    // For Daily Contest, load entries from Firebase with localStorage fallback
+                    console.log('📊 Loading Daily Contest entries for date:', queryParam);
+                    try {
+                        entries = await window.smartDailyContestAPI.getDailyContestEntries(queryParam);
+                        
+                        // Transform entries to match expected format
+                        entries = entries.map(entry => ({
+                            ...entry,
+                            sport: 'daily',
+                            userName: entry.userName || entry.userId || 'Anonymous',
+                            contestDay: entry.contestDate
+                        }));
+                        
+                    } catch (error) {
+                        console.warn('⚠️ Failed to load Daily Contest entries:', error.message);
+                        entries = [];
+                    }
+                }
+                
+                console.log(`📊 Found ${entries.length} ${selectedSport.toUpperCase()} entries`);
+                
+                if (entries.length === 0) {
+                    document.getElementById('results-tbody').innerHTML = `
+                        <tr>
+                            <td colspan="8" style="text-align: center; color: #888;">
+                                No entries found for ${displayText}
+                            </td>
+                        </tr>
+                    `;
+                    document.getElementById('winner-section').style.display = 'none';
+                    return;
+                }
+                
+                // Sort entries by score (descending) and tiebreaker
+                entries.sort((a, b) => {
+                    if (b.score !== a.score) {
+                        return b.score - a.score;
+                    }
+                    // In real implementation, compare tiebreaker to actual game result
+                    return a.tiebreakerRuns - b.tiebreakerRuns;
+                });
+                
+                // Check if contest has winners or was cancelled
+                const hasWinners = entries.some(e => e.status === 'won');
+                const minimumEntries = window.config?.contest?.minimumEntries || 4;
+                
+                // Only show cancellation if contest is completed AND has insufficient entries
+                const isContestCompleted = entries.some(e => e.contestStatus === 'completed') || hasWinners;
+                const shouldShowCancellation = isContestCompleted && entries.length < minimumEntries;
+                
+                if (shouldShowCancellation) {
+                    // Contest cancelled due to insufficient entries AFTER deadline
+                    document.getElementById('winner-section').style.display = 'block';
+                    document.getElementById('winner-section').innerHTML = `
+                        <div style="background: #ff6b00; color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                            <h2>⚠️ Contest Cancelled</h2>
+                            <p>This contest was cancelled due to insufficient entries (${entries.length}/${minimumEntries} minimum).</p>
+                            <p>All entry fees will be refunded to participants.</p>
+                        </div>
+                    `;
+                } else if (!isContestCompleted) {
+                    // Contest is still active - show status
+                    document.getElementById('winner-section').style.display = 'block';
+                    document.getElementById('winner-section').innerHTML = `
+                        <div style="background: #2a2a2a; border: 2px solid #4CAF50; padding: 20px; border-radius: 8px; text-align: center;">
+                            <h2 style="color: #4CAF50;">🏃‍♂️ Contest Active</h2>
+                            <p style="color: #ccc;">This contest is currently accepting entries.</p>
+                            <p style="color: #ffa500;">Current entries: ${entries.length} (Minimum ${minimumEntries} required)</p>
+                            <p style="color: #888; font-size: 0.9em;">Results will be available after the contest deadline.</p>
+                        </div>
+                    `;
+                } else if (hasWinners) {
+                    // Display top 3 winners
+                    const winners = entries.filter(e => e.status === 'won' && e.place <= 3).sort((a, b) => a.place - b.place);
+                    
+                    document.getElementById('winner-section').style.display = 'block';
+                    document.getElementById('winner-section').innerHTML = `
+                        <div style="background: #2a2a2a; padding: 20px; border-radius: 8px;">
+                            <h2 style="color: #ff6b00; text-align: center; margin-bottom: 20px;">🏆 Contest Winners 🏆</h2>
+                            <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                                ${winners.map(winner => {
+                                    const placeEmoji = winner.place === 1 ? '🥇' : winner.place === 2 ? '🥈' : '🥉';
+                                    const placeText = winner.place === 1 ? '1st Place' : winner.place === 2 ? '2nd Place' : '3rd Place';
+                                    const borderColor = winner.place === 1 ? '#FFD700' : winner.place === 2 ? '#C0C0C0' : '#CD7F32';
+                                    
+                                    return `
+                                        <div style="
+                                            background: #1a1a1a;
+                                            border: 2px solid ${borderColor};
+                                            padding: 20px;
+                                            border-radius: 8px;
+                                            text-align: center;
+                                            min-width: 200px;
+                                        ">
+                                            <div style="font-size: 2em; margin-bottom: 10px;">${placeEmoji}</div>
+                                            <h3 style="color: ${borderColor}; margin: 10px 0;">${placeText}</h3>
+                                            <p style="color: white; font-size: 1.2em; font-weight: bold;">${winner.userName}</p>
+                                            <p style="color: #ccc;">Score: ${winner.score}/${winner.totalGames || winner.games || 0}</p>
+                                            <p style="color: #4CAF50; font-size: 1.3em; font-weight: bold; margin-top: 10px;">
+                                                ${winner.prizeWon} NUTS
+                                            </p>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            <div style="text-align: center; margin-top: 20px; color: #888;">
+                                Total Prize Pool: ${entries.length * 50} NUTS
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('winner-section').style.display = 'none';
+                }
+                
+                // Update table
+                updateResultsTable(entries);
+                
+            } catch (error) {
+                console.error('Failed to load results:', error);
+                alert('Failed to load contest results: ' + error.message);
+            }
+        }
+        
+        function updateResultsTable(entries) {
+            const tbody = document.getElementById('results-tbody');
+            
+            tbody.innerHTML = entries.map((entry, index) => {
+                const rank = index + 1;
+                const isWinner = entry.status === 'won';
+                const place = entry.place;
+                
+                // Determine rank class and emoji
+                let rankClass = '';
+                let placeEmoji = '';
+                if (place === 1) {
+                    rankClass = 'rank-1';
+                    placeEmoji = '🥇 ';
+                } else if (place === 2) {
+                    rankClass = 'rank-2';
+                    placeEmoji = '🥈 ';
+                } else if (place === 3) {
+                    rankClass = 'rank-3';
+                    placeEmoji = '🥉 ';
+                }
+                
+                // Create game results indicators - handle both old and new data formats
+                let gameResults = '';
+                if (entry.games && Array.isArray(entry.games)) {
+                    // New format: games is an array
+                    gameResults = entry.games.map(game => {
+                        const result = game.result || 'pending';
+                        const symbol = result === 'win' ? '✓' : result === 'loss' ? '✗' : '?';
+                        return `<span class="game-result ${result}">${symbol}</span>`;
+                    }).join('');
+                } else if (entry.picks && typeof entry.games === 'number') {
+                    // Old format: games is a number, use picks to create indicators
+                    gameResults = Object.keys(entry.picks).map(gameId => {
+                        return `<span class="game-result pending">?</span>`;
+                    }).join('');
+                } else {
+                    // Fallback: show pending for totalGames count
+                    const gameCount = entry.totalGames || entry.games || 0;
+                    gameResults = Array(gameCount).fill('<span class="game-result pending">?</span>').join('');
+                }
+                
+                const isHighlighted = window.highlightEntryId === entry.id;
+                
+                return `
+                    <tr class="${rankClass}" 
+                        ${isHighlighted ? 'style="background: rgba(76, 175, 80, 0.2); animation: pulse 2s ease-in-out;"' : ''}>
+                        <td>${placeEmoji}${rank}</td>
+                        <td>
+                            ${entry.userName}
+                            ${entry.twitterHandle ? 
+                                `<br><a href="https://twitter.com/${entry.twitterHandle.replace('@', '')}" 
+                                    target="_blank" 
+                                    style="color: #1DA1F2; text-decoration: none; font-size: 0.9em;">
+                                    ${entry.twitterHandle}
+                                </a>` : 
+                                ''}
+                            ${isHighlighted ? '<span style="color: #4CAF50; font-size: 0.8em;"> (Your Entry)</span>' : ''}
+                        </td>
+                        <td style="text-align: center;">
+                            ${getSportDisplay(entry.sport)}
+                        </td>
+                        <td>
+                            <strong>${entry.score || 0}</strong> / ${entry.totalGames || 0}
+                        </td>
+                        <td>${gameResults || 'Pending'}</td>
+                        <td>
+                            ${entry.tiebreakerRuns !== undefined ? entry.tiebreakerRuns + ' runs' : 
+                             entry.tiebreakerPoints !== undefined ? entry.tiebreakerPoints + ' pts' : 
+                             'N/A'}
+                        </td>
+                        <td>
+                            ${entry.prizeWon > 0 ? 
+                                `<strong style="color: #4CAF50;">${entry.prizeWon} NUTS</strong>` : 
+                                '-'}
+                        </td>
+                        <td style="font-size: 0.85em; color: #888;">
+                            ${new Date(entry.timestamp || entry.paymentTimestamp).toLocaleTimeString()}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function getSportDisplay(sport) {
+            if (!sport || sport === 'mlb') {
+                return '<span style="color: #4CAF50;">⚾ MLB</span>';
+            } else if (sport === 'nfl') {
+                return '<span style="color: #ff6b00;">🏈 NFL</span>';
+            } else if (sport === 'daily') {
+                return '<span style="color: #9C27B0;">📅 Daily</span>';
+            } else {
+                return '<span style="color: #888;">❓ ' + sport.toUpperCase() + '</span>';
+            }
+        }
+        
+        function toggleDateWeekSelector() {
+            const sport = document.getElementById('sport-selector').value;
+            const dateContainer = document.getElementById('date-selector-container');
+            const weekContainer = document.getElementById('week-selector-container');
+            
+            if (sport === 'nfl') {
+                dateContainer.style.display = 'none';
+                weekContainer.style.display = 'block';
+            } else {
+                // For MLB and Daily Contest, use date selector
+                dateContainer.style.display = 'block';
+                weekContainer.style.display = 'none';
+            }
+        }
+        
+        function estimateNFLWeek() {
+            // NFL season typically starts first Thursday of September
+            // This is a rough estimate - in a real app you'd have a proper calendar
+            const now = new Date();
+            const month = now.getMonth(); // 0-11
+            
+            if (month >= 8 && month <= 11) { // Sep-Dec (regular season)
+                return '1'; // Default to week 1 for now
+            } else if (month === 0) { // January (playoffs)
+                return 'wildcard';
+            } else {
+                return '1'; // Default fallback
+            }
+        }
+    </script>
+</body>
+</html>

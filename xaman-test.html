@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xaman Wallet Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #output {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-close {
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔗 Xaman Wallet Integration Test</h1>
+    
+    <div>
+        <h3>Test Steps:</h3>
+        <ol>
+            <li>Click "Initialize Wallet" to create the wallet instance</li>
+            <li>Click "Connect Wallet" to test the connection</li>
+            <li>Check the output below for debug information</li>
+        </ol>
+    </div>
+    
+    <div>
+        <button onclick="initializeWallet()">Initialize Wallet</button>
+        <button onclick="connectWallet()">Connect Wallet</button>
+        <button onclick="checkWindow()">Check Window Objects</button>
+        <button onclick="clearOutput()">Clear Output</button>
+    </div>
+    
+    <div id="output">Ready to test...\n</div>
+    
+    <script src="src/js/xaman-wallet.js"></script>
+    
+    <script>
+        function log(message) {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `[${timestamp}] ${message}\n`;
+            console.log(message);
+        }
+        
+        function initializeWallet() {
+            try {
+                log('🔗 Manual initialization (checking if needed)...');
+                if (window.xamanWallet) {
+                    log('✅ window.xamanWallet already available (auto-created by script)');
+                    log('📍 Connected: ' + window.xamanWallet.connected);
+                    log('📍 Account: ' + (window.xamanWallet.account || 'none'));
+                } else if (window.XamanWallet) {
+                    log('🔧 Creating manual instance...');
+                    window.xamanWallet = new XamanWallet();
+                    log('✅ Manual Xaman Wallet initialized');
+                } else {
+                    log('❌ XamanWallet class not found');
+                }
+            } catch (error) {
+                log('❌ Error initializing wallet: ' + error.message);
+            }
+        }
+        
+        async function connectWallet() {
+            try {
+                log('🎯 Testing wallet connection (like daily-contest-new.js)...');
+                
+                // Mimic the exact check from daily-contest-new.js
+                log('🔍 Checking for wallet integrations...', {
+                    xamanWallet: !!window.xamanWallet,
+                    XamanWallet: !!window.XamanWallet
+                });
+                
+                if (window.xamanWallet) {
+                    log('🎨 Using Xaman production wallet connection...');
+                    const result = await window.xamanWallet.connect();
+                    log('✅ Connection result: ' + JSON.stringify(result, null, 2));
+                } else {
+                    const availableKeys = Object.keys(window).filter(k => k.toLowerCase().includes('xaman'));
+                    log('❌ Available wallet objects: ' + availableKeys.join(', '));
+                    log('❌ Xaman wallet integration not loaded');
+                }
+                
+            } catch (error) {
+                log('❌ Wallet connection error: ' + error.message);
+                log('🔍 Error stack: ' + error.stack);
+            }
+        }
+        
+        function checkWindow() {
+            log('🔍 Window object analysis...');
+            log('window.XamanWallet: ' + (window.XamanWallet ? 'CLASS AVAILABLE' : 'NOT FOUND'));
+            log('window.xamanWallet: ' + (window.xamanWallet ? 'INSTANCE AVAILABLE' : 'NOT FOUND'));
+            
+            if (window.xamanWallet) {
+                log('📊 Wallet instance state:');
+                log('  - connected: ' + window.xamanWallet.connected);
+                log('  - account: ' + (window.xamanWallet.account || 'null'));
+                log('  - sessionId: ' + (window.xamanWallet.sessionId || 'null'));
+            }
+            
+            const xamanKeys = Object.keys(window).filter(k => k.toLowerCase().includes('xaman'));
+            log('🔍 All Xaman keys: ' + (xamanKeys.length > 0 ? xamanKeys.join(', ') : 'NONE'));
+        }
+        
+        function clearOutput() {
+            document.getElementById('output').textContent = 'Output cleared...\n';
+        }
+        
+        // Auto-check on page load (like the main app)
+        document.addEventListener('DOMContentLoaded', () => {
+            log('📄 DOMContentLoaded event fired');
+            log('🔗 Checking Xaman Wallet availability...');
+            
+            if (window.xamanWallet) {
+                log('✅ Xaman Wallet is available immediately');
+            } else {
+                log('⚠️ Xaman Wallet not found, will retry...');
+                // Try again after a short delay in case of loading race condition
+                setTimeout(() => {
+                    if (window.xamanWallet) {
+                        log('✅ Xaman Wallet loaded after delay');
+                    } else {
+                        log('❌ Xaman Wallet still not available after delay');
+                    }
+                    checkWindow();
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>

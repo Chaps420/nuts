@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Payment System</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            text-align: center;
+        }
+        button {
+            background: #ff6b00;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #ff8533;
+        }
+        .log {
+            background: #2a2a2a;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            text-align: left;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error { color: #ff4444; }
+        .success { color: #44ff44; }
+        .info { color: #4444ff; }
+    </style>
+</head>
+<body>
+    <h1>NUTS Payment System Test</h1>
+    
+    <button onclick="testPaymentLoaded()">Check Payment System</button>
+    <button onclick="testCreatePayment()">Test Create Payment</button>
+    <button onclick="testServerPayment()">Test Server Payment</button>
+    
+    <div id="log" class="log"></div>
+
+    <!-- Load payment scripts -->
+    <script src="src/js/xaman-payment-standard.js"></script>
+    
+    <script>
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function testPaymentLoaded() {
+            log('=== Testing Payment System ===', 'info');
+            
+            // Check window.xamanPayment
+            if (window.xamanPayment) {
+                log('✅ window.xamanPayment is loaded', 'success');
+                log(`Type: ${typeof window.xamanPayment}`, 'info');
+                log(`Constructor: ${window.xamanPayment.constructor.name}`, 'info');
+                
+                // Check methods
+                if (window.xamanPayment.createContestPayment) {
+                    log('✅ createContestPayment method exists', 'success');
+                } else {
+                    log('❌ createContestPayment method missing', 'error');
+                }
+                
+                // Check properties
+                log(`Contest Wallet: ${window.xamanPayment.contestWallet}`, 'info');
+                log(`NUTS Issuer: ${window.xamanPayment.nutsIssuer}`, 'info');
+                log(`Entry Fee: ${window.xamanPayment.entryFee}`, 'info');
+            } else {
+                log('❌ window.xamanPayment is NOT loaded', 'error');
+            }
+            
+            // Check other variants
+            const variants = ['xamanPaymentFinal', 'xamanPaymentSimple', 'xamanPaymentAPI'];
+            variants.forEach(variant => {
+                if (window[variant]) {
+                    log(`✅ window.${variant} exists`, 'success');
+                } else {
+                    log(`❌ window.${variant} missing`, 'error');
+                }
+            });
+        }
+
+        async function testCreatePayment() {
+            log('=== Testing Create Payment ===', 'info');
+            
+            if (!window.xamanPayment) {
+                log('❌ Payment system not loaded!', 'error');
+                return;
+            }
+            
+            try {
+                log('📱 Creating payment...', 'info');
+                const result = await window.xamanPayment.createContestPayment();
+                log(`✅ Payment result: ${JSON.stringify(result)}`, 'success');
+            } catch (error) {
+                log(`❌ Payment error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testServerPayment() {
+            log('=== Testing Server Payment ===', 'info');
+            
+            try {
+                log('🌐 Calling server endpoint...', 'info');
+                const response = await fetch('http://localhost:3001/create-nuts-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: 50,
+                        memo: 'Test Contest Entry'
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                log(`✅ Server response: ${JSON.stringify(data, null, 2)}`, 'success');
+                
+                if (data.qr_png) {
+                    log(`🔗 QR Code: ${data.qr_png}`, 'info');
+                }
+                
+            } catch (error) {
+                log(`❌ Server error: ${error.message}`, 'error');
+                log('💡 Make sure xumm-server.js is running on port 3001', 'info');
+            }
+        }
+
+        // Auto-test on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testPaymentLoaded();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

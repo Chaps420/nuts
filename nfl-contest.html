@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFL Weekly Contest - $NUTS Sports Pick'em</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="src/assets/images/nuts-logo.jpg">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/css/styles.css">
+    
+    <style>
+        /* NFL Contest Specific Styles */
+        .nfl-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 100px 20px 20px 20px; /* Add top padding to clear navbar */
+            padding-bottom: 200px; /* Add space for fixed controls */
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border-radius: 12px;
+            border: 1px solid #333;
+        }
+
+        .page-header h1 {
+            color: #ffa500;
+            margin: 0 0 10px 0;
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .page-header p {
+            color: #ccc;
+            margin: 0;
+            font-size: 1.1em;
+        }
+
+        .week-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            margin-bottom: 30px; /* Increase margin */
+            margin-top: 20px; /* Add top margin */
+            padding: 25px; /* Increase padding */
+            background: #1a1a1a;
+            border-radius: 12px;
+            border: 1px solid #333;
+            overflow: visible;
+            height: auto;
+            min-height: auto;
+            position: relative; /* Ensure proper positioning */
+            z-index: 10; /* Above other elements */
+        }
+
+        @media (max-width: 768px) {
+            .week-selector {
+                grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+                gap: 8px;
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .week-selector {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 6px;
+                padding: 12px;
+            }
+        }
+
+        .week-btn {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: white;
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 80px;
+            min-height: 60px;
+            font-size: 0.9em;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .week-btn:hover {
+            background: #3a3a3a;
+            border-color: #ffa500;
+        }
+
+        .week-btn.past {
+            background: #444;
+            border-color: #666;
+            opacity: 0.8;
+        }
+
+        .week-btn.current {
+            background: #ffa500;
+            color: #000;
+            font-weight: bold;
+            border-color: #ffa500;
+        }
+
+        .week-btn.upcoming {
+            background: #2a2a2a;
+            border-color: #444;
+        }
+
+        .week-btn.active {
+            background: #ffa500;
+            color: #000;
+            font-weight: bold;
+            border-color: #ffa500;
+        }
+
+        .past-week {
+            color: #ff9999;
+            font-weight: bold;
+        }
+
+        .upcoming-week {
+            color: #99ccff;
+            font-weight: bold;
+        }
+
+        .week-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .week-btn .week-number {
+            font-weight: bold;
+        }
+
+        .week-btn .week-status {
+            font-size: 0.7em;
+            opacity: 0.8;
+        }
+
+        .week-info {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+        }
+
+        .week-header h2 {
+            color: #ffa500;
+            margin: 0 0 8px 0;
+            font-size: 1.4em;
+        }
+
+        .week-details {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            font-size: 0.9em;
+            color: #ccc;
+        }
+
+        .entry-fee {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .deadline {
+            color: #ff6b6b;
+        }
+
+        .game-group {
+            margin-bottom: 25px;
+            background: #1a1a1a;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+
+        .game-group-header {
+            background: #2a2a2a;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #444;
+        }
+
+        .game-group-header h3 {
+            margin: 0;
+            color: #ffa500;
+            font-size: 1em;
+        }
+
+        .game-count {
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        .games-grid {
+            padding: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 15px;
+        }
+
+        .game-card {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .game-card:hover {
+            border-color: #ffa500;
+            transform: translateY(-1px);
+        }
+
+        .game-card.no-pick {
+            border-color: #ff6b6b;
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.3);
+        }
+
+        .game-card.has-pick {
+            border-color: #4CAF50;
+        }
+
+        .game-time {
+            text-align: center;
+            margin-bottom: 12px;
+            color: #ccc;
+            font-size: 0.85em;
+        }
+
+        .spread, .over-under {
+            display: inline-block;
+            background: #3a3a3a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+            font-size: 0.75em;
+            color: #ffa500;
+        }
+
+        .teams-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .team-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .team-option:hover {
+            background: #333;
+            border-color: #ffa500;
+        }
+
+        .team-option.selected {
+            background: #ffa500;
+            color: #000;
+            border-color: #ffa500;
+        }
+
+        .team-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .team-abbr {
+            font-weight: bold;
+            font-size: 1em;
+        }
+
+        .team-name {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+
+        .vs-divider {
+            text-align: center;
+            color: #888;
+            font-weight: bold;
+            margin: 3px 0;
+        }
+
+        .pick-indicator {
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        .venue {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 0.75em;
+            color: #888;
+        }
+
+        .contest-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #0a0a0a;
+            border-top: 2px solid #333;
+            padding: 15px 20px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .contest-controls-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .picks-progress {
+            margin-bottom: 12px;
+        }
+
+        .picks-count {
+            color: #ffa500;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffa500, #ff6b00);
+            transition: width 0.3s ease;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        /* Page Header Styles */
+        .page-header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            padding: 40px 0;
+            border-bottom: 2px solid #333;
+        }
+
+        .header-content {
+            text-align: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .page-title {
+            font-size: 2.5em;
+            color: #ffa500;
+            margin: 0 0 10px 0;
+            font-weight: bold;
+        }
+
+        .page-subtitle {
+            font-size: 1.2em;
+            color: #ccc;
+            margin: 0 0 30px 0;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .contest-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .stat-label {
+            display: block;
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 1.4em;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .accent-gold {
+            color: #ffa500 !important;
+        }
+
+        .contest-notice {
+            max-width: 600px;
+            margin: 20px auto 0;
+        }
+
+        .tiebreaker-section {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .tiebreaker-section label {
+            display: block;
+            margin-bottom: 6px;
+            color: #ffa500;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .tiebreaker-input {
+            width: 80px;
+            padding: 8px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: white;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .twitter-section {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .twitter-section label {
+            display: block;
+            margin-bottom: 6px;
+            color: #1DA1F2;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .twitter-input {
+            width: 150px;
+            padding: 8px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.9em;
+        }
+
+        .submit-picks-btn {
+            flex: 2;
+            min-width: 250px;
+            padding: 12px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-picks-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .submit-picks-btn.ready {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        .success-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .success-content {
+            background: #1a1a1a;
+            border: 2px solid #4CAF50;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .success-header h2 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+
+        .entry-details {
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .no-games {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+            font-size: 1.1em;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .nfl-container {
+                padding: 80px 10px 10px 10px; /* Reduced top padding on mobile */
+                padding-bottom: 180px;
+            }
+
+            .week-selector {
+                padding: 15px; /* Reduce padding on mobile */
+                margin-top: 10px;
+                margin-bottom: 20px;
+                max-height: none; /* Ensure no height restriction */
+            }
+
+            .week-btn {
+                min-width: 60px;
+                padding: 6px 10px;
+                font-size: 0.8em;
+            }
+
+            .games-grid {
+                grid-template-columns: 1fr;
+                padding: 10px;
+            }
+
+            .contest-controls {
+                padding: 12px 15px;
+            }
+
+            .controls-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .tiebreaker-section,
+            .twitter-section {
+                min-width: auto;
+            }
+
+            .submit-picks-btn {
+                min-width: auto;
+                width: 100%;
+            }
+
+            .week-details {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="src/assets/images/nuts-logo.jpg" alt="$NUTS Logo" class="logo" style="width: 40px; height: 40px; border-radius: 50%;">
+                <span class="brand-text">$NUTS NFL</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="daily-contest.html" class="nav-link">MLB Contest</a>
+                <a href="nfl-contest.html" class="nav-link active">NFL Contest</a>
+                <a href="contest-results.html" class="nav-link">Leaderboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="nfl-container">
+        <!-- Page Header -->
+        <section class="page-header">
+            <div class="container">
+                <div class="header-content">
+                    <h1 class="page-title">🏈 NFL Weekly Pick'em Contest</h1>
+                    <p class="page-subtitle">Pick all game winners for any NFL week, top 3 split the $NUTS prize pool (min 4 players)</p>
+                    <div class="contest-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Entry Fee</span>
+                            <span class="stat-value accent-gold">50 $NUTS</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Current Week Pool</span>
+                            <span class="stat-value" id="nfl-prize-pool">Loading...</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Week Entries</span>
+                            <span class="stat-value" id="nfl-entry-count">Loading...</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Selected Week</span>
+                            <span class="stat-value" id="current-week-display">Week 1</span>
+                        </div>
+                    </div>
+                    <div class="contest-notice" style="background: #ff6b00; color: white; padding: 10px 20px; border-radius: 8px; margin-top: 15px; text-align: center; font-weight: bold;">
+                        ⚠️ Minimum 4 players required per week - Contest cancelled & refunded if less than 4 entries
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contest Rules (Horizontal) -->
+        <section class="contest-rules-horizontal" style="background: #1a1a1a; padding: 20px 0; border-bottom: 1px solid #333;">
+            <div class="container">
+                <div style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 20px;">
+                    <div style="text-align: center; flex: 1; min-width: 200px;">
+                        <div style="color: #4CAF50; font-size: 1.5em; margin-bottom: 5px;">💰</div>
+                        <h4 style="margin: 0 0 5px 0; color: #4CAF50;">Entry Fee</h4>
+                        <p style="margin: 0; font-size: 0.9em; color: #ccc;">50 $NUTS per week</p>
+                    </div>
+                    <div style="text-align: center; flex: 1; min-width: 200px;">
+                        <div style="color: #4CAF50; font-size: 1.5em; margin-bottom: 5px;">🎯</div>
+                        <h4 style="margin: 0 0 5px 0; color: #4CAF50;">How to Win</h4>
+                        <p style="margin: 0; font-size: 0.9em; color: #ccc;">Most correct picks wins</p>
+                    </div>
+                    <div style="text-align: center; flex: 1; min-width: 200px;">
+                        <div style="color: #4CAF50; font-size: 1.5em; margin-bottom: 5px;">🏆</div>
+                        <h4 style="margin: 0 0 5px 0; color: #4CAF50;">Prize Split</h4>
+                        <p style="margin: 0; font-size: 0.9em; color: #ccc;">1st: 50% | 2nd: 30% | 3rd: 20%</p>
+                    </div>
+                    <div style="text-align: center; flex: 1; min-width: 200px;">
+                        <div style="color: #4CAF50; font-size: 1.5em; margin-bottom: 5px;">⏰</div>
+                        <h4 style="margin: 0 0 5px 0; color: #4CAF50;">Deadline</h4>
+                        <p style="margin: 0; font-size: 0.9em; color: #ccc;">Before first game of week</p>
+                    </div>
+                    <div style="text-align: center; flex: 1; min-width: 200px;">
+                        <div style="color: #4CAF50; font-size: 1.5em; margin-bottom: 5px;">📊</div>
+                        <h4 style="margin: 0 0 5px 0; color: #4CAF50;">Tiebreaker</h4>
+                        <p style="margin: 0; font-size: 0.9em; color: #ccc;">Total points in Monday Night game</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Week Selector -->
+        <div class="week-selector" id="week-selector">
+            <!-- Week buttons will be populated by JavaScript -->
+            <div style="text-align: center; color: #888; width: 100%;">
+                Loading NFL weeks...
+            </div>
+        </div>
+
+        <!-- Week Info -->
+        <div class="week-info" id="week-info">
+            <!-- Week details will be populated by JavaScript -->
+        </div>
+
+        <!-- Games Container -->
+        <div id="games-container">
+            <!-- Games will be populated by JavaScript -->
+            <div class="no-games">
+                Select a week to view games
+            </div>
+        </div>
+
+        <!-- Contest Controls -->
+        <div class="contest-controls">
+            <div class="contest-controls-inner">
+                <!-- Picks Progress -->
+                <div id="picks-counter">
+                    <div class="picks-progress">
+                        <span class="picks-count">0 / 0 picks made</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Picks Summary -->
+                <div id="picks-summary"></div>
+
+                <!-- Controls Row -->
+                <div class="controls-row">
+                    <!-- Tiebreaker -->
+                    <div class="tiebreaker-section">
+                        <label for="tiebreaker-points">
+                            🎯 MNF Total Points
+                        </label>
+                        <input type="number" 
+                               id="tiebreaker-points" 
+                               class="tiebreaker-input"
+                               placeholder="45"
+                               min="0" 
+                               max="100">
+                    </div>
+
+                    <!-- Twitter Handle -->
+                    <div class="twitter-section">
+                        <label for="twitter-handle">
+                            🐦 Twitter Handle
+                        </label>
+                        <input type="text" 
+                               id="twitter-handle" 
+                               class="twitter-input"
+                               placeholder="your_handle"
+                               maxlength="15">
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button id="submit-picks-btn" 
+                            class="submit-picks-btn" 
+                            onclick="nflContest.submitEntry()"
+                            disabled>
+                        Select all games to continue
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="success-modal">
+        <!-- Success content will be populated by JavaScript -->
+    </div>
+
+    <!-- Scripts -->
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+    
+    <!-- App Configuration and Core Scripts -->
+    <script src="config/config-browser.js"></script>
+    <script src="config/environment.js"></script>
+    <script src="src/js/firebase-integration.js"></script>
+    <script src="src/js/firebase-xaman-integration.js"></script>
+    <script src="src/js/contest-backend.js"></script>
+    <script src="src/js/contest-backend-production.js"></script>
+    <script src="src/js/xaman-payment-api.js"></script>
+    <script src="src/js/payment-debug.js"></script>
+    <script src="src/js/nfl-schedule-api.js"></script>
+    <script src="src/js/nfl-contest-manager.js"></script>
+
+    <script>
+        let nflContest;
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🏈 Initializing NFL Contest page...');
+
+            try {
+                // Initialize Firebase integration
+                console.log('🔥 Setting up Firebase integration...');
+                
+                // Wait for firebaseIntegration to be available (it might be created by firebase-integration.js)
+                let retries = 0;
+                const maxRetries = 50;
+                
+                while (!window.firebaseIntegration && retries < maxRetries) {
+                    console.log('⏳ Waiting for Firebase Integration to load...');
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    retries++;
+                }
+                
+                // If not available, create it
+                if (!window.firebaseIntegration) {
+                    console.log('🔧 Creating Firebase Integration instance...');
+                    window.firebaseIntegration = new FirebaseIntegration();
+                }
+                
+                console.log('🔄 Starting Firebase initialization...');
+                await window.firebaseIntegration.initialize();
+
+                // Initialize NFL Contest Manager
+                nflContest = new NFLContestManager();
+                await nflContest.init();
+
+                // Load current week by default
+                const currentWeek = nflContest.nflSchedule.getCurrentWeek();
+                await nflContest.selectWeek(currentWeek);
+
+                console.log('✅ NFL Contest page ready');
+
+            } catch (error) {
+                console.error('❌ Failed to initialize NFL Contest:', error);
+                
+                // Show error message
+                const gamesContainer = document.getElementById('games-container');
+                if (gamesContainer) {
+                    gamesContainer.innerHTML = `
+                        <div class="no-games">
+                            <h3>Unable to load NFL contest</h3>
+                            <p>Please refresh the page and try again.</p>
+                            <p style="color: #ff6b6b; font-size: 0.9em;">Error: ${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+        });
+
+        // Global helper functions
+        function closeSuccessModal() {
+            const modal = document.getElementById('success-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        // Handle window resize for responsive design
+        window.addEventListener('resize', () => {
+            // Could add responsive adjustments here if needed
+        });
+    </script>
+</body>
+</html>

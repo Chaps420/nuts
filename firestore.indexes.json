@@ -1,0 +1,19 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "contest_entries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "contestDate",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

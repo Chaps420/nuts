@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NUTS Admin Portal - Firebase</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #00ff88;
+        }
+
+        .admin-sections {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .admin-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .admin-card h3 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4CAF50, #00ff88);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #ff4444, #ff6666);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .data-table th {
+            background: rgba(0, 255, 136, 0.2);
+            font-weight: bold;
+        }
+
+        .status-pending { color: #ffbb33; }
+        .status-resolved { color: #4CAF50; }
+        .status-win { color: #00ff88; }
+        .status-loss { color: #ff4444; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .qr-code {
+            margin: 20px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            display: inline-block;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden { display: none; }
+
+        .firebase-status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .firebase-connected {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4CAF50;
+        }
+
+        .firebase-disconnected {
+            background: rgba(255, 68, 68, 0.2);
+            border: 1px solid #ff4444;
+        }
+    </style>
+</head>
+<body>
+    <!-- Password Protection Modal -->
+    <div id="password-modal" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.95);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    ">
+        <div style="
+            background: #1a1a1a;
+            border: 2px solid #ff6b00;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        ">
+            <h2 style="color: #ff6b00; margin-bottom: 10px;">Admin Access Required</h2>
+            <p style="color: #ccc; margin-bottom: 20px;">Please enter the admin password to continue</p>
+            
+            <input type="password" id="admin-password" placeholder="Enter password" style="
+                background: #2a2a2a;
+                border: 1px solid #444;
+                color: white;
+                padding: 12px 15px;
+                border-radius: 8px;
+                width: 100%;
+                margin-bottom: 15px;
+                font-size: 16px;
+            " onkeypress="if(event.key === 'Enter') checkPassword()">
+            
+            <button onclick="checkPassword()" style="
+                background: #ff6b00;
+                color: white;
+                border: none;
+                padding: 12px 30px;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: bold;
+                cursor: pointer;
+                width: 100%;
+            ">Enter Admin Area</button>
+            
+            <p id="password-error" style="color: #ff4444; margin-top: 15px; display: none;">
+                Incorrect password. Please try again.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Check if already authenticated
+        const isAuthenticated = sessionStorage.getItem('adminAuthenticated') === 'true';
+        if (isAuthenticated) {
+            document.getElementById('password-modal').style.display = 'none';
+        }
+
+        function checkPassword() {
+            const password = document.getElementById('admin-password').value;
+            const correctPassword = 'NutS420!!';
+            
+            if (password === correctPassword) {
+                // Store authentication in session
+                sessionStorage.setItem('adminAuthenticated', 'true');
+                document.getElementById('password-modal').style.display = 'none';
+            } else {
+                // Show error
+                document.getElementById('password-error').style.display = 'block';
+                document.getElementById('admin-password').value = '';
+                
+                // Hide error after 3 seconds
+                setTimeout(() => {
+                    document.getElementById('password-error').style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Focus on password input
+        window.addEventListener('load', () => {
+            if (!isAuthenticated) {
+                document.getElementById('admin-password').focus();
+            }
+        });
+    </script>
+    <div class="container">
+        <div class="header">
+            <h1>🥜 NUTS Admin Portal</h1>
+            <p>Firebase-Powered Contest Management</p>
+        </div>
+
+        <!-- Firebase Status -->
+        <div id="firebase-status" class="firebase-status firebase-disconnected">
+            <span id="firebase-status-text">Connecting to Firebase...</span>
+        </div>
+
+        <div class="admin-sections">
+            <!-- Contest Management -->
+            <div class="admin-card">
+                <h3>📊 Contest Management</h3>
+                <button class="btn" onclick="loadAllBets()">Load All Bets</button>
+                <button class="btn" onclick="loadTodaysBets()">Today's Bets</button>
+                <button class="btn" onclick="refreshData()">Refresh Data</button>
+                
+                <div id="contest-stats" style="margin-top: 15px;">
+                    <p>Total Bets: <span id="total-bets">0</span></p>
+                    <p>Pending Bets: <span id="pending-bets">0</span></p>
+                    <p>Resolved Bets: <span id="resolved-bets">0</span></p>
+                </div>
+            </div>
+
+            <!-- Bet Resolution -->
+            <div class="admin-card">
+                <h3>🏆 Bet Resolution</h3>
+                <button class="btn" onclick="showResolveModal()">Resolve Contest</button>
+                <button class="btn" onclick="markAllLosses()">Mark Remaining as Losses</button>
+                <button class="btn" onclick="showWinners()">Show Winners</button>
+            </div>
+
+            <!-- Payout Management -->
+            <div class="admin-card">
+                <h3>💰 Payout Management</h3>
+                <button class="btn" onclick="loadWinners()">Load Winners</button>
+                <button class="btn" onclick="generatePayoutQRs()">Generate Payout QRs</button>
+                <div id="winner-count" style="margin-top: 10px;">
+                    Winners to pay: <span id="winners-total">0</span>
+                </div>
+            </div>
+
+            <!-- User Management -->
+            <div class="admin-card">
+                <h3>👥 User Management</h3>
+                <button class="btn" onclick="loadAllUsers()">Load All Users</button>
+                <button class="btn" onclick="showUserStats()">User Statistics</button>
+                <input type="text" id="user-search" placeholder="Search by wallet address" style="width: 100%; padding: 8px; margin: 10px 0; border-radius: 5px; border: none;">
+                <button class="btn" onclick="searchUser()">Search User</button>
+            </div>
+        </div>
+
+        <!-- Data Display Area -->
+        <div class="admin-card">
+            <h3 id="data-title">📋 Data Display</h3>
+            <div id="data-content">
+                <p>Select an action above to view data</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payout QR Modal -->
+    <div id="payout-modal" class="modal">
+        <div class="modal-content">
+            <h3>💸 Send NUTS Payout</h3>
+            <div id="payout-info"></div>
+            <div id="payout-qr" class="qr-code"></div>
+            <button class="btn" onclick="closePayoutModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- Contest Resolution Modal -->
+    <div id="resolve-modal" class="modal">
+        <div class="modal-content">
+            <h3>🏆 Resolve Contest</h3>
+            <p>Enter game results to resolve bets:</p>
+            <div id="resolve-form"></div>
+            <button class="btn" onclick="resolveContest()">Resolve All Bets</button>
+            <button class="btn danger" onclick="closeResolveModal()">Cancel</button>
+        </div>
+    </div>    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+    
+    <script src="config/config-browser.js"></script>
+    <script src="src/js/firebase-integration.js"></script>
+    <script src="src/js/xaman-oauth2-web.js"></script>
+    
+    <script>
+        let allBets = [];
+        let allUsers = [];
+        let currentWinners = [];
+
+        // Initialize Firebase when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🔥 Initializing Firebase Admin Portal...');
+            
+            const success = await window.firebaseIntegration.initialize();
+            updateFirebaseStatus(success);
+            
+            if (success) {
+                await loadInitialData();
+            }
+        });
+
+        function updateFirebaseStatus(connected) {
+            const statusEl = document.getElementById('firebase-status');
+            const statusText = document.getElementById('firebase-status-text');
+            
+            if (connected) {
+                statusEl.className = 'firebase-status firebase-connected';
+                statusText.textContent = '✅ Firebase Connected';
+            } else {
+                statusEl.className = 'firebase-status firebase-disconnected';
+                statusText.textContent = '❌ Firebase Connection Failed';
+            }
+        }
+
+        async function loadInitialData() {
+            await loadAllBets();
+            await loadAllUsers();
+            updateStats();
+        }
+
+        async function loadAllBets() {
+            try {
+                console.log('📊 Loading all bets...');
+                allBets = await window.firebaseIntegration.getAllBets();
+                
+                displayData('All Bets', createBetsTable(allBets));
+                updateStats();
+            } catch (error) {
+                console.error('❌ Failed to load bets:', error);
+                alert('Failed to load bets: ' + error.message);
+            }
+        }
+
+        async function loadTodaysBets() {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const todaysBets = allBets.filter(bet => {
+                    const betDate = bet.timestamp?.toDate?.()?.toISOString?.()?.split('T')[0] || 
+                                   new Date(bet.timestamp).toISOString().split('T')[0];
+                    return betDate === today;
+                });
+                
+                displayData(`Today's Bets (${today})`, createBetsTable(todaysBets));
+            } catch (error) {
+                console.error('❌ Failed to filter today\'s bets:', error);
+            }
+        }
+
+        async function loadAllUsers() {
+            try {
+                console.log('👥 Loading all users...');
+                // Note: You'd need to add a getUserStats function to firebase-integration.js
+                allUsers = []; // Placeholder
+                console.log('✅ Loaded users (feature coming soon)');
+            } catch (error) {
+                console.error('❌ Failed to load users:', error);
+            }
+        }
+
+        function createBetsTable(bets) {
+            if (bets.length === 0) {
+                return '<p>No bets found</p>';
+            }
+
+            let table = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Game</th>
+                            <th>Selection</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Result</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            bets.forEach(bet => {
+                const statusClass = bet.status === 'pending' ? 'status-pending' : 'status-resolved';
+                const resultClass = bet.result === 'win' ? 'status-win' : bet.result === 'loss' ? 'status-loss' : '';
+                
+                table += `
+                    <tr>
+                        <td>${bet.userAddress?.substring(0, 10)}...</td>
+                        <td>${bet.selectedTeam} vs ${bet.opposingTeam}</td>
+                        <td>${bet.selectedTeam}</td>
+                        <td>${bet.amount} NUTS</td>
+                        <td class="${statusClass}">${bet.status}</td>
+                        <td class="${resultClass}">${bet.result || 'Pending'}</td>
+                        <td>
+                            ${bet.result === 'win' ? 
+                                `<button class="btn" onclick="generatePayout('${bet.userAddress}', ${bet.amount * 2}, '${bet.id}')">Pay Winner</button>` : 
+                                ''}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            table += '</tbody></table>';
+            return table;
+        }
+
+        function displayData(title, content) {
+            document.getElementById('data-title').textContent = `📋 ${title}`;
+            document.getElementById('data-content').innerHTML = content;
+        }
+
+        function updateStats() {
+            const totalBets = allBets.length;
+            const pendingBets = allBets.filter(bet => bet.status === 'pending').length;
+            const resolvedBets = allBets.filter(bet => bet.status === 'resolved').length;
+            
+            document.getElementById('total-bets').textContent = totalBets;
+            document.getElementById('pending-bets').textContent = pendingBets;
+            document.getElementById('resolved-bets').textContent = resolvedBets;
+        }
+
+        async function generatePayout(userAddress, amount, betId) {
+            try {
+                console.log('💸 Generating payout QR for:', userAddress);
+                
+                const result = await window.firebaseIntegration.generatePayoutQR(
+                    userAddress, 
+                    amount, 
+                    betId
+                );
+
+                if (result.success) {
+                    showPayoutModal(userAddress, amount, result.qrData);
+                } else {
+                    alert('Failed to generate payout QR: ' + result.error);
+                }
+            } catch (error) {
+                console.error('❌ Payout generation failed:', error);
+                alert('Failed to generate payout: ' + error.message);
+            }
+        }
+
+        function showPayoutModal(address, amount, qrData) {
+            document.getElementById('payout-info').innerHTML = `
+                <p><strong>Recipient:</strong> ${address}</p>
+                <p><strong>Amount:</strong> ${amount} NUTS</p>
+                <p>Scan QR code with your Xaman wallet to send payment:</p>
+            `;
+            
+            document.getElementById('payout-qr').innerHTML = `
+                <img src="${qrData}" alt="Payment QR Code" style="max-width: 200px;">
+            `;
+            
+            document.getElementById('payout-modal').style.display = 'block';
+        }
+
+        function closePayoutModal() {
+            document.getElementById('payout-modal').style.display = 'none';
+        }
+
+        function showResolveModal() {
+            // This would show a form to input game results
+            alert('Contest resolution feature coming soon!\n\nFor now, you can manually update bet statuses in Firebase.');
+        }
+
+        function closeResolveModal() {
+            document.getElementById('resolve-modal').style.display = 'none';
+        }
+
+        async function loadWinners() {
+            try {
+                const winners = allBets.filter(bet => bet.result === 'win');
+                currentWinners = winners;
+                
+                document.getElementById('winners-total').textContent = winners.length;
+                displayData('Contest Winners', createWinnersTable(winners));
+            } catch (error) {
+                console.error('❌ Failed to load winners:', error);
+            }
+        }
+
+        function createWinnersTable(winners) {
+            if (winners.length === 0) {
+                return '<p>No winners found. Resolve contests first.</p>';
+            }
+
+            let table = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Winner Address</th>
+                            <th>Winning Bet</th>
+                            <th>Payout Amount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            winners.forEach(bet => {
+                table += `
+                    <tr>
+                        <td>${bet.userAddress}</td>
+                        <td>${bet.selectedTeam} (${bet.gameId})</td>
+                        <td>${bet.amount * 2} NUTS</td>
+                        <td>
+                            <button class="btn" onclick="generatePayout('${bet.userAddress}', ${bet.amount * 2}, '${bet.id}')">
+                                Generate QR
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            table += '</tbody></table>';
+            return table;
+        }
+
+        async function refreshData() {
+            await loadAllBets();
+            await loadAllUsers();
+            updateStats();
+        }
+
+        function searchUser() {
+            const searchTerm = document.getElementById('user-search').value.toLowerCase();
+            if (!searchTerm) return;
+
+            const userBets = allBets.filter(bet => 
+                bet.userAddress?.toLowerCase().includes(searchTerm)
+            );
+
+            displayData(`Bets for ${searchTerm}`, createBetsTable(userBets));
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const payoutModal = document.getElementById('payout-modal');
+            const resolveModal = document.getElementById('resolve-modal');
+            
+            if (event.target === payoutModal) {
+                payoutModal.style.display = 'none';
+            }
+            if (event.target === resolveModal) {
+                resolveModal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GitHub Pages Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            padding: 40px;
+            background: #2a2a2a;
+            border-radius: 12px;
+            border: 2px solid #ff6b00;
+        }
+        h1 { color: #ff6b00; }
+        .status { 
+            font-size: 24px; 
+            margin: 20px 0;
+            color: #4CAF50;
+        }
+        a {
+            color: #ff6b00;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 GitHub Pages is Working!</h1>
+        <p class="status">✅ Your site is successfully deployed</p>
+        <p>Deployment Time: <span id="time"></span></p>
+        <p><a href="index.html">Go to Main Site</a></p>
+        <p><a href="daily-contest.html">Enter Contest</a></p>
+        <p><a href="admin-contest.html">Admin Panel</a></p>
+    </div>
+    <script>
+        document.getElementById('time').textContent = new Date().toLocaleString();
+    </script>
+</body>
+</html>

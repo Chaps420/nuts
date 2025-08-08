@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Cleanup - Phantom Entries</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 { color: #ff6b00; }
+        
+        .entry {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        
+        .phantom {
+            border-color: #ff4444;
+            background: #2a1111;
+        }
+        
+        button {
+            background: #ff6b00;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #ff5500;
+        }
+        
+        .delete-btn {
+            background: #ff4444;
+        }
+        
+        .success {
+            background: #1a4a1a;
+            border: 1px solid #4CAF50;
+            color: #4CAF50;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .error {
+            background: #4a1a1a;
+            border: 1px solid #ff4444;
+            color: #ff4444;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        pre {
+            background: #0a0a0a;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 0.8em;
+        }
+        
+        .auth-section {
+            background: #1a1a1a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Admin Cleanup Tool</h1>
+    
+    <div class="auth-section">
+        <h3>Admin Authentication</h3>
+        <div id="auth-status">Not authenticated</div>
+        <button onclick="signInAnonymously()">Sign In Anonymously</button>
+        <p style="font-size: 0.8em; color: #888;">
+            Note: Since Firebase rules currently allow all authenticated users admin access,
+            anonymous auth will work for cleanup. In production, implement proper admin authentication.
+        </p>
+    </div>
+    
+    <div id="status"></div>
+    
+    <div id="controls" style="display: none;">
+        <button onclick="findPhantomEntries()">Find Phantom Entries</button>
+        <button onclick="forceDeletePhantoms()">Force Delete All Phantoms</button>
+        <button onclick="viewAllEntries()">View All Entries</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- App Configuration -->
+    <script src="config/config-browser.js"></script>
+    <script src="config/environment.js"></script>
+    
+    <script>
+        let db;
+        let auth;
+        let currentUser = null;
+        
+        async function initFirebase() {
+            try {
+                // Initialize Firebase
+                const firebaseConfig = window.config.firebase;
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                
+                auth = firebase.auth();
+                db = firebase.firestore();
+                
+                // Listen for auth state changes
+                auth.onAuthStateChanged((user) => {
+                    currentUser = user;
+                    updateAuthStatus();
+                });
+                
+                showStatus('✅ Firebase initialized', 'success');
+            } catch (error) {
+                showStatus('❌ Firebase init failed: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+        
+        async function signInAnonymously() {
+            try {
+                showStatus('🔄 Signing in...', 'info');
+                await auth.signInAnonymously();
+                showStatus('✅ Signed in successfully', 'success');
+            } catch (error) {
+                showStatus('❌ Sign in failed: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+        
+        function updateAuthStatus() {
+            const authStatus = document.getElementById('auth-status');
+            const controls = document.getElementById('controls');
+            
+            if (currentUser) {
+                authStatus.innerHTML = `✅ Authenticated as: ${currentUser.uid}`;
+                authStatus.style.color = '#4CAF50';
+                controls.style.display = 'block';
+            } else {
+                authStatus.innerHTML = '❌ Not authenticated';
+                authStatus.style.color = '#ff4444';
+                controls.style.display = 'none';
+            }
+        }
+        
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+        
+        async function findPhantomEntries() {
+            if (!currentUser) {
+                showStatus('❌ Please authenticate first', 'error');
+                return;
+            }
+            
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Searching for phantom entries...</p>';
+            
+            try {
+                const snapshot = await db.collection('contest_entries').get();
+                
+                let html = `<h2>Found ${snapshot.size} Total Entries</h2>`;
+                const phantomEntries = [];
+                const todayDate = new Date().toISOString().split('T')[0];
+                
+                snapshot.forEach(doc => {
+                    const entry = { id: doc.id, ...doc.data() };
+                    const issues = [];
+                    
+                    // Check for phantom indicators
+                    if (!entry.transactionId) issues.push('No transactionId');
+                    if (!entry.userName || entry.userName === 'Anonymous') issues.push('No/Anonymous userName');
+                    if (!entry.walletAddress) issues.push('No walletAddress');
+                    if (!entry.timestamp) issues.push('No timestamp');
+                    if (!entry.picks || Object.keys(entry.picks).length === 0) issues.push('No picks');
+                    
+                    // Check for test entries
+                    if (entry.userName?.toLowerCase().includes('test')) issues.push('Test userName');
+                    
+                    // Check dates
+                    if (entry.contestDate === '2025-06-19') issues.push('Future date 2025-06-19');
+                    if (entry.contestDate > todayDate) issues.push('Future contestDate');
+                    
+                    // Check timestamp validity
+                    if (entry.timestamp) {
+                        try {
+                            const ts = new Date(entry.timestamp);
+                            if (ts.getFullYear() > 2024) issues.push('Future timestamp');
+                        } catch (e) {
+                            issues.push('Invalid timestamp');
+                        }
+                    }
+                    
+                    if (issues.length > 0) {
+                        entry.issues = issues;
+                        phantomEntries.push(entry);
+                    }
+                });
+                
+                if (phantomEntries.length > 0) {
+                    html += `<h3>🚨 ${phantomEntries.length} Phantom Entries Found</h3>`;
+                    
+                    phantomEntries.forEach(entry => {
+                        html += `
+                            <div class="entry phantom">
+                                <strong>ID:</strong> ${entry.id}<br>
+                                <strong>User:</strong> ${entry.userName || 'NONE'}<br>
+                                <strong>Contest Date:</strong> ${entry.contestDate || entry.contestDay || 'NONE'}<br>
+                                <strong>Timestamp:</strong> ${entry.timestamp || 'NONE'}<br>
+                                <strong>Issues:</strong> <span style="color: #ff4444">${entry.issues.join(', ')}</span><br>
+                                <button class="delete-btn" onclick="deleteEntryAdmin('${entry.id}')">Delete</button>
+                                <details>
+                                    <summary>Full Data</summary>
+                                    <pre>${JSON.stringify(entry, null, 2)}</pre>
+                                </details>
+                            </div>
+                        `;
+                    });
+                } else {
+                    html += '<p style="color: #4CAF50;">✅ No phantom entries found!</p>';
+                }
+                
+                results.innerHTML = html;
+                
+            } catch (error) {
+                results.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                console.error(error);
+            }
+        }
+        
+        async function deleteEntryAdmin(id) {
+            if (!currentUser) {
+                showStatus('❌ Not authenticated', 'error');
+                return;
+            }
+            
+            if (confirm(`Delete entry ${id}?`)) {
+                try {
+                    await db.collection('contest_entries').doc(id).delete();
+                    showStatus(`✅ Deleted entry ${id}`, 'success');
+                    findPhantomEntries(); // Refresh
+                } catch (error) {
+                    showStatus(`❌ Failed to delete: ${error.message}`, 'error');
+                    console.error(error);
+                }
+            }
+        }
+        
+        async function forceDeletePhantoms() {
+            if (!currentUser) {
+                showStatus('❌ Not authenticated', 'error');
+                return;
+            }
+            
+            if (!confirm('Force delete ALL phantom entries? This cannot be undone!')) return;
+            
+            try {
+                showStatus('🔄 Finding and deleting phantom entries...', 'info');
+                
+                const snapshot = await db.collection('contest_entries').get();
+                let deleted = 0;
+                const errors = [];
+                
+                for (const doc of snapshot.docs) {
+                    const entry = doc.data();
+                    
+                    // Delete if it matches ANY phantom criteria
+                    const isPhantom = 
+                        !entry.transactionId || 
+                        !entry.userName || 
+                        entry.userName === 'Anonymous' ||
+                        !entry.walletAddress ||
+                        !entry.timestamp ||
+                        entry.contestDate === '2025-06-19' ||
+                        entry.userName?.toLowerCase().includes('test');
+                    
+                    if (isPhantom) {
+                        try {
+                            await db.collection('contest_entries').doc(doc.id).delete();
+                            deleted++;
+                            console.log(`✅ Deleted phantom entry: ${doc.id}`);
+                        } catch (error) {
+                            errors.push({ id: doc.id, error: error.message });
+                            console.error(`❌ Failed to delete ${doc.id}:`, error);
+                        }
+                    }
+                }
+                
+                let message = `✅ Deleted ${deleted} phantom entries`;
+                if (errors.length > 0) {
+                    message += ` (${errors.length} errors)`;
+                    console.error('Deletion errors:', errors);
+                }
+                
+                showStatus(message, deleted > 0 ? 'success' : 'error');
+                findPhantomEntries(); // Refresh view
+                
+            } catch (error) {
+                showStatus(`❌ Force delete failed: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        async function viewAllEntries() {
+            if (!currentUser) {
+                showStatus('❌ Please authenticate first', 'error');
+                return;
+            }
+            
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Loading all entries...</p>';
+            
+            try {
+                const snapshot = await db.collection('contest_entries')
+                    .orderBy('timestamp', 'desc')
+                    .get();
+                
+                let html = `<h2>All Entries (${snapshot.size} total)</h2>`;
+                
+                const entriesByDate = {};
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const date = data.contestDate || data.contestDay || 'unknown';
+                    if (!entriesByDate[date]) {
+                        entriesByDate[date] = [];
+                    }
+                    entriesByDate[date].push({ id: doc.id, ...data });
+                });
+                
+                Object.entries(entriesByDate)
+                    .sort(([a], [b]) => b.localeCompare(a))
+                    .forEach(([date, entries]) => {
+                        html += `
+                            <h3>${date} - ${entries.length} entries</h3>
+                            ${entries.map(entry => {
+                                const isPhantom = !entry.transactionId || !entry.userName || !entry.walletAddress;
+                                return `
+                                    <div class="entry ${isPhantom ? 'phantom' : ''}">
+                                        <strong>ID:</strong> ${entry.id}<br>
+                                        <strong>User:</strong> ${entry.userName || 'NONE'}<br>
+                                        <strong>Transaction:</strong> ${entry.transactionId || 'NONE'}<br>
+                                        <strong>Timestamp:</strong> ${entry.timestamp || 'NONE'}<br>
+                                        <button class="delete-btn" onclick="deleteEntryAdmin('${entry.id}')">Delete</button>
+                                    </div>
+                                `;
+                            }).join('')}
+                        `;
+                    });
+                
+                results.innerHTML = html;
+                
+            } catch (error) {
+                results.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                console.error(error);
+            }
+        }
+        
+        // Initialize on load
+        initFirebase();
+    </script>
+</body>
+</html>

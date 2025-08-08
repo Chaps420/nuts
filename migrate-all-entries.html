@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migrate All Entries to Firebase - $NUTS</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .entry {
+            background: #333;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 5px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .danger {
+            background: #ff4444;
+        }
+        .danger:hover {
+            background: #cc3333;
+        }
+        .warning {
+            background: #ff9900;
+        }
+        .warning:hover {
+            background: #cc7700;
+        }
+        .success {
+            color: #4CAF50;
+        }
+        .error {
+            color: #ff4444;
+        }
+        .info {
+            color: #2196F3;
+        }
+        .info {
+            background: #2196F3;
+        }
+        .info:hover {
+            background: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Migrate All Entries to Firebase</h1>
+        
+        <div class="status">
+            <h3>Migration Status</h3>
+            <div id="status">Scanning localStorage for entries...</div>
+        </div>
+        
+        <div class="status">
+            <h3>Found Entries</h3>
+            <div id="found-entries">Scanning...</div>
+        </div>
+        
+        <div class="status">
+            <h3>Actions</h3>
+            <button onclick="scanEntries()">🔍 Scan localStorage</button>
+            <button onclick="addTestData()" class="info">🧪 Add Test Data</button>
+            <button onclick="migrateAllEntries()" class="warning" id="migrate-btn" disabled>📤 Migrate All to Firebase</button>
+            <button onclick="clearLocalStorage()" class="danger">🗑️ Clear localStorage</button>
+        </div>
+        
+        <div class="status">
+            <h3>Migration Log</h3>
+            <div id="migration-log"></div>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="config/config-browser.js"></script>
+    <script src="config/environment.js"></script>
+    <script src="src/js/contest-backend-production.js"></script>
+
+    <script>
+        let backend;
+        let foundEntries = [];
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            log('🔧 Initializing migration tool...');
+            
+            try {
+                // Initialize production backend
+                backend = new ContestBackendProduction();
+                await backend.init();
+                log('✅ Firebase backend connected');
+                
+                // Auto-scan and migrate on load
+                scanEntries();
+                
+                // If entries found, auto-migrate after 2 seconds
+                setTimeout(() => {
+                    if (foundEntries.length > 0) {
+                        log(`🚀 Auto-migrating ${foundEntries.length} entries in 3 seconds...`);
+                        setTimeout(() => {
+                            migrateAllEntries();
+                        }, 3000);
+                    }
+                }, 2000);
+                
+            } catch (error) {
+                log('❌ Failed to initialize: ' + error.message, 'error');
+            }
+        });
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('migration-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function scanEntries() {
+            log('🔍 Scanning localStorage for contest entries...');
+            foundEntries = [];
+            
+            // First, show ALL localStorage keys for debugging
+            const allKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                allKeys.push(localStorage.key(i));
+            }
+            log(`🔍 Total localStorage keys found: ${allKeys.length}`);
+            log(`🔍 All keys: ${allKeys.join(', ')}`);
+            
+            try {
+                // Check main contest_entries
+                const mainEntries = localStorage.getItem('contest_entries');
+                log(`🔍 contest_entries raw: ${mainEntries ? mainEntries.length + ' chars' : 'NULL'}`);
+                if (mainEntries) {
+                    try {
+                        const parsed = JSON.parse(mainEntries);
+                        if (Array.isArray(parsed)) {
+                            foundEntries.push(...parsed);
+                            log(`📦 Found ${parsed.length} entries in contest_entries`);
+                        }
+                    } catch (e) {
+                        log('⚠️ Failed to parse contest_entries', 'error');
+                    }
+                } else {
+                    log('❌ No contest_entries found in localStorage');
+                }
+                
+                // Check all localStorage keys for date-specific entries
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('contest_entries_') && key !== 'contest_entries_undefined') {
+                        try {
+                            const data = localStorage.getItem(key);
+                            const parsed = JSON.parse(data);
+                            if (Array.isArray(parsed)) {
+                                foundEntries.push(...parsed);
+                                log(`📦 Found ${parsed.length} entries in ${key}`);
+                            }
+                        } catch (e) {
+                            log(`⚠️ Failed to parse ${key}`, 'error');
+                        }
+                    }
+                }
+                
+                // Remove duplicates based on ID
+                const uniqueEntries = foundEntries.filter((entry, index, self) => 
+                    index === self.findIndex(e => e.id === entry.id)
+                );
+                foundEntries = uniqueEntries;
+                
+                // Group by sport
+                const mlbEntries = foundEntries.filter(e => e.sport === 'mlb' || !e.sport);
+                const nflEntries = foundEntries.filter(e => e.sport === 'nfl');
+                
+                document.getElementById('status').innerHTML = `
+                    <div class="success">✅ Scan complete</div>
+                    <div>Total unique entries: ${foundEntries.length}</div>
+                    <div>MLB entries: ${mlbEntries.length}</div>
+                    <div>NFL entries: ${nflEntries.length}</div>
+                `;
+                
+                // Show sample entries
+                let entriesHtml = '';
+                foundEntries.slice(0, 10).forEach(entry => {
+                    entriesHtml += `<div class="entry">
+                        ${entry.sport || 'mlb'}: ${entry.userName || entry.name} - ${entry.id.substring(0, 20)}...
+                    </div>`;
+                });
+                if (foundEntries.length > 10) {
+                    entriesHtml += `<div class="entry">... and ${foundEntries.length - 10} more entries</div>`;
+                }
+                
+                document.getElementById('found-entries').innerHTML = entriesHtml;
+                
+                // Enable migrate button
+                if (foundEntries.length > 0) {
+                    document.getElementById('migrate-btn').disabled = false;
+                }
+                
+            } catch (error) {
+                log('❌ Scan failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function migrateAllEntries() {
+            if (foundEntries.length === 0) {
+                log('⚠️ No entries to migrate', 'error');
+                return;
+            }
+            
+            if (!confirm(`Migrate ${foundEntries.length} entries to Firebase?\n\nThis will upload all localStorage entries to the production database.`)) {
+                return;
+            }
+            
+            log(`🚀 Starting migration of ${foundEntries.length} entries...`);
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            for (let i = 0; i < foundEntries.length; i++) {
+                const entry = foundEntries[i];
+                try {
+                    log(`📤 Migrating entry ${i + 1}/${foundEntries.length}: ${entry.userName || entry.name}`);
+                    
+                    // Use the backend to submit the entry
+                    const result = await backend.submitContestEntry(entry);
+                    
+                    if (result.success) {
+                        successCount++;
+                        log(`✅ Migrated: ${entry.userName || entry.name} (${entry.sport || 'mlb'})`, 'success');
+                    } else {
+                        errorCount++;
+                        log(`❌ Failed to migrate ${entry.userName || entry.name}: ${result.error}`, 'error');
+                    }
+                    
+                    // Small delay to avoid overwhelming Firebase
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                } catch (error) {
+                    errorCount++;
+                    log(`❌ Error migrating ${entry.userName || entry.name}: ${error.message}`, 'error');
+                }
+            }
+            
+            log(`🎉 Migration complete! ${successCount} successful, ${errorCount} errors`, successCount > errorCount ? 'success' : 'error');
+            
+            // Update status
+            document.getElementById('status').innerHTML = `
+                <div class="${successCount > errorCount ? 'success' : 'error'}">Migration Complete</div>
+                <div>✅ Successful: ${successCount}</div>
+                <div>❌ Errors: ${errorCount}</div>
+                <div>📊 Total: ${foundEntries.length}</div>
+            `;
+        }
+        
+        function clearLocalStorage() {
+            if (!confirm('Clear ALL localStorage data? This cannot be undone!\n\nThis will remove all contest entries from localStorage.')) {
+                return;
+            }
+            
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('contest') || key.includes('entries'))) {
+                    keysToRemove.push(key);
+                }
+            }
+            
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+                log(`🗑️ Removed: ${key}`);
+            });
+            
+            log(`✅ Cleared ${keysToRemove.length} localStorage keys`, 'success');
+            foundEntries = [];
+            document.getElementById('found-entries').innerHTML = 'No entries found';
+            document.getElementById('migrate-btn').disabled = true;
+        }
+        
+        function addTestData() {
+            log('🧪 Adding test data to localStorage...');
+            
+            const testEntries = [
+                {
+                    id: 'test_mlb_' + Date.now(),
+                    sport: 'mlb',
+                    userName: 'Test MLB Player',
+                    walletAddress: 'rTestWallet123456789',
+                    picks: { 'game1': 'home', 'game2': 'away' },
+                    tiebreakerRuns: 8,
+                    timestamp: Date.now(),
+                    contestDate: '2025-08-03'
+                },
+                {
+                    id: 'test_nfl_' + Date.now(),
+                    sport: 'nfl',
+                    userName: 'Test NFL Player',
+                    walletAddress: 'rTestWallet987654321',
+                    picks: { 'nfl_game1': 'home', 'nfl_game2': 'away' },
+                    tiebreakerPoints: 24,
+                    weekNumber: 1,
+                    timestamp: Date.now(),
+                    contestDate: '2025-09-07'
+                }
+            ];
+            
+            // Get existing entries or create new array
+            const existing = localStorage.getItem('contest_entries');
+            let entries = [];
+            if (existing) {
+                try {
+                    entries = JSON.parse(existing);
+                } catch (e) {
+                    log('⚠️ Failed to parse existing entries, creating new array');
+                }
+            }
+            
+            // Add test entries
+            entries.push(...testEntries);
+            
+            // Save back to localStorage
+            localStorage.setItem('contest_entries', JSON.stringify(entries));
+            
+            log(`✅ Added ${testEntries.length} test entries to localStorage`, 'success');
+            
+            // Re-scan
+            scanEntries();
+        }
+    </script>
+</body>
+</html>
