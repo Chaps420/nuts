@@ -470,8 +470,8 @@
                     console.log('🔄 Enriching entries with enhanced game details...');
                     try {
                         // Use enhanced backend to get detailed game information
-                        if (window.enhancedContestBackend && window.enhancedContestBackend.enrichEntriesWithGameDetails) {
-                            entries = await window.enhancedContestBackend.enrichEntriesWithGameDetails(entries, queryParam);
+                        if (window.contestBackendEnhanced && window.contestBackendEnhanced.enrichEntriesWithGameDetails) {
+                            entries = await window.contestBackendEnhanced.enrichEntriesWithGameDetails(entries, queryParam);
                             console.log('✅ Entries enriched with game details');
                         } else if (window.enhancedEntryResults && window.enhancedEntryResults[queryParam]) {
                             // Fallback: use cached enhanced results if available
