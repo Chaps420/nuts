@@ -1034,61 +1034,80 @@ class DailyContestManager {
                 </div>
             ` : ''}
             
-            <!-- Twitter Handle Section -->
+            <!-- Contact Information Section -->
             <div class="contact-info-section" style="
-                background: #1a1a1a; 
-                padding: 20px; 
-                border-radius: 8px; 
+                background: linear-gradient(135deg, #1a1a1a, #2a2a2a); 
+                padding: 25px; 
+                border-radius: 12px; 
                 margin: 20px 0; 
-                border: 1px solid #333;
+                border: 2px solid #4CAF50;
+                text-align: center;
+                max-width: 500px;
+                margin-left: auto;
+                margin-right: auto;
             ">
-                <h4 style="color: #4CAF50; margin: 0 0 15px 0; display: flex; align-items: center; gap: 8px;">
-                    📞 Contact Information (Required)
+                <h4 style="color: #4CAF50; margin: 0 0 8px 0; font-size: 1.2em; font-weight: bold;">
+                    📞 Contact Information
                 </h4>
-                <p style="color: #ccc; font-size: 0.9em; margin-bottom: 15px;">
+                <p style="color: #ccc; font-size: 0.9em; margin-bottom: 20px;">
                     Required for prize payments and winner announcements
                 </p>
                 
                 <!-- Wallet Address -->
-                <div style="margin-bottom: 15px;">
-                    <label style="color: #888; display: block; margin-bottom: 5px;">💰 XRPL Wallet Address: <span style="color: #ff6b00;">*</span></label>
+                <div style="margin-bottom: 20px; text-align: left;">
+                    <label style="color: #ffa500; display: block; margin-bottom: 8px; font-weight: bold; text-align: center;">
+                        💰 XRPL Wallet Address <span style="color: #ff6b00;">*</span>
+                    </label>
                     <input type="text" 
                            id="wallet-address" 
                            placeholder="r... (Your XRPL wallet address)"
                            style="
                                background: #2a2a2a; 
-                               border: 1px solid #444; 
+                               border: 2px solid #444; 
                                color: white; 
-                               padding: 8px 12px; 
-                               border-radius: 4px; 
+                               padding: 12px 15px; 
+                               border-radius: 8px; 
                                width: 100%; 
-                               max-width: 400px;
+                               font-size: 0.95em;
+                               transition: border-color 0.3s ease;
                            "
                            maxlength="50"
-                           required>
-                    <span style="color: #666; font-size: 0.85em;">(Required - for prize payments)</span>
+                           required
+                           onfocus="this.style.borderColor='#4CAF50'"
+                           onblur="this.style.borderColor='#444'">
+                    <div style="color: #888; font-size: 0.8em; text-align: center; margin-top: 5px;">
+                        Required for prize payments
+                    </div>
                 </div>
                 
                 <!-- Twitter Handle -->
-                <div>
-                    <label style="color: #888; display: block; margin-bottom: 5px;">🐦 Twitter Handle: <span style="color: #ff6b00;">*</span></label>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="color: #666; font-size: 1.2em;">@</span>
+                <div style="text-align: left;">
+                    <label style="color: #1DA1F2; display: block; margin-bottom: 8px; font-weight: bold; text-align: center;">
+                        🐦 Twitter Handle <span style="color: #ff6b00;">*</span>
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
+                        <span style="color: #666; font-size: 1.2em; font-weight: bold;">@</span>
                         <input type="text" 
                                id="twitter-handle" 
                                placeholder="your_handle"
                                style="
                                    background: #2a2a2a; 
-                                   border: 1px solid #444; 
+                                   border: 2px solid #444; 
                                    color: white; 
-                                   padding: 8px 12px; 
-                                   border-radius: 4px; 
+                                   padding: 12px 15px; 
+                                   border-radius: 8px; 
                                    width: 200px;
+                                   font-size: 0.95em;
+                                   transition: border-color 0.3s ease;
                                "
                                maxlength="15"
                                required
+                               onfocus="this.style.borderColor='#1DA1F2'"
+                               onblur="this.style.borderColor='#444'"
                                onkeyup="this.value = this.value.replace(/[@\\s]/g, '').toLowerCase();">
-                        <span style="color: #666; font-size: 0.85em;">(Required - for announcements)</span>
+                    </div>
+                    <div style="color: #888; font-size: 0.8em; text-align: center; margin-top: 5px;">
+                        Required for winner announcements
                     </div>
                 </div>
             </div>
