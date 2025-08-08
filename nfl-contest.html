@@ -60,6 +60,10 @@
         }
 
         @media (max-width: 768px) {
+            .nfl-container {
+                padding-bottom: 280px; /* Increase bottom padding for mobile */
+            }
+            
             .week-selector {
                 grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
                 gap: 8px;
@@ -594,6 +598,18 @@
 
             .contest-controls {
                 padding: 12px 15px;
+                max-height: 40vh;
+                overflow-y: auto;
+            }
+
+            .missing-picks-container {
+                max-height: 80px !important;
+                overflow-y: auto !important;
+            }
+
+            .missing-picks-list span {
+                font-size: 0.65em !important;
+                padding: 1px 4px !important;
             }
 
             .controls-row {
