@@ -1035,38 +1035,61 @@ class DailyContestManager {
             ` : ''}
             
             <!-- Twitter Handle Section -->
-            <div class="twitter-handle-section" style="
+            <div class="contact-info-section" style="
                 background: #1a1a1a; 
                 padding: 20px; 
                 border-radius: 8px; 
                 margin: 20px 0; 
                 border: 1px solid #333;
             ">
-                <h4 style="color: #1DA1F2; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#1DA1F2">
-                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                    </svg>
-                    Add Your X Handle (Optional)
+                <h4 style="color: #4CAF50; margin: 0 0 15px 0; display: flex; align-items: center; gap: 8px;">
+                    📞 Contact Information (Required)
                 </h4>
                 <p style="color: #ccc; font-size: 0.9em; margin-bottom: 15px;">
-                    Show your X username on the leaderboard
+                    Required for prize payments and winner announcements
                 </p>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="color: #666; font-size: 1.2em;">@</span>
+                
+                <!-- Wallet Address -->
+                <div style="margin-bottom: 15px;">
+                    <label style="color: #888; display: block; margin-bottom: 5px;">💰 XRPL Wallet Address: <span style="color: #ff6b00;">*</span></label>
                     <input type="text" 
-                           id="twitter-handle" 
-                           placeholder="yourhandle"
+                           id="wallet-address" 
+                           placeholder="r... (Your XRPL wallet address)"
                            style="
                                background: #2a2a2a; 
                                border: 1px solid #444; 
                                color: white; 
                                padding: 8px 12px; 
                                border-radius: 4px; 
-                               flex: 1;
-                               max-width: 300px;
+                               width: 100%; 
+                               max-width: 400px;
                            "
-                           onkeyup="this.value = this.value.replace(/[@\\s]/g, '').toLowerCase();">
-                    <span style="color: #666; font-size: 0.85em;">(Leave blank to stay anonymous)</span>
+                           maxlength="50"
+                           required>
+                    <span style="color: #666; font-size: 0.85em;">(Required - for prize payments)</span>
+                </div>
+                
+                <!-- Twitter Handle -->
+                <div>
+                    <label style="color: #888; display: block; margin-bottom: 5px;">🐦 Twitter Handle: <span style="color: #ff6b00;">*</span></label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="color: #666; font-size: 1.2em;">@</span>
+                        <input type="text" 
+                               id="twitter-handle" 
+                               placeholder="your_handle"
+                               style="
+                                   background: #2a2a2a; 
+                                   border: 1px solid #444; 
+                                   color: white; 
+                                   padding: 8px 12px; 
+                                   border-radius: 4px; 
+                                   width: 200px;
+                               "
+                               maxlength="15"
+                               required
+                               onkeyup="this.value = this.value.replace(/[@\\s]/g, '').toLowerCase();">
+                        <span style="color: #666; font-size: 0.85em;">(Required - for announcements)</span>
+                    </div>
                 </div>
             </div>
             
@@ -1242,9 +1265,32 @@ class DailyContestManager {
             console.log('💰 Processing contest entry...');
             console.log('🎯 Tiebreaker prediction:', tiebreakerRuns, 'runs');
             
-            // Get Twitter handle if provided
+            // Get Twitter handle - now required
             const twitterHandleInput = document.getElementById('twitter-handle');
             const twitterHandle = twitterHandleInput ? twitterHandleInput.value.trim() : '';
+            
+            if (!twitterHandle) {
+                this.showError('Please enter your Twitter handle. This is required for winner announcements.');
+                if (twitterHandleInput) twitterHandleInput.focus();
+                return;
+            }
+            
+            // Get wallet address - now required
+            const walletAddressInput = document.getElementById('wallet-address');
+            const walletAddress = walletAddressInput ? walletAddressInput.value.trim() : '';
+            
+            if (!walletAddress) {
+                this.showError('Please enter your XRPL wallet address. This is required for prize payments.');
+                if (walletAddressInput) walletAddressInput.focus();
+                return;
+            }
+            
+            // Basic wallet address validation
+            if (!walletAddress.startsWith('r') || walletAddress.length < 25 || walletAddress.length > 35) {
+                this.showError('Please enter a valid XRPL wallet address (should start with "r" and be 25-35 characters).');
+                if (walletAddressInput) walletAddressInput.focus();
+                return;
+            }
             
             // Prepare contest entry data - only include picks for unlocked games
             const validPicks = {};
@@ -1269,6 +1315,7 @@ class DailyContestManager {
                 userId: 'USER_' + Date.now(),
                 userName: twitterHandle ? `@${twitterHandle}` : 'Player #' + Math.floor(Math.random() * 9999),
                 twitterHandle: twitterHandle ? `@${twitterHandle}` : null,
+                walletAddress: walletAddress,
                 sport: 'mlb', // Required for Firebase filtering
                 picks: validPicks,
                 tiebreakerRuns: tiebreakerRuns,
