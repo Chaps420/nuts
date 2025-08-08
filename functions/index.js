@@ -1,752 +1,490 @@
-/**
- * Firebase Cloud Functions for NUTS Sports Pick'em Platform
- * Integrates with existing Xaman Firebase Auth package
- * Handles user management, bet storage, and payout QR generation
- */
-
-const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const cors = require('cors')({ origin: true });
+const functions = require('firebase-functions');
+const cors = require('cors')({
+  origin: true, // Allow all origins for now - restrict in production
+  credentials: true
+});
 
-// Initialize Firebase Admin
+// Initialize admin SDK
 admin.initializeApp();
 const db = admin.firestore();
-const auth = admin.auth();
 
-/**
- * Process Xaman authentication using the existing auth flow
- * This function works with the Xaman Firebase Auth package
- */
-exports.processXamanAuth = functions.https.onRequest(async (req, res) => {
-    // Enable CORS
-    cors(req, res, async () => {
-        try {
-            console.log('🔄 Processing Xaman authentication with enhanced flow...');
+// Wrap functions with CORS
+const corsHandler = (fn) => (req, res) => {
+  return cors(req, res, () => fn(req, res));
+};
 
-            const { payloadId, userAddress, signedTx, authorizationCode } = req.body;
+// Export payment functions from new file
+exports.createNutsPayment = require('./createNutsPayment').createNutsPayment;
+exports.payloadStatus = require('./createNutsPayment').payloadStatus;
 
-            // If we have an authorization code, use the OAuth2 flow
-            if (authorizationCode) {
-                // This would integrate with the xaman_firebase_auth package
-                // For now, we'll create a user directly
-                console.log('📱 OAuth2 flow detected');
-            }
+// Export XUMM payment functions from existing file
+exports.createXummPayment = require('./xummPayment').createXummPayment;
+exports.checkXummPayment = require('./xummPayment').checkXummPayment;
+exports.xummWebhook = require('./xummPayment').xummWebhook;
+exports.getNutsTokenInfo = require('./xummPayment').getNutsTokenInfo;
 
-        // Validate input
-        if (!userAddress) {
-            throw new functions.https.HttpsError('invalid-argument', 'Missing user address');
-        }
+// Export contest payout functions (commented out for manual payouts only)
+// exports.processContestPayouts = require('./processContestPayouts').processContestPayouts;
+// exports.scheduledPayoutCheck = require('./processContestPayouts').scheduledPayoutCheck;
 
-        // Validate XRPL address format
-        if (!userAddress.startsWith('r') || userAddress.length < 25) {
-            throw new functions.https.HttpsError('invalid-argument', 'Invalid XRPL address format');
-        }
+// NEW PRODUCTION FUNCTIONS FOR GITHUB PAGES
 
-        // Generate consistent user ID from XRPL address
-        const uid = generateUserId(userAddress);
-
-        // Check if user already exists
-        let user;
-        try {
-            user = await auth.getUser(uid);
-            console.log('✅ Existing user found:', user.uid);
-        } catch (error) {
-            // User doesn't exist, create new one
-            console.log('🔄 Creating new Firebase user...');
-            
-            user = await auth.createUser({
-                uid: uid,
-                displayName: `NUTS Player ${userAddress.substring(0, 8)}`,
-                emailVerified: true
-            });
-
-            console.log('✅ New user created:', user.uid);
-        }
-
-        // Create/update Firestore user document
-        await db.collection('users').doc(user.uid).set({
-            xrplAddress: userAddress,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
-            totalBets: 0,
-            totalWins: 0,
-            totalNutsWon: 0,
-            authMethod: 'xaman_qr',
-            payloadHistory: admin.firestore.FieldValue.arrayUnion(payloadId || 'direct_auth')
-        }, { merge: true });
-
-        // Set custom claims for XRPL address
-        await auth.setCustomUserClaims(uid, {
-            xrplAddress: userAddress,
-            authProvider: 'xaman'
-        });
-
-        // Generate custom token for Firebase authentication
-        const customToken = await auth.createCustomToken(uid, {
-            xrplAddress: userAddress,
-            authMethod: 'xaman'
-        });
-
-        console.log('✅ Custom token generated for user:', user.uid);
-
-        return {
-            success: true,
-            customToken: customToken,
-            userData: {
-                uid: user.uid,
-                xrplAddress: userAddress,
-                displayName: user.displayName
-            }
-        };
-
-    } catch (error) {
-        console.error('❌ Xaman authentication error:', error);
-        throw new functions.https.HttpsError('internal', error.message);
+// Create Contest Entry
+exports.createContestEntry = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
     }
-});
 
-/**
- * Create a user bet (enhanced version)
- */
-exports.createUserBet = functions.https.onCall(async (data, context) => {
-    try {
-        // Verify authentication
-        if (!context.auth) {
-            throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
-        }
-
-        console.log('💰 Creating bet for user:', context.auth.uid);
-
-        const { contestId, gameId, selection, odds, amount, txHash, gameTime, sport } = data;
-
-        // Validate required fields
-        if (!contestId || !gameId || !selection) {
-            throw new functions.https.HttpsError('invalid-argument', 'Missing required bet fields');
-        }
-
-        // Get user data
-        const userDoc = await db.collection('users').doc(context.auth.uid).get();
-        if (!userDoc.exists) {
-            throw new functions.https.HttpsError('not-found', 'User not found');
-        }
-
-        const userData = userDoc.data();
-
-        // Create bet document with enhanced data
-        const bet = {
-            userId: context.auth.uid,
-            userAddress: userData.xrplAddress,
-            contestId: contestId,
-            gameId: gameId,
-            selection: selection,
-            selectedTeam: data.selectedTeam || 'Unknown',
-            opposingTeam: data.opposingTeam || 'Unknown',
-            odds: odds || 'N/A',
-            amount: amount || 100,
-            txHash: txHash || null,
-            gameTime: gameTime || null,
-            sport: sport || 'MLB',
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            status: 'pending',
-            result: null,
-            metadata: {
-                userAgent: context.rawRequest.headers['user-agent'] || 'Unknown',
-                ipAddress: context.rawRequest.ip || 'Unknown',
-                timestamp: new Date().toISOString()
-            }
-        };
-
-        const betRef = await db.collection('bets').add(bet);
-
-        // Update user stats
-        await db.collection('users').doc(context.auth.uid).update({
-            totalBets: admin.firestore.FieldValue.increment(1),
-            lastBetAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-
-        console.log('✅ Bet created:', betRef.id);
-
-        return {
-            success: true,
-            betId: betRef.id,
-            bet: bet
-        };
-
-    } catch (error) {
-        console.error('❌ Create bet error:', error);
-        throw new functions.https.HttpsError('internal', error.message);
-    }
-});
-
-/**
- * Generate payout QR code for admin (enhanced version)
- */
-exports.generatePayoutQR = functions.https.onCall(async (data, context) => {
-    try {
-        console.log('💸 Generating payout QR:', data);
-
-        const { recipientAddress, amount, contestId, memo, betId } = data;
-
-        if (!recipientAddress || !amount) {
-            throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
-        }
-
-        // Validate XRPL address
-        if (!recipientAddress.startsWith('r')) {
-            throw new functions.https.HttpsError('invalid-argument', 'Invalid XRPL address');
-        }
-
-        // Create enhanced payout payload
-        const payloadId = 'payout-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-        
-        // In production, this would create a real Xaman payment request
-        const simulatedPayload = {
-            uuid: payloadId,
-            qr_png: generateEnhancedPayoutQR(recipientAddress, amount, contestId),
-            pushed: true,
-            expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-            metadata: {
-                recipientAddress,
-                amount,
-                contestId,
-                memo: memo || `NUTS Prize - Contest ${contestId}`,
-                createdAt: new Date().toISOString()
-            }
-        };
-
-        // Log payout attempt with enhanced tracking
-        await db.collection('payouts').add({
-            recipientAddress: recipientAddress,
-            amount: amount,
-            contestId: contestId,
-            betId: betId || null,
-            memo: memo || `NUTS Prize - Contest ${contestId}`,
-            payloadId: simulatedPayload.uuid,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            status: 'pending',
-            metadata: {
-                adminUser: context.auth?.uid || 'system',
-                ipAddress: context.rawRequest?.ip || 'Unknown',
-                userAgent: context.rawRequest?.headers['user-agent'] || 'Unknown'
-            }
-        });
-
-        console.log('✅ Enhanced payout QR generated');
-
-        return {
-            success: true,
-            qrData: simulatedPayload.qr_png,
-            payloadId: simulatedPayload.uuid,
-            metadata: simulatedPayload.metadata
-        };
-
-    } catch (error) {
-        console.error('❌ Generate payout QR error:', error);
-        throw new functions.https.HttpsError('internal', error.message);
-    }
-});
-
-/**
- * Get user betting statistics
- */
-exports.getUserStats = functions.https.onCall(async (data, context) => {
-    try {
-        if (!context.auth) {
-            throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
-        }
-
-        const userId = context.auth.uid;
-        
-        // Get user document
-        const userDoc = await db.collection('users').doc(userId).get();
-        const userData = userDoc.data();
-
-        // Get user's bets
-        const betsSnapshot = await db.collection('bets')
-            .where('userId', '==', userId)
-            .orderBy('timestamp', 'desc')
-            .limit(50)
-            .get();
-
-        const bets = [];
-        betsSnapshot.forEach(doc => {
-            bets.push({ id: doc.id, ...doc.data() });
-        });
-
-        // Calculate stats
-        const stats = {
-            totalBets: bets.length,
-            pendingBets: bets.filter(bet => bet.status === 'pending').length,
-            wonBets: bets.filter(bet => bet.result === 'win').length,
-            lostBets: bets.filter(bet => bet.result === 'loss').length,
-            totalNutsWon: userData?.totalNutsWon || 0,
-            winPercentage: bets.length > 0 ? (bets.filter(bet => bet.result === 'win').length / bets.filter(bet => bet.result !== null).length * 100).toFixed(1) : 0
-        };
-
-        return {
-            success: true,
-            userData: userData,
-            stats: stats,
-            recentBets: bets.slice(0, 10)
-        };
-
-    } catch (error) {
-        console.error('❌ Get user stats error:', error);
-        throw new functions.https.HttpsError('internal', error.message);
-    }
-});
-
-/**
- * Resolve contest results (enhanced version)
- */
-exports.resolveContest = functions.https.onCall(async (data, context) => {
-    try {
-        console.log('🏆 Resolving contest:', data);
-
-        const { contestId, gameResults } = data;
-
-        if (!contestId || !gameResults) {
-            throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
-        }
-
-        // Get all bets for this contest
-        const betsSnapshot = await db.collection('bets')
-            .where('contestId', '==', contestId)
-            .where('status', '==', 'pending')
-            .get();
-
-        const batch = db.batch();
-        let winnersCount = 0;
-        let losersCount = 0;
-        let pushCount = 0;
-
-        betsSnapshot.forEach(doc => {
-            const bet = doc.data();
-            const gameResult = gameResults[bet.gameId];
-            
-            if (gameResult) {
-                let result = 'loss';
-                let payout = 0;
-                
-                if (gameResult.winner === bet.selection) {
-                    result = 'win';
-                    payout = bet.amount * 2; // 2x payout for wins
-                    winnersCount++;
-                } else if (gameResult.status === 'postponed' || gameResult.status === 'cancelled') {
-                    result = 'push';
-                    payout = bet.amount; // Return original amount
-                    pushCount++;
-                } else {
-                    losersCount++;
-                }
-
-                batch.update(doc.ref, {
-                    result: result,
-                    status: 'resolved',
-                    payout: payout,
-                    resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
-                    finalScore: gameResult.score || null,
-                    gameStatus: gameResult.status || 'completed'
-                });
-
-                // Update user stats for wins
-                if (result === 'win') {
-                    const userRef = db.collection('users').doc(bet.userId);
-                    batch.update(userRef, {
-                        totalWins: admin.firestore.FieldValue.increment(1),
-                        totalNutsWon: admin.firestore.FieldValue.increment(payout)
-                    });
-                }
-            }
-        });
-
-        await batch.commit();
-
-        // Create contest result summary
-        await db.collection('contest_results').doc(contestId).set({
-            contestId: contestId,
-            resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
-            totalBets: betsSnapshot.size,
-            winnersCount: winnersCount,
-            losersCount: losersCount,
-            pushCount: pushCount,
-            gameResults: gameResults,
-            resolvedBy: context.auth?.uid || 'system'
-        });
-
-        console.log(`✅ Contest resolved: ${winnersCount} winners, ${losersCount} losers, ${pushCount} pushes`);
-
-        return {
-            success: true,
-            winnersCount: winnersCount,
-            losersCount: losersCount,
-            pushCount: pushCount,
-            totalBets: betsSnapshot.size
-        };
-
-    } catch (error) {
-        console.error('❌ Resolve contest error:', error);
-        throw new functions.https.HttpsError('internal', error.message);
-    }
-});
-
-/**
- * Helper Functions
- */
-
-function generateUserId(xrplAddress) {
-    // Generate consistent user ID from XRPL address
-    const crypto = require('crypto');
-    return crypto.createHash('sha256').update(xrplAddress).digest('hex').substring(0, 28);
-}
-
-function generateEnhancedPayoutQR(address, amount, contestId) {
-    // Enhanced QR generation with better visual design
-    const qrData = `xrpl:${address}?amount=${amount}&memo=NUTS-Prize-${contestId}`;
+    const entryData = req.body;
     
-    // This would use a real QR library in production
-    // For now, return a base64 data URL
-    return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAAACXBIWXMAAA7EAAAOxAGVKw4bAAABnUlEQVR4nO3BMQEAAAjAoNu/tCE+IBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4A3AcAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-}
-
-console.log('🔥 Enhanced Cloud Functions module loaded');
-
-/**
- * Process Xaman authentication and create Firebase user
- */
-exports.processXamanAuth = functions.https.onCall(async (data, context) => {
-    try {
-        console.log('🔄 Processing Xaman authentication:', data);
-
-        const { payloadId, userAddress, signedTx } = data;
-
-        // Validate input
-        if (!payloadId || !userAddress) {
-            throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
-        }
-
-        // Validate XRPL address format
-        if (!userAddress.startsWith('r') || userAddress.length < 25) {
-            throw new functions.https.HttpsError('invalid-argument', 'Invalid XRPL address format');
-        }
-
-        // Check if user already exists
-        let user;
-        try {
-            user = await auth.getUserByEmail(`${userAddress}@nuts.local`);
-            console.log('✅ Existing user found:', user.uid);
-        } catch (error) {
-            // User doesn't exist, create new one
-            console.log('🔄 Creating new Firebase user...');
-            
-            user = await auth.createUser({
-                uid: generateUserId(userAddress),
-                email: `${userAddress}@nuts.local`,
-                displayName: userAddress,
-                emailVerified: true
-            });
-
-            // Create Firestore user document
-            await db.collection('users').doc(user.uid).set({
-                xrplAddress: userAddress,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
-                totalBets: 0,
-                totalWins: 0,
-                totalNutsWon: 0,
-                authMethod: 'xaman',
-                payloadHistory: [payloadId]
-            });
-
-            console.log('✅ New user created:', user.uid);
-        }
-
-        // Update last login
-        await db.collection('users').doc(user.uid).update({
-            lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
-            payloadHistory: admin.firestore.FieldValue.arrayUnion(payloadId)
-        });
-
-        // Generate custom token for Firebase authentication
-        const customToken = await auth.createCustomToken(user.uid, {
-            xrplAddress: userAddress,
-            authMethod: 'xaman'
-        });
-
-        console.log('✅ Custom token generated for user:', user.uid);
-
-        return {
-            success: true,
-            customToken: customToken,
-            userData: {
-                uid: user.uid,
-                xrplAddress: userAddress,
-                email: user.email
-            }
-        };
-
-    } catch (error) {
-        console.error('❌ Xaman authentication error:', error);
-        throw new functions.https.HttpsError('internal', error.message);
+    // Validate required fields
+    if (!entryData.picks || !entryData.contestDay) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
-});
 
-/**
- * Create a user bet
- */
-exports.createUserBet = functions.https.onCall(async (data, context) => {
-    try {
-        // Verify authentication
-        if (!context.auth) {
-            throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
-        }
+    // Add server timestamp
+    entryData.serverTimestamp = admin.firestore.FieldValue.serverTimestamp();
+    entryData.id = db.collection('contestEntries').doc().id;
 
-        console.log('💰 Creating bet for user:', context.auth.uid);
+    // Store in Firestore
+    await db.collection('contestEntries').doc(entryData.id).set(entryData);
 
-        const { contestId, gameId, selection, odds, amount, txHash } = data;
+    res.status(200).json({ 
+      success: true, 
+      entryId: entryData.id,
+      message: 'Contest entry created successfully' 
+    });
 
-        // Validate required fields
-        if (!contestId || !gameId || !selection) {
-            throw new functions.https.HttpsError('invalid-argument', 'Missing required bet fields');
-        }
+  } catch (error) {
+    console.error('Error creating contest entry:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
 
-        // Get user data
-        const userDoc = await db.collection('users').doc(context.auth.uid).get();
-        if (!userDoc.exists) {
-            throw new functions.https.HttpsError('not-found', 'User not found');
-        }
-
-        const userData = userDoc.data();
-
-        // Create bet document
-        const bet = {
-            userId: context.auth.uid,
-            userAddress: userData.xrplAddress,
-            contestId: contestId,
-            gameId: gameId,
-            selection: selection,
-            odds: odds || 'N/A',
-            amount: amount || 100,
-            txHash: txHash || null,
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            status: 'pending',
-            result: null
-        };
-
-        const betRef = await db.collection('bets').add(bet);
-
-        // Update user stats
-        await db.collection('users').doc(context.auth.uid).update({
-            totalBets: admin.firestore.FieldValue.increment(1),
-            lastBetAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-
-        console.log('✅ Bet created:', betRef.id);
-
-        return {
-            success: true,
-            betId: betRef.id,
-            bet: bet
-        };
-
-    } catch (error) {
-        console.error('❌ Create bet error:', error);
-        throw new functions.https.HttpsError('internal', error.message);
+// Get Contest Entries
+exports.getContestEntries = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'GET') {
+      return res.status(405).json({ error: 'Method not allowed' });
     }
-});
 
-/**
- * Generate payout QR code for admin
- */
-exports.generatePayoutQR = functions.https.onCall(async (data, context) => {
-    try {
-        // In production, you'd want to verify admin permissions here
-        console.log('💸 Generating payout QR:', data);
-
-        const { recipientAddress, amount, contestId, memo } = data;
-
-        if (!recipientAddress || !amount) {
-            throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
-        }
-
-        // Create Xaman payload for NUTS token transfer
-        const payloadData = {
-            txjson: {
-                TransactionType: 'Payment',
-                Destination: recipientAddress,
-                Amount: {
-                    currency: 'NUTS',
-                    value: amount.toString(),
-                    issuer: 'rNutsTokenIssuerAddressHere' // Replace with actual NUTS token issuer
-                },
-                Memos: memo ? [{
-                    Memo: {
-                        MemoData: Buffer.from(memo, 'utf8').toString('hex').toUpperCase()
-                    }
-                }] : undefined
-            },
-            options: {
-                submit: true,
-                expire: 10 // 10 minutes
-            }
-        };
-
-        // In production, you'd make actual Xaman API call here
-        // For now, return simulated data
-        const simulatedPayload = {
-            uuid: 'payout-' + Date.now(),
-            qr_png: generateSimulatedPayoutQR(recipientAddress, amount),
-            pushed: true,
-            expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
-        };
-
-        // Log payout attempt
-        await db.collection('payouts').add({
-            recipientAddress: recipientAddress,
-            amount: amount,
-            contestId: contestId,
-            memo: memo,
-            payloadId: simulatedPayload.uuid,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            status: 'pending'
-        });
-
-        console.log('✅ Payout QR generated');
-
-        return {
-            success: true,
-            qrData: simulatedPayload.qr_png,
-            payloadId: simulatedPayload.uuid
-        };
-
-    } catch (error) {
-        console.error('❌ Generate payout QR error:', error);
-        throw new functions.https.HttpsError('internal', error.message);
-    }
-});
-
-/**
- * Get contest results and update bet statuses
- */
-exports.resolveContest = functions.https.onCall(async (data, context) => {
-    try {
-        console.log('🏆 Resolving contest:', data);
-
-        const { contestId, gameResults } = data;
-
-        if (!contestId || !gameResults) {
-            throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
-        }
-
-        // Get all bets for this contest
-        const betsSnapshot = await db.collection('bets')
-            .where('contestId', '==', contestId)
-            .get();
-
-        const batch = db.batch();
-        let winnersCount = 0;
-        let losersCount = 0;
-
-        betsSnapshot.forEach(doc => {
-            const bet = doc.data();
-            const gameResult = gameResults[bet.gameId];
-            
-            if (gameResult) {
-                let result = 'loss';
-                if (gameResult.winner === bet.selection) {
-                    result = 'win';
-                    winnersCount++;
-                } else if (gameResult.status === 'postponed' || gameResult.status === 'cancelled') {
-                    result = 'push';
-                } else {
-                    losersCount++;
-                }
-
-                batch.update(doc.ref, {
-                    result: result,
-                    status: 'resolved',
-                    resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
-                    finalScore: gameResult.score
-                });
-
-                // Update user stats for wins
-                if (result === 'win') {
-                    const userRef = db.collection('users').doc(bet.userId);
-                    batch.update(userRef, {
-                        totalWins: admin.firestore.FieldValue.increment(1),
-                        totalNutsWon: admin.firestore.FieldValue.increment(bet.amount * 2) // 2x payout
-                    });
-                }
-            }
-        });
-
-        await batch.commit();
-
-        console.log(`✅ Contest resolved: ${winnersCount} winners, ${losersCount} losers`);
-
-        return {
-            success: true,
-            winnersCount: winnersCount,
-            losersCount: losersCount,
-            totalBets: betsSnapshot.size
-        };
-
-    } catch (error) {
-        console.error('❌ Resolve contest error:', error);
-        throw new functions.https.HttpsError('internal', error.message);
-    }
-});
-
-/**
- * Helper Functions
- */
-
-function generateUserId(xrplAddress) {
-    // Generate consistent user ID from XRPL address
-    return crypto.createHash('sha256').update(xrplAddress).digest('hex').substring(0, 28);
-}
-
-function generateSimulatedPayoutQR(address, amount) {
-    // Generate a simple base64 data URL for QR simulation
-    const canvas = createCanvas(256, 256);
-    const ctx = canvas.getContext('2d');
+    const { contestDay, sport, weekNumber } = req.query;
     
-    // Fill with white background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 256, 256);
+    let query = db.collection('contestEntries');
     
-    // Draw simple QR pattern
-    ctx.fillStyle = '#000000';
-    for (let i = 0; i < 256; i += 8) {
-        for (let j = 0; j < 256; j += 8) {
-            if ((i + j) % 16 === 0) {
-                ctx.fillRect(i, j, 8, 8);
-            }
-        }
+    if (contestDay) {
+      query = query.where('contestDay', '==', contestDay);
     }
     
-    // Add payout info as text overlay
-    ctx.fillStyle = '#ff0000';
-    ctx.font = '12px Arial';
-    ctx.fillText(`${amount} NUTS`, 10, 20);
-    ctx.fillText(`To: ${address.substring(0, 10)}...`, 10, 35);
+    if (sport) {
+      query = query.where('sport', '==', sport);
+    }
     
-    return canvas.toDataURL();
-}
+    if (weekNumber) {
+      query = query.where('weekNumber', '==', parseInt(weekNumber));
+    }
 
-function createCanvas(width, height) {
-    // Simplified canvas creation for server environment
-    return {
-        width: width,
-        height: height,
-        getContext: () => ({
-            fillStyle: '#ffffff',
-            fillRect: () => {},
-            font: '',
-            fillText: () => {}
-        }),
-        toDataURL: () => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+    const snapshot = await query.get();
+    const entries = [];
+    
+    snapshot.forEach(doc => {
+      entries.push({ id: doc.id, ...doc.data() });
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      entries: entries,
+      count: entries.length 
+    });
+
+  } catch (error) {
+    console.error('Error getting contest entries:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
+
+// Get Contest Stats
+exports.getContestStats = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    const { sport, contestDay, weekNumber } = req.query;
+    
+    let query = db.collection('contestEntries');
+    
+    if (sport) {
+      query = query.where('sport', '==', sport);
+    }
+    
+    if (contestDay) {
+      query = query.where('contestDay', '==', contestDay);
+    }
+    
+    if (weekNumber) {
+      query = query.where('weekNumber', '==', parseInt(weekNumber));
+    }
+
+    const snapshot = await query.get();
+    const entries = snapshot.docs.map(doc => doc.data());
+    
+    // Calculate average score if entries have results
+    let avgScore = 0;
+    const entriesWithScores = entries.filter(e => e.score !== undefined && e.score !== null);
+    if (entriesWithScores.length > 0) {
+      avgScore = entriesWithScores.reduce((sum, e) => sum + (e.score || 0), 0) / entriesWithScores.length;
+    }
+    
+    const stats = {
+      totalEntries: entries.length,
+      prizePool: entries.length * 50, // 50 NUTS per entry
+      avgScore: avgScore,
+      uniqueUsers: new Set(entries.map(e => e.userId || e.username)).size,
+      sports: {
+        mlb: entries.filter(e => e.sport === 'mlb' || !e.sport).length,
+        nfl: entries.filter(e => e.sport === 'nfl').length
+      }
     };
-}
 
-console.log('🔥 Cloud Functions module loaded');
+    res.status(200).json({ 
+      success: true, 
+      stats: stats 
+    });
+
+  } catch (error) {
+    console.error('Error getting contest stats:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
+
+// Health Check
+exports.healthCheck = functions.https.onRequest(corsHandler((req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    service: 'NUTS Sports Pickem API'
+  });
+}));
+
+// DAILY CONTEST FUNCTIONS
+
+// Create or Update Daily Contest
+exports.createDailyContest = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const contestData = req.body;
+    
+    // Validate required fields
+    if (!contestData.contestDate || !contestData.choices) {
+      return res.status(400).json({ error: 'Missing required fields: contestDate, choices' });
+    }
+
+    // Add server timestamp
+    contestData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+    if (!contestData.createdAt) {
+      contestData.createdAt = admin.firestore.FieldValue.serverTimestamp();
+    }
+
+    // Use contestDate as document ID for easy retrieval
+    const contestId = contestData.contestDate;
+    
+    // Store in Firestore
+    await db.collection('dailyContests').doc(contestId).set(contestData, { merge: true });
+
+    res.status(200).json({ 
+      success: true, 
+      contestId: contestId,
+      message: 'Daily contest saved successfully' 
+    });
+
+  } catch (error) {
+    console.error('Error creating daily contest:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
+
+// Get Daily Contest by Date
+exports.getDailyContest = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'GET') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { date } = req.query;
+    
+    if (!date) {
+      return res.status(400).json({ error: 'Date parameter required' });
+    }
+
+    const doc = await db.collection('dailyContests').doc(date).get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No contest found for this date' 
+      });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      contest: { id: doc.id, ...doc.data() }
+    });
+
+  } catch (error) {
+    console.error('Error getting daily contest:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
+
+// Create Daily Contest Entry
+exports.createDailyContestEntry = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const entryData = req.body;
+    
+    // Validate required fields
+    if (!entryData.picks || !entryData.contestDate) {
+      return res.status(400).json({ error: 'Missing required fields: picks, contestDate' });
+    }
+
+    // Check if contest exists and is active
+    const contestDoc = await db.collection('dailyContests').doc(entryData.contestDate).get();
+    if (!contestDoc.exists) {
+      return res.status(404).json({ error: 'Contest not found for this date' });
+    }
+
+    const contest = contestDoc.data();
+    if (contest.status !== 'active') {
+      return res.status(400).json({ error: 'Contest is not accepting entries' });
+    }
+
+    // Add server timestamp and entry ID
+    entryData.serverTimestamp = admin.firestore.FieldValue.serverTimestamp();
+    entryData.id = db.collection('dailyContestEntries').doc().id;
+    entryData.sport = 'daily';
+
+    // Store in Firestore
+    await db.collection('dailyContestEntries').doc(entryData.id).set(entryData);
+
+    res.status(200).json({ 
+      success: true, 
+      entryId: entryData.id,
+      message: 'Daily contest entry created successfully' 
+    });
+
+  } catch (error) {
+    console.error('Error creating daily contest entry:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
+
+// Get Daily Contest Entries
+exports.getDailyContestEntries = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'GET') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { contestDate } = req.query;
+    
+    if (!contestDate) {
+      return res.status(400).json({ error: 'contestDate parameter required' });
+    }
+
+    const snapshot = await db.collection('dailyContestEntries')
+      .where('contestDate', '==', contestDate)
+      .get();
+    
+    const entries = [];
+    snapshot.forEach(doc => {
+      entries.push({ id: doc.id, ...doc.data() });
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      entries: entries,
+      count: entries.length 
+    });
+
+  } catch (error) {
+    console.error('Error getting daily contest entries:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
+
+// Resolve Daily Contest (Admin sets winners)
+exports.resolveDailyContest = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { contestDate, choiceResults } = req.body;
+    
+    if (!contestDate || !choiceResults) {
+      return res.status(400).json({ error: 'Missing required fields: contestDate, choiceResults' });
+    }
+
+    // Update contest status to resolved
+    await db.collection('dailyContests').doc(contestDate).update({
+      status: 'resolved',
+      resolvedAt: admin.firestore.FieldValue.serverTimestamp(),
+      choiceResults: choiceResults
+    });
+
+    // Get all entries for this contest
+    const entriesSnapshot = await db.collection('dailyContestEntries')
+      .where('contestDate', '==', contestDate)
+      .get();
+
+    // Calculate scores for each entry
+    const batch = db.batch();
+    
+    entriesSnapshot.forEach(doc => {
+      const entry = doc.data();
+      let score = 0;
+      
+      // Calculate score based on correct picks
+      Object.keys(entry.picks).forEach(choiceId => {
+        const userPick = entry.picks[choiceId];
+        const correctAnswer = choiceResults[choiceId];
+        if (userPick === correctAnswer) {
+          score += 1;
+        }
+      });
+      
+      // Update entry with score
+      batch.update(doc.ref, {
+        score: score,
+        scoredAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    await batch.commit();
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Daily contest resolved and scores calculated',
+      entriesUpdated: entriesSnapshot.size
+    });
+
+  } catch (error) {
+    console.error('Error resolving daily contest:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}));
+
+// Update Entry Score - For Admin Panel
+exports.updateEntryScore = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { entryId, score, contestDate } = req.body;
+    
+    // Validate required fields
+    if (!entryId || score === undefined || score === null) {
+      return res.status(400).json({ error: 'Missing required fields: entryId, score' });
+    }
+
+    // Validate score is a number
+    const numericScore = parseInt(score);
+    if (isNaN(numericScore)) {
+      return res.status(400).json({ error: 'Score must be a valid number' });
+    }
+
+    console.log(`Updating entry ${entryId} with score ${numericScore}`);
+
+    // Find and update the entry in Firestore
+    const entryDoc = await db.collection('contestEntries').doc(entryId).get();
+    
+    if (!entryDoc.exists) {
+      return res.status(404).json({ error: 'Contest entry not found' });
+    }
+
+    // Update the entry with the new score
+    await db.collection('contestEntries').doc(entryId).update({
+      score: numericScore,
+      scoredAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    console.log(`Successfully updated entry ${entryId} with score ${numericScore}`);
+
+    res.status(200).json({ 
+      success: true, 
+      message: `Entry ${entryId} updated with score ${numericScore}`,
+      entryId: entryId,
+      score: numericScore
+    });
+
+  } catch (error) {
+    console.error('Error updating entry score:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error',
+      details: error.message 
+    });
+  }
+}));
+
+// Update Entry Details - For Admin Panel with Complete Entry Data
+exports.updateEntryDetails = functions.https.onRequest(corsHandler(async (req, res) => {
+  try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { entryId, entryData, contestDate } = req.body;
+    
+    // Validate required fields
+    if (!entryId || !entryData) {
+      return res.status(400).json({ error: 'Missing required fields: entryId, entryData' });
+    }
+
+    console.log(`Updating entry ${entryId} with complete details`);
+
+    // Find and update the entry in Firestore
+    const entryDoc = await db.collection('contestEntries').doc(entryId).get();
+    
+    if (!entryDoc.exists) {
+      return res.status(404).json({ error: 'Contest entry not found' });
+    }
+
+    // Prepare update data - keep existing fields and update with new data
+    const updateData = {
+      ...entryData,
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    // Ensure score is numeric if provided
+    if (updateData.score !== undefined) {
+      updateData.score = parseInt(updateData.score) || 0;
+    }
+
+    await db.collection('contestEntries').doc(entryId).update(updateData);
+
+    console.log(`Successfully updated entry ${entryId} with complete details`);
+
+    res.status(200).json({ 
+      success: true, 
+      message: `Entry ${entryId} updated with complete details`,
+      entryId: entryId,
+      updatedFields: Object.keys(updateData)
+    });
+
+  } catch (error) {
+    console.error('Error updating entry details:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error',
+      details: error.message 
+    });
+  }
+}));

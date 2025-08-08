@@ -334,6 +334,17 @@ class ContestBackendEnhanced extends ContestBackend {
                 } catch (error) {
                     console.error(`❌ Failed to save score for entry ${updatedEntry.id}:`, error);
                 }
+                
+                // Store enhanced entry details in session for display purposes
+                if (!window.enhancedEntryResults) {
+                    window.enhancedEntryResults = {};
+                }
+                if (!window.enhancedEntryResults[contestDate]) {
+                    window.enhancedEntryResults[contestDate] = {};
+                }
+                window.enhancedEntryResults[contestDate][updatedEntry.id] = updatedEntry;
+                console.log(`💾 Stored enhanced entry details for ${updatedEntry.id} in session`);
+                
             } else if (this.firebaseEnabled) {
                 // Using local Firebase
                 await this.updateFirebaseEntry(updatedEntry);

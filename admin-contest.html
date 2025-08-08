@@ -267,11 +267,8 @@
                 
                 <!-- Main Action Buttons -->
                 <div style="display: flex; gap: 15px; margin-bottom: 15px; padding: 15px; background: #2a2a2a; border-radius: 8px;">
-                    <button onclick="calculateAndUpdateScores()" class="refresh-btn" style="background: #FF9800; flex: 1;">
-                        🧮 Calculate Scores & Update Table
-                    </button>
-                    <button onclick="resolveContestAndShowWinners()" class="refresh-btn" style="background: #4CAF50; flex: 1;">
-                        🏆 Resolve Contest & Show Winners
+                    <button onclick="calculateAndUpdateScores()" class="refresh-btn" style="background: #FFD700; color: #000; flex: 1;">
+                        📊 Update Scores and Table
                     </button>
                 </div>
             </div>
@@ -347,15 +344,7 @@
         <div id="winners-display" style="background: #1a1a1a; border: 2px solid #4CAF50; border-radius: 12px; padding: 20px; margin-bottom: 20px; display: none;">
             <h2 style="color: #4CAF50; text-align: center; margin: 0 0 20px 0;">🏆 Contest Winners 🏆</h2>
             <div id="winners-content">
-                <!-- Winner details will be populated here -->
-            </div>
-            <div style="text-align: center; margin-top: 20px;">
-                <button onclick="hideWinners()" style="background: #666; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">
-                    Hide Winners
-                </button>
-                <button onclick="exportWinners()" style="background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin-left: 10px;">
-                    📋 Export Winners List
-                </button>
+                <!-- Winner details and action buttons will be populated here dynamically -->
             </div>
         </div>
         
@@ -676,6 +665,24 @@
                         console.warn('⚠️ Failed to enrich entries, using original data:', enrichError);
                         enrichedEntries = currentEntries;
                     }
+                }
+                
+                // Merge with enhanced results if available from previous score calculations
+                if (window.enhancedEntryResults && window.enhancedEntryResults[contestDate]) {
+                    console.log('🔄 Merging with enhanced entry results from session...');
+                    enrichedEntries = enrichedEntries.map(entry => {
+                        const enhancedResult = window.enhancedEntryResults[contestDate][entry.id];
+                        if (enhancedResult) {
+                            console.log(`📊 Merging enhanced results for ${entry.userName}: score ${enhancedResult.score}, ${enhancedResult.gamesDetailed?.length || 0} detailed games`);
+                            return {
+                                ...entry,
+                                ...enhancedResult
+                            };
+                        }
+                        return entry;
+                    });
+                    currentEntries = enrichedEntries;
+                    console.log('✅ Enhanced results merged successfully');
                 }
                 
                 // Use enhanced display if available, otherwise fall back to standard
@@ -2861,23 +2868,31 @@
                 console.log('📊 Reloading contest data with final scores...');
                 await loadContestData();
 
-                // 4. Display winners using the calculated results
-                console.log('🎉 Displaying winners...');
-                const prizePool = currentEntries.length * 50;
-                const winners = result.winners || result || [];
-                displayContestWinners(winners, contestDate, prizePool);
+                // 4. Calculate winners with proper backend logic
+                console.log('� Calculating contest winners...');
+                if (!window.contestBackend) {
+                    window.contestBackend = new ContestBackend();
+                    await window.contestBackend.init();
+                }
+                
+                const winners = window.contestBackend.calculateWinners(currentEntries, gameResults.lastGameRuns || 0);
+                console.log('🎯 Winners calculated:', winners);
 
-                // 5. Update entries table to show final results
+                // 5. Display winners banner
+                if (winners && winners.winners && winners.winners.length > 0) {
+                    console.log('🎉 Displaying winners banner...');
+                    const prizePool = currentEntries.length * 50;
+                    displayContestWinners(winners.winners, contestDate, prizePool);
+                } else {
+                    console.log('⚠️ No winners to display - insufficient entries or incomplete games');
+                }
+
+                // 6. Update entries table to show final results
                 updateEntriesTable(currentEntries);
 
-                // 6. Mark contest as completed (optional)
-                console.log('🏁 Marking contest as completed...');
-                if (backend) {
-                    const completeResult = await backend.completeContest(contestDate);
-                    if (completeResult.success) {
-                        console.log(`✅ Contest completed! ${completeResult.entriesCompleted} entries marked as completed.`);
-                    }
-                }
+
+                console.log('� Displaying contest winners...');
+
 
                 console.log('✅ Contest resolved successfully!');
                 alert(`✅ Contest resolved successfully!\n\nWinners determined and displayed.\nScores have been saved to the database.`);
@@ -3209,6 +3224,128 @@
                 }
             }
         };
+        
+        // Function to show all picks for an entry
+        function showAllPicks(entryId) {
+            const entry = currentEntries.find(e => e.id === entryId);
+            if (!entry || !entry.gamesDetailed) {
+                console.warn('Entry or game details not found:', entryId);
+                return;
+            }
+            
+            // Create modal if it doesn't exist
+            let modal = document.getElementById('all-picks-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'all-picks-modal';
+                modal.style.cssText = `
+                    display: none;
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    z-index: 1000;
+                    overflow-y: auto;
+                `;
+                document.body.appendChild(modal);
+            }
+            
+            // Generate all picks display
+            const allPicksHtml = entry.gamesDetailed.map(game => {
+                const isCorrect = game.isCorrect !== undefined ? game.isCorrect : 
+                                (game.result === 'win' || game.result === 'correct');
+                const isIncorrect = game.isCorrect === false || 
+                                  (game.result === 'loss' || game.result === 'incorrect');
+                
+                let statusClass = 'pending';
+                let statusIcon = '⏳';
+                let statusText = game.status === 'completed' ? 'Final' : 'Pending';
+                
+                if (isCorrect) {
+                    statusClass = 'correct';
+                    statusIcon = '✅';
+                    statusText = 'WIN';
+                } else if (isIncorrect) {
+                    statusClass = 'incorrect';
+                    statusIcon = '❌';
+                    statusText = `LOSS${game.actualWinner ? ` (${game.actualWinner})` : ''}`;
+                }
+                
+                return `
+                    <div class="all-picks-item ${statusClass}" style="
+                        margin: 8px;
+                        padding: 12px;
+                        border: 1px solid #444;
+                        border-radius: 8px;
+                        background: #2a2a2a;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        min-width: 300px;
+                    ">
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; color: #ffa500; margin-bottom: 4px;">
+                                ${game.pickedTeam || game.pickedDirection || 'Unknown'}
+                            </div>
+                            <div style="font-size: 0.9em; color: #ccc;">
+                                ${game.awayTeam || 'Away'} @ ${game.homeTeam || 'Home'}
+                            </div>
+                            ${game.actualScore ? `<div style="font-size: 0.8em; color: #888;">${game.actualScore}</div>` : ''}
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 1.2em; margin-bottom: 4px;">${statusIcon}</div>
+                            <div style="font-size: 0.8em; color: #ccc;">${statusText}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            modal.innerHTML = `
+                <div style="
+                    background: #1a1a1a;
+                    margin: 50px auto;
+                    padding: 20px;
+                    border: 2px solid #ffa500;
+                    border-radius: 12px;
+                    max-width: 800px;
+                    width: 90%;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                ">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: #ffa500; margin: 0;">All Picks for ${entry.userName || entry.twitterHandle}</h3>
+                        <button onclick="closeAllPicksModal()" style="
+                            background: #ff4444;
+                            color: white;
+                            border: none;
+                            padding: 8px 16px;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 16px;
+                        ">✕ Close</button>
+                    </div>
+                    <div style="margin-bottom: 15px; color: #ccc;">
+                        <strong>Score:</strong> ${entry.score || 0} / ${entry.gamesDetailed.length} 
+                        <span style="margin-left: 20px;"><strong>Tiebreaker:</strong> ${entry.tiebreakerRuns || 'N/A'} runs</span>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        ${allPicksHtml}
+                    </div>
+                </div>
+            `;
+            
+            modal.style.display = 'block';
+        }
+        
+        // Function to close the all picks modal
+        function closeAllPicksModal() {
+            const modal = document.getElementById('all-picks-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
     
     </script>
 </body>
