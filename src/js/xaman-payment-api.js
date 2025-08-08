@@ -4,10 +4,10 @@
  */
 
 class XamanPaymentAPI {
-    constructor() {
+    constructor(entryFee = '50') {
         this.contestWallet = 'rN2K1Tv6LEM94YN8Kxfe3QyWcGPQNgsD6d';
         this.nutsIssuer = 'rBpdegD7kqHdczjKzTKNEUZj1Fg1eYZRbe';
-        this.entryFee = '50';
+        this.entryFee = entryFee;
         
         // Use environment-based URL
         this.serverUrl = window.ENV_CONFIG ? window.ENV_CONFIG.api.baseUrl : 'http://localhost:3001';
@@ -232,7 +232,7 @@ class XamanPaymentAPI {
                 </div>
                 
                 <p style="color: #ff6b00; margin-top: 15px; font-size: 18px; font-weight: bold;">
-                    50 NUTS Entry Fee
+                    ${this.entryFee} NUTS Entry Fee
                 </p>
                 <p id="payment-status" style="color: #888; margin-top: 10px; font-size: 14px;">
                     Scan QR code with Xaman wallet...
@@ -277,7 +277,7 @@ class XamanPaymentAPI {
                 
                 <div style="background: #2a2a2a; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                     <p style="color: #ff6b00; font-size: 24px; font-weight: bold; margin: 0;">
-                        50 NUTS
+                        ${this.entryFee} NUTS
                     </p>
                     <p style="color: #888; font-size: 14px; margin: 5px 0 0 0;">
                         Entry Fee
@@ -392,7 +392,7 @@ class XamanPaymentAPI {
                 
                 <div style="background: #ff6b00; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                     <p style="margin: 5px 0; font-size: 32px; font-weight: bold;">
-                        50 NUTS
+                        ${this.entryFee} NUTS
                     </p>
                     <p style="margin: 5px 0;">
                         Entry Fee
@@ -414,7 +414,7 @@ class XamanPaymentAPI {
                                 (Make sure it shows NUTS, not XRP!)
                             </div>
                         </li>
-                        <li>Enter amount: <strong>50</strong></li>
+                        <li>Enter amount: <strong>${this.entryFee}</strong></li>
                         <li>Add Destination Tag: <strong>2024</strong></li>
                         <li>Review and slide to send</li>
                     </ol>
@@ -508,7 +508,15 @@ class XamanPaymentAPI {
 }
 
 // Create instance and set all references
-const paymentInstance = new XamanPaymentAPI();
+// Detect if we're on the NFL contest page to use 5000 NUTS instead of 50
+const isNFLContest = window.location.pathname.includes('nfl-contest') || 
+                    window.location.href.includes('nfl-contest') ||
+                    document.title.includes('NFL');
+
+const entryFee = isNFLContest ? '5000' : '50';
+const paymentInstance = new XamanPaymentAPI(entryFee);
+
+console.log(`✅ Xaman Payment API loaded - Entry Fee: ${entryFee} NUTS (NFL: ${isNFLContest})`);
 
 // Set ALL window references to ensure compatibility
 window.xamanPaymentAPI = paymentInstance;

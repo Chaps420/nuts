@@ -1,0 +1,33 @@
+{
+  "extractedAt": "2025-08-08T03:35:14.989Z",
+  "method": "Public API (Limited Data)",
+  "overallStats": {
+    "totalEntries": 32,
+    "prizePool": 1600,
+    "avgScore": 6.333333333333333,
+    "uniqueUsers": 31,
+    "sports": {
+      "mlb": 19,
+      "nfl": 13
+    }
+  },
+  "week1Stats": {
+    "totalEntries": 10,
+    "prizePool": 500,
+    "avgScore": 0,
+    "uniqueUsers": 10,
+    "sports": {
+      "mlb": 0,
+      "nfl": 10
+    }
+  },
+  "estimatedNFLEntries": 13,
+  "estimatedWeek1NFLEntries": 10,
+  "note": "This extraction uses public API which provides limited data. Individual user details are not available through this method.",
+  "recommendedAction": "DELETE_WEEK_1_ENTRIES",
+  "deletionInstructions": {
+    "method1": "Use Firebase Console -> Firestore -> contestEntries collection -> filter by sport=nfl AND weekNumber=1",
+    "method2": "Use Firebase Admin SDK with proper credentials",
+    "method3": "Contact system administrator for bulk deletion"
+  }
+}

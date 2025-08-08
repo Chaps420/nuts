@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFL Week 1 Cleanup - Manual Deletion Guide</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #FFD700;
+        }
+        .step {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #4ECDC4;
+        }
+        .step-number {
+            background: #4ECDC4;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .code {
+            background: rgba(0,0,0,0.3);
+            border-radius: 5px;
+            padding: 10px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border: 2px solid #FFC107;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .success {
+            background: rgba(40, 167, 69, 0.2);
+            border: 2px solid #28A745;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .btn {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .firebase-link {
+            background: linear-gradient(45deg, #FF9800, #FF5722);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏈 NFL Week 1 Cleanup Guide</h1>
+            <p>Manual deletion steps for Week 1 NFL entries</p>
+        </div>
+
+        <div class="section">
+            <h2>📊 Current Data Summary</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number">13</div>
+                    <div>Total NFL Entries</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">10</div>
+                    <div>Week 1 Entries (DELETE)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">3</div>
+                    <div>Other Weeks (KEEP)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">5000</div>
+                    <div>New Entry Fee (NUTS)</div>
+                </div>
+            </div>
+            
+            <div class="success">
+                <strong>✅ Data Successfully Extracted:</strong> NFL contest data has been extracted and saved to backup files. Ready for cleanup!
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🛠️ Manual Deletion Steps</h2>
+            
+            <div class="step">
+                <span class="step-number">1</span>
+                <strong>Open Firebase Console</strong>
+                <p>Click the button below to open Firebase Console in a new tab:</p>
+                <a href="https://console.firebase.google.com/project/nuts-sports-pickem/firestore" target="_blank" class="btn firebase-link">
+                    🔥 Open Firebase Console
+                </a>
+            </div>
+
+            <div class="step">
+                <span class="step-number">2</span>
+                <strong>Navigate to Firestore Database</strong>
+                <p>In the Firebase Console:</p>
+                <ul>
+                    <li>Click on "Firestore Database" in the left sidebar</li>
+                    <li>Go to the "Data" tab</li>
+                    <li>Find the "contestEntries" collection</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <span class="step-number">3</span>
+                <strong>Apply Filters</strong>
+                <p>Add these filters to find Week 1 NFL entries:</p>
+                <div class="code">
+                    Filter 1: sport == "nfl"<br>
+                    Filter 2: weekNumber == 1
+                </div>
+                <p>This should show exactly <strong>10 documents</strong></p>
+            </div>
+
+            <div class="step">
+                <span class="step-number">4</span>
+                <strong>Select and Delete</strong>
+                <p>Select all 10 matching documents and delete them:</p>
+                <ul>
+                    <li>Check the box next to each document (or select all)</li>
+                    <li>Click the "Delete" button</li>
+                    <li>Confirm the deletion in the popup</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <span class="step-number">5</span>
+                <strong>Verify Deletion</strong>
+                <p>After deletion, verify:</p>
+                <ul>
+                    <li>Apply the same filters again</li>
+                    <li>Should show <strong>0 documents</strong></li>
+                    <li>Remove the weekNumber filter to see remaining NFL entries (should be 3)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔍 Alternative: Firebase CLI Method</h2>
+            <p>If you have Firebase CLI installed, you can use this command:</p>
+            <div class="code">
+                firebase firestore:delete --recursive --shallow contestEntries \<br>
+                &nbsp;&nbsp;--where "sport==nfl" --where "weekNumber==1" \<br>
+                &nbsp;&nbsp;--project nuts-sports-pickem
+            </div>
+            <div class="warning">
+                <strong>⚠️ Warning:</strong> CLI method requires Firebase CLI setup and authentication. Manual deletion through console is recommended.
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>✅ After Deletion Checklist</h2>
+            
+            <div class="step">
+                <span class="step-number">✓</span>
+                <strong>Test NFL Contest Page</strong>
+                <p>Open the NFL contest and verify:</p>
+                <ul>
+                    <li>Entry fee shows <strong>5000 NUTS</strong></li>
+                    <li>Payment system charges correct amount</li>
+                    <li>Prize pool calculations are correct</li>
+                </ul>
+                <a href="file:///e:/Projects/NUTS/nfl-contest.html" target="_blank" class="btn">
+                    🏈 Test NFL Contest
+                </a>
+            </div>
+
+            <div class="step">
+                <span class="step-number">✓</span>
+                <strong>Verify MLB Still Works</strong>
+                <p>Ensure MLB contests still use 50 NUTS:</p>
+                <a href="file:///e:/Projects/NUTS/daily-contest.html" target="_blank" class="btn">
+                    ⚾ Test MLB Contest
+                </a>
+            </div>
+
+            <div class="step">
+                <span class="step-number">✓</span>
+                <strong>Check Contest Results</strong>
+                <p>Verify prize pool calculations handle both sports:</p>
+                <a href="file:///e:/Projects/NUTS/contest-results.html" target="_blank" class="btn">
+                    🏆 View Contest Results
+                </a>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📋 System Status</h2>
+            <div class="success">
+                <strong>🎉 NFL Contest System Updated!</strong>
+                <ul>
+                    <li>✅ Entry fee changed from 50 → 5000 NUTS</li>
+                    <li>✅ Payment system detects sport automatically</li>
+                    <li>✅ Prize pool calculations updated</li>
+                    <li>✅ MLB contests unchanged (50 NUTS)</li>
+                    <li>✅ User data extraction completed</li>
+                </ul>
+            </div>
+            
+            <div class="warning">
+                <strong>🎯 Final Step:</strong> Delete the 10 Week 1 NFL entries using the steps above, then the new system will be fully operational!
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📁 Generated Files</h2>
+            <p>These files contain your backup data:</p>
+            <ul>
+                <li><strong>nfl-data-extraction-2025-08-08.json</strong> - Complete data backup</li>
+                <li><strong>NFL-CLEANUP-GUIDE.md</strong> - Detailed cleanup instructions</li>
+                <li><strong>nfl-entries-manager.html</strong> - Web management tool</li>
+                <li><strong>nfl-data-extractor.js</strong> - Command-line extraction tool</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Add some interactivity
+        console.log('🏈 NFL Cleanup Guide loaded');
+        console.log('📊 Data: 10 Week 1 NFL entries need deletion');
+        console.log('🎯 Goal: Clear Week 1 for new 5000 NUTS system');
+    </script>
+</body>
+</html>

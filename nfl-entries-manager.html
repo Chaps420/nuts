@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFL Entries Extractor & Cleaner</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .btn {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .output {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #FFD700;
+        }
+        .warning {
+            background: rgba(255, 193, 7, 0.2);
+            border: 2px solid #FFC107;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .success {
+            background: rgba(40, 167, 69, 0.2);
+            border: 2px solid #28A745;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏈 NFL Entries Manager</h1>
+            <p>Extract current NFL entries and clean Week 1 data</p>
+        </div>
+
+        <div class="section">
+            <h2>📊 Current Status</h2>
+            <div class="stats" id="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-entries">-</div>
+                    <div>Total NFL Entries</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="week1-entries">-</div>
+                    <div>Week 1 Entries</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="unique-users">-</div>
+                    <div>Unique Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="total-weeks">-</div>
+                    <div>Weeks with Data</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔍 Step 1: Extract Data</h2>
+            <button class="btn" onclick="loadNFLData()">Load NFL Entries</button>
+            <button class="btn" onclick="downloadBackup()" id="download-btn" disabled>Download Backup JSON</button>
+            <div class="output" id="load-output"></div>
+        </div>
+
+        <div class="section">
+            <h2>🗑️ Step 2: Clean Week 1</h2>
+            <div class="warning">
+                <strong>⚠️ Warning:</strong> This will permanently delete all Week 1 NFL entries!
+                Make sure you've downloaded the backup first.
+            </div>
+            <button class="btn" onclick="deleteWeek1Entries()" id="delete-btn" disabled style="background: linear-gradient(45deg, #FF4444, #CC0000);">Delete Week 1 Entries</button>
+            <div class="output" id="delete-output"></div>
+        </div>
+
+        <div class="section">
+            <h2>📋 Entry Details</h2>
+            <div class="output" id="details-output"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
+    
+    <!-- Local Config and Integration -->
+    <script src="config/config-browser.js"></script>
+
+    <script>
+        let nflEntries = [];
+        let week1Entries = [];
+        let db = null;
+
+        // Initialize Firebase directly
+        async function initFirebase() {
+            try {
+                console.log('🔥 Initializing Firebase directly...');
+                
+                // Wait for config to load
+                let attempts = 0;
+                while (typeof window.config === 'undefined' && attempts < 50) {
+                    console.log('⏳ Waiting for config...');
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                if (typeof window.config === 'undefined') {
+                    throw new Error('Config not loaded after waiting');
+                }
+
+                // Initialize Firebase with config
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(window.config.firebase);
+                }
+                
+                db = firebase.firestore();
+                console.log('✅ Firebase initialized successfully');
+                return true;
+            } catch (error) {
+                console.error('❌ Firebase initialization failed:', error);
+                return false;
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initFirebase();
+        });
+
+        async function loadNFLData() {
+            const output = document.getElementById('load-output');
+            const downloadBtn = document.getElementById('download-btn');
+            
+            try {
+                output.textContent = '🔍 Loading NFL entries from Firestore...\n';
+                
+                if (!db) {
+                    throw new Error('Firebase not initialized. Please wait for initialization to complete.');
+                }
+
+                // Query NFL entries directly from Firestore
+                const snapshot = await db.collection('contestEntries')
+                    .where('sport', '==', 'nfl')
+                    .get();
+
+                nflEntries = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    nflEntries.push({
+                        documentId: doc.id,
+                        ...data,
+                        timestamp: data.timestamp?.toDate?.() || data.timestamp
+                    });
+                });
+
+                // Analyze data
+                const byWeek = {};
+                week1Entries = [];
+                
+                nflEntries.forEach(entry => {
+                    const week = entry.weekNumber || 'unknown';
+                    if (!byWeek[week]) byWeek[week] = [];
+                    byWeek[week].push(entry);
+                    
+                    if (entry.weekNumber === 1 || entry.weekNumber === '1') {
+                        week1Entries.push(entry);
+                    }
+                });
+
+                // Update stats
+                document.getElementById('total-entries').textContent = nflEntries.length;
+                document.getElementById('week1-entries').textContent = week1Entries.length;
+                document.getElementById('unique-users').textContent = new Set(nflEntries.map(e => e.userId || e.username || e.walletAddress)).size;
+                document.getElementById('total-weeks').textContent = Object.keys(byWeek).length;
+
+                // Show summary
+                output.textContent += `✅ Loaded ${nflEntries.length} NFL entries\n`;
+                output.textContent += `📊 Week breakdown:\n`;
+                Object.keys(byWeek).sort().forEach(week => {
+                    output.textContent += `   Week ${week}: ${byWeek[week].length} entries\n`;
+                });
+                output.textContent += `\n🎯 Week 1 entries to delete: ${week1Entries.length}\n`;
+
+                // Show user details for Week 1
+                if (week1Entries.length > 0) {
+                    const detailsOutput = document.getElementById('details-output');
+                    detailsOutput.textContent = '📋 Week 1 User Details:\n\n';
+                    week1Entries.forEach((entry, i) => {
+                        detailsOutput.textContent += `${i+1}. ${entry.username || entry.userId || 'Unknown'}\n`;
+                        detailsOutput.textContent += `   Wallet: ${entry.walletAddress || 'N/A'}\n`;
+                        detailsOutput.textContent += `   Twitter: ${entry.twitterHandle || 'N/A'}\n`;
+                        detailsOutput.textContent += `   Score: ${entry.score || 'N/A'}\n`;
+                        detailsOutput.textContent += `   Timestamp: ${entry.timestamp || 'N/A'}\n`;
+                        detailsOutput.textContent += `   Doc ID: ${entry.documentId}\n\n`;
+                    });
+                }
+
+                downloadBtn.disabled = false;
+                document.getElementById('delete-btn').disabled = false;
+
+            } catch (error) {
+                output.textContent += `❌ Error: ${error.message}\n`;
+                console.error('Error loading NFL data:', error);
+                
+                if (error.message.includes('permissions') || error.message.includes('Missing or insufficient')) {
+                    output.textContent += '\n💡 Note: This requires Firebase authentication.\n';
+                    output.textContent += 'Alternative: Use the data already extracted with nfl-data-extractor.js\n';
+                }
+            }
+        }
+
+        function downloadBackup() {
+            const backupData = {
+                extractedAt: new Date().toISOString(),
+                totalEntries: nflEntries.length,
+                week1EntriesToDelete: week1Entries.length,
+                week1Entries: week1Entries,
+                allEntries: nflEntries
+            };
+
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `nfl-entries-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            document.getElementById('load-output').textContent += '💾 Backup file downloaded!\n';
+        }
+
+        async function deleteWeek1Entries() {
+            const output = document.getElementById('delete-output');
+            const deleteBtn = document.getElementById('delete-btn');
+            
+            if (week1Entries.length === 0) {
+                output.textContent = '❌ No Week 1 entries to delete. Load data first.\n';
+                return;
+            }
+
+            if (!confirm(`⚠️ Are you sure you want to delete ${week1Entries.length} Week 1 NFL entries?\n\nThis action cannot be undone!`)) {
+                return;
+            }
+
+            try {
+                deleteBtn.disabled = true;
+                output.textContent = `🗑️ Deleting ${week1Entries.length} Week 1 entries...\n\n`;
+
+                if (!db) {
+                    throw new Error('Firebase not initialized');
+                }
+
+                let deleted = 0;
+                let failed = 0;
+
+                for (const entry of week1Entries) {
+                    try {
+                        await db.collection('contestEntries').doc(entry.documentId).delete();
+                        deleted++;
+                        output.textContent += `✅ Deleted ${deleted}/${week1Entries.length}: ${entry.username || entry.userId || entry.documentId}\n`;
+                    } catch (error) {
+                        failed++;
+                        output.textContent += `❌ Failed to delete ${entry.documentId}: ${error.message}\n`;
+                    }
+                }
+
+                output.textContent += `\n🎉 Deletion complete!\n`;
+                output.textContent += `   ✅ Successfully deleted: ${deleted}\n`;
+                output.textContent += `   ❌ Failed to delete: ${failed}\n`;
+                
+                // Update stats
+                document.getElementById('week1-entries').textContent = '0';
+                document.getElementById('total-entries').textContent = nflEntries.length - deleted;
+
+            } catch (error) {
+                output.textContent += `❌ Error during deletion: ${error.message}\n`;
+                console.error('Error deleting entries:', error);
+                
+                if (error.message.includes('permissions') || error.message.includes('Missing or insufficient')) {
+                    output.textContent += '\n💡 Alternative deletion methods:\n';
+                    output.textContent += '1. Firebase Console: Go to Firestore -> contestEntries -> filter by sport="nfl" AND weekNumber=1\n';
+                    output.textContent += '2. Use Firebase Admin SDK with proper credentials\n';
+                    output.textContent += '3. Contact system administrator\n';
+                }
+                
+                deleteBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

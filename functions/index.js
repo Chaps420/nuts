@@ -136,7 +136,11 @@ exports.getContestStats = functions.https.onRequest(corsHandler(async (req, res)
     
     const stats = {
       totalEntries: entries.length,
-      prizePool: entries.length * 50, // 50 NUTS per entry
+      prizePool: entries.reduce((total, entry) => {
+        // NFL contests are 5000 NUTS, MLB are 50 NUTS
+        const entryFee = entry.sport === 'nfl' ? 5000 : 50;
+        return total + entryFee;
+      }, 0),
       avgScore: avgScore,
       uniqueUsers: new Set(entries.map(e => e.userId || e.username)).size,
       sports: {
