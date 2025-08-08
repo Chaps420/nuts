@@ -432,8 +432,6 @@ exports.updateEntryScore = functions.https.onRequest(corsHandler(async (req, res
       details: error.message 
     });
   }
-<<<<<<< HEAD
-=======
 }));
 
 // Update Entry Details - For Admin Panel with Complete Entry Data
@@ -489,5 +487,4 @@ exports.updateEntryDetails = functions.https.onRequest(corsHandler(async (req, r
       details: error.message 
     });
   }
->>>>>>> main
 }));
