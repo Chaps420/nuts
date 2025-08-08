@@ -181,6 +181,8 @@ class ContestBackendProduction {
             };
         }
     }
+<<<<<<< HEAD
+=======
 
     /**
      * Update entry score in Firebase
@@ -241,6 +243,7 @@ class ContestBackendProduction {
             throw error;
         }
     }
+>>>>>>> main
 }
 
 // Export for use in other modules

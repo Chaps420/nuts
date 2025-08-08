@@ -75,6 +75,22 @@
 
 /* Admin portal styles */
 .admin-picks-grid {
+<<<<<<< HEAD
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.admin-pick-item {
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    border: 1px solid #444;
+    background: #2a2a2a;
+    transition: all 0.2s ease;
+=======
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
@@ -113,6 +129,7 @@
     min-width: 80px;
     flex-shrink: 0;
     white-space: nowrap;
+>>>>>>> main
 }
 
 .admin-pick-item:hover {
