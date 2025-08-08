@@ -56,11 +56,13 @@
             overflow: hidden;
             width: 100%;
             margin-top: 30px;
+            overflow-x: auto;
         }
         
         .entries-table table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 900px;
         }
         
         .entries-table th {
@@ -463,6 +465,27 @@
                 
                 console.log(`📊 Found ${entries.length} ${selectedSport.toUpperCase()} entries`);
                 
+                // Enrich entries with detailed game information if available
+                if (entries.length > 0 && selectedSport === 'mlb') {
+                    console.log('🔄 Enriching entries with enhanced game details...');
+                    try {
+                        // Use enhanced backend to get detailed game information
+                        if (window.enhancedContestBackend && window.enhancedContestBackend.enrichEntriesWithGameDetails) {
+                            entries = await window.enhancedContestBackend.enrichEntriesWithGameDetails(entries, queryParam);
+                            console.log('✅ Entries enriched with game details');
+                        } else if (window.enhancedEntryResults && window.enhancedEntryResults[queryParam]) {
+                            // Fallback: use cached enhanced results if available
+                            console.log('🔄 Using cached enhanced results...');
+                            entries = entries.map(entry => {
+                                const cached = window.enhancedEntryResults[queryParam][entry.id];
+                                return cached ? { ...entry, ...cached } : entry;
+                            });
+                        }
+                    } catch (enrichError) {
+                        console.warn('⚠️ Failed to enrich entries with game details:', enrichError);
+                    }
+                }
+                
                 if (entries.length === 0) {
                     document.getElementById('results-tbody').innerHTML = `
                         <tr>
@@ -587,10 +610,29 @@
                     placeEmoji = '🥉 ';
                 }
                 
-                // Create game results indicators - handle both old and new data formats
+                // Create game results indicators - handle enhanced data format
                 let gameResults = '';
-                if (entry.games && Array.isArray(entry.games)) {
-                    // New format: games is an array
+                if (entry.gamesDetailed && Array.isArray(entry.gamesDetailed)) {
+                    // Enhanced format: gamesDetailed is an array with isCorrect field
+                    gameResults = entry.gamesDetailed.map(game => {
+                        let symbol = '';
+                        let resultClass = '';
+                        
+                        if (game.isCorrect === true) {
+                            symbol = '✓';
+                            resultClass = 'win';
+                        } else if (game.isCorrect === false) {
+                            symbol = '✗';
+                            resultClass = 'loss';
+                        } else {
+                            symbol = '?';
+                            resultClass = 'pending';
+                        }
+                        
+                        return `<span class="game-result ${resultClass}" title="${game.pickedTeam || game.pickedDirection} - ${game.actualScore || 'Pending'}">${symbol}</span>`;
+                    }).join('');
+                } else if (entry.games && Array.isArray(entry.games)) {
+                    // Legacy format: games is an array
                     gameResults = entry.games.map(game => {
                         const result = game.result || 'pending';
                         const symbol = result === 'win' ? '✓' : result === 'loss' ? '✗' : '?';
