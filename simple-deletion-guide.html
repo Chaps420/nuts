@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step-by-Step NFL Cleanup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .step {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-left: 5px solid #4CAF50;
+        }
+        .step-number {
+            background: #4CAF50;
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+        .button {
+            background: #FF6B35;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px 0;
+        }
+        .button:hover {
+            background: #E55A2B;
+        }
+        .highlight {
+            background: #FFE082;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .warning {
+            background: #FFF3CD;
+            border: 1px solid #FFE082;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .success {
+            background: #D4EDDA;
+            border: 1px solid #C3E6CB;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .screenshot-placeholder {
+            background: #E3F2FD;
+            border: 2px dashed #2196F3;
+            padding: 30px;
+            text-align: center;
+            margin: 15px 0;
+            border-radius: 5px;
+            color: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏈 Simple NFL Cleanup - Click by Click Guide</h1>
+    
+    <div class="warning">
+        <strong>Goal:</strong> Delete 10 Week 1 NFL entries so new 5000 NUTS system can work properly.
+    </div>
+
+    <div class="step">
+        <div class="step-number">1</div>
+        <h3>Open Firebase Console</h3>
+        <p>Click this button to open Firebase in a new tab:</p>
+        <a href="https://console.firebase.google.com/" target="_blank" class="button">
+            🔥 Open Firebase Console
+        </a>
+        <p><strong>What you'll see:</strong> A login page or list of projects</p>
+    </div>
+
+    <div class="step">
+        <div class="step-number">2</div>
+        <h3>Select Your Project</h3>
+        <p>Look for and click on: <span class="highlight">nuts-sports-pickem</span></p>
+        <div class="screenshot-placeholder">
+            You should see a project card with "nuts-sports-pickem" as the name
+        </div>
+    </div>
+
+    <div class="step">
+        <div class="step-number">3</div>
+        <h3>Go to Firestore Database</h3>
+        <p>In the left sidebar, find and click: <span class="highlight">Firestore Database</span></p>
+        <div class="screenshot-placeholder">
+            Left sidebar → Firestore Database (has a database icon)
+        </div>
+    </div>
+
+    <div class="step">
+        <div class="step-number">4</div>
+        <h3>Open contestEntries Collection</h3>
+        <p>You'll see a list of collections. Click on: <span class="highlight">contestEntries</span></p>
+        <div class="screenshot-placeholder">
+            Should see collections like: contestEntries, users, etc.
+        </div>
+    </div>
+
+    <div class="step">
+        <div class="step-number">5</div>
+        <h3>Add First Filter</h3>
+        <p>Look for a "Filter" button at the top and click it. Then:</p>
+        <ul>
+            <li>Field: <span class="highlight">sport</span></li>
+            <li>Operator: <span class="highlight">==</span></li>
+            <li>Value: <span class="highlight">nfl</span></li>
+        </ul>
+        <p>Click "Apply" or "Done"</p>
+    </div>
+
+    <div class="step">
+        <div class="step-number">6</div>
+        <h3>Add Second Filter</h3>
+        <p>Click "Add Filter" again and add:</p>
+        <ul>
+            <li>Field: <span class="highlight">weekNumber</span></li>
+            <li>Operator: <span class="highlight">==</span></li>
+            <li>Value: <span class="highlight">1</span></li>
+        </ul>
+        <p>Click "Apply" or "Done"</p>
+    </div>
+
+    <div class="step">
+        <div class="step-number">7</div>
+        <h3>Select All Documents</h3>
+        <p>You should now see exactly <strong>10 documents</strong>. </p>
+        <p>Check the box at the top left to select all of them, or manually check each one.</p>
+        <div class="warning">
+            <strong>Important:</strong> Make sure you see exactly 10 documents. If you see more or less, double-check your filters.
+        </div>
+    </div>
+
+    <div class="step">
+        <div class="step-number">8</div>
+        <h3>Delete the Documents</h3>
+        <p>With all 10 documents selected, look for a <span class="highlight">Delete</span> button (usually has a trash can icon).</p>
+        <p>Click it and confirm the deletion when prompted.</p>
+    </div>
+
+    <div class="step">
+        <div class="step-number">9</div>
+        <h3>Verify Deletion</h3>
+        <p>After deletion, you should see <strong>0 documents</strong> with those filters applied.</p>
+        <div class="success">
+            <strong>Success!</strong> If you see 0 documents, the cleanup is complete!
+        </div>
+    </div>
+
+    <div class="step">
+        <div class="step-number">✓</div>
+        <h3>Test the System</h3>
+        <p>Now test that everything works:</p>
+        <a href="file:///e:/Projects/NUTS/nfl-contest.html" target="_blank" class="button">
+            🏈 Test NFL Contest (should show 5000 NUTS)
+        </a>
+        <br>
+        <a href="file:///e:/Projects/NUTS/daily-contest.html" target="_blank" class="button">
+            ⚾ Test MLB Contest (should still show 50 NUTS)
+        </a>
+    </div>
+
+    <div class="success">
+        <h3>🎉 You're Done!</h3>
+        <p>The NFL contest system is now ready with the new 5000 NUTS entry fee!</p>
+        <ul>
+            <li>✅ Week 1 entries deleted</li>
+            <li>✅ NFL contests now cost 5000 NUTS</li>
+            <li>✅ MLB contests still cost 50 NUTS</li>
+            <li>✅ Payment system automatically detects the sport</li>
+        </ul>
+    </div>
+
+    <div class="warning">
+        <h3>🆘 If You Get Stuck</h3>
+        <p>If you can't find something or get an error:</p>
+        <ol>
+            <li>Make sure you're logged into the correct Google account</li>
+            <li>Make sure you have access to the nuts-sports-pickem project</li>
+            <li>Try refreshing the Firebase Console page</li>
+            <li>If you still have trouble, let me know exactly what you see and I'll help!</li>
+        </ol>
+    </div>
+
+</body>
+</html>

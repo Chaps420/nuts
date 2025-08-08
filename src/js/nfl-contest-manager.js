@@ -141,7 +141,7 @@ class NFLContestManager {
                 <div class="week-header">
                     <h2>🏈 NFL ${currentWeekData?.displayName || 'Week ' + this.currentWeek}</h2>
                     <div class="week-details">
-                        <span class="entry-fee">Entry Fee: 50 NUTS</span>
+                        <span class="entry-fee">Entry Fee: 5000 NUTS</span>
                         ${firstGame ? `<span class="deadline">First Game: ${firstGame.gameTimeFormatted}</span>` : ''}
                         ${currentWeekData?.status === 'past' ? '<span class="past-week">⚠️ Past Week - View Only (No Submissions)</span>' : ''}
                         ${currentWeekData?.status === 'upcoming' ? '<span class="upcoming-week">📅 Upcoming Week - Picks Available Soon</span>' : ''}
@@ -222,16 +222,31 @@ class NFLContestManager {
     }
 
     /**
-     * Render a group of games
+     * Render a group of games with MLB-style layout
      */
     renderGameGroup(groupTitle, games, icon) {
         return `
-            <div class="game-group">
-                <div class="game-group-header">
-                    <h3>${icon} ${groupTitle}</h3>
-                    <span class="game-count">${games.length} game${games.length !== 1 ? 's' : ''}</span>
+            <div class="game-group" style="margin-bottom: 25px;">
+                <div class="game-group-header" style="
+                    background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+                    border: 2px solid #ffa500;
+                    border-radius: 12px;
+                    padding: 15px 20px;
+                    margin-bottom: 15px;
+                    text-align: center;
+                ">
+                    <h3 style="color: #ffa500; margin: 0; font-size: 1.3em; font-weight: bold;">
+                        ${icon} ${groupTitle}
+                    </h3>
+                    <span class="game-count" style="color: #888; font-size: 0.9em;">
+                        ${games.length} game${games.length !== 1 ? 's' : ''} available - Pick your winners!
+                    </span>
                 </div>
-                <div class="games-grid">
+                <div class="games-list" style="
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                ">
                     ${games.map(game => this.renderGameCard(game)).join('')}
                 </div>
             </div>
@@ -239,50 +254,153 @@ class NFLContestManager {
     }
 
     /**
-     * Render individual game card
+     * Render individual game card with MLB-style layout
      */
     renderGameCard(game) {
-        const userPick = this.userPicks[game.id];
-        const hasPickClass = userPick ? 'has-pick' : 'no-pick';
+        const gameId = game.id;
+        const pickedTeam = this.userPicks[gameId];
+        const isPicked = !!pickedTeam;
+        
+        // Format time similar to MLB
+        const timeStr = game.gameTimeFormatted || 'TBD';
+        
+        // Get team abbreviations (fallback to first 3 chars if not available)
+        const awayAbbr = game.awayTeam || 'AWAY';
+        const homeAbbr = game.homeTeam || 'HOME';
         
         return `
-            <div class="game-card ${hasPickClass}" data-game-id="${game.id}">
-                <div class="game-time">
-                    ${game.gameTimeFormatted}
-                    ${game.spread ? `<span class="spread">${game.spread}</span>` : ''}
-                    ${game.overUnder ? `<span class="over-under">${game.overUnder}</span>` : ''}
-                    ${!userPick ? '<span style="color: #ff6b6b; font-size: 0.7em; margin-left: 8px;">⚠️ PICK NEEDED</span>' : ''}
+            <div class="game-item" data-game-id="${gameId}" style="
+                background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+                border: 2px solid ${isPicked ? '#4CAF50' : '#444'};
+                border-radius: 10px;
+                margin-bottom: 12px;
+                padding: 12px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                transition: all 0.3s ease;
+                min-height: 70px;
+                position: relative;
+                ${isPicked ? 'box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);' : ''}
+            " onmouseover="this.style.borderColor='#666'" onmouseout="this.style.borderColor='${isPicked ? '#4CAF50' : '#444'}'">
+                
+                <!-- Game Time -->
+                <div style="
+                    background: #333;
+                    color: #ffa500;
+                    border-radius: 6px;
+                    padding: 8px 12px;
+                    font-size: 0.85em;
+                    font-weight: 600;
+                    min-width: 65px;
+                    text-align: center;
+                    flex-shrink: 0;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 2px;
+                ">
+                    <div>${timeStr}</div>
+                    <div style="font-size: 0.7em; color: #888; font-weight: normal;">📍 ${game.venue || 'TBD'}</div>
                 </div>
                 
-                <div class="teams-container">
-                    <div class="team-option ${userPick === 'away' ? 'selected' : ''}" 
-                         onclick="nflContest.selectTeam('${game.id}', 'away')">
-                        <div class="team-info">
-                            <span class="team-abbr">${game.awayTeam}</span>
-                            <span class="team-name">${game.awayTeamFull}</span>
-                        </div>
-                        <div class="pick-indicator">
-                            ${userPick === 'away' ? '✓' : ''}
-                        </div>
-                    </div>
+                <!-- Team Selection -->
+                <div class="matchup" style="
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                ">
+                    <!-- Away Team Button -->
+                    <button class="team-btn ${pickedTeam === 'away' ? 'selected' : ''}" 
+                         data-team="away" 
+                         data-game-id="${gameId}" 
+                         onclick="nflContest.selectTeam('${gameId}', 'away')"
+                         style="
+                        flex: 1;
+                        background: ${pickedTeam === 'away' ? '#4CAF50' : '#2a2a2a'};
+                        color: ${pickedTeam === 'away' ? '#000' : '#fff'};
+                        border: 2px solid ${pickedTeam === 'away' ? '#4CAF50' : '#444'};
+                        border-radius: 6px;
+                        padding: 10px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        font-family: inherit;
+                        position: relative;
+                        min-height: 50px;
+                    " 
+                    onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#666'; this.style.background='#333'; }"
+                    onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#444'; this.style.background='#2a2a2a'; }">
+                        <span style="font-weight: bold; font-size: 1.1em;">${awayAbbr}</span>
+                        <span style="font-size: 0.75em; opacity: 0.8; margin-top: 2px;">${game.spread || 'PK'}</span>
+                        ${pickedTeam === 'away' ? '<div style="position: absolute; top: 2px; right: 2px; font-size: 0.7em;">✓</div>' : ''}
+                    </button>
                     
-                    <div class="vs-divider">@</div>
+                    <!-- VS Separator -->
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        padding: 0 10px;
+                        color: #888;
+                        font-size: 0.9em;
+                        font-weight: bold;
+                    ">VS</div>
                     
-                    <div class="team-option ${userPick === 'home' ? 'selected' : ''}"
-                         onclick="nflContest.selectTeam('${game.id}', 'home')">
-                        <div class="team-info">
-                            <span class="team-abbr">${game.homeTeam}</span>
-                            <span class="team-name">${game.homeTeamFull}</span>
-                        </div>
-                        <div class="pick-indicator">
-                            ${userPick === 'home' ? '✓' : ''}
-                        </div>
-                    </div>
+                    <!-- Home Team Button -->
+                    <button class="team-btn ${pickedTeam === 'home' ? 'selected' : ''}" 
+                         data-team="home" 
+                         data-game-id="${gameId}" 
+                         onclick="nflContest.selectTeam('${gameId}', 'home')"
+                         style="
+                        flex: 1;
+                        background: ${pickedTeam === 'home' ? '#4CAF50' : '#2a2a2a'};
+                        color: ${pickedTeam === 'home' ? '#000' : '#fff'};
+                        border: 2px solid ${pickedTeam === 'home' ? '#4CAF50' : '#444'};
+                        border-radius: 6px;
+                        padding: 10px;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        font-family: inherit;
+                        position: relative;
+                        min-height: 50px;
+                    "
+                    onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#666'; this.style.background='#333'; }"
+                    onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#444'; this.style.background='#2a2a2a'; }">
+                        <span style="font-weight: bold; font-size: 1.1em;">${homeAbbr}</span>
+                        <span style="font-size: 0.75em; opacity: 0.8; margin-top: 2px;">${game.overUnder || 'O/U'}</span>
+                        ${pickedTeam === 'home' ? '<div style="position: absolute; top: 2px; right: 2px; font-size: 0.7em;">✓</div>' : ''}
+                    </button>
                 </div>
                 
-                <div class="venue">
-                    📍 ${game.venue}
-                </div>
+                <!-- Clear Pick Button -->
+                ${isPicked ? `
+                    <button class="clear-pick-btn" 
+                            onclick="nflContest.clearPick('${gameId}')"
+                            style="
+                        background: #ff6b6b;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        padding: 8px 14px;
+                        font-size: 0.8em;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        flex-shrink: 0;
+                    " 
+                    onmouseover="this.style.background='#ff5252'"
+                    onmouseout="this.style.background='#ff6b6b'">
+                        ✕ Clear
+                    </button>
+                ` : ''}
             </div>
         `;
     }
@@ -313,6 +431,21 @@ class NFLContestManager {
     }
 
     /**
+     * Clear a pick for a game
+     */
+    clearPick(gameId) {
+        console.log(`🗑️ Clearing pick for game ${gameId}`);
+        delete this.userPicks[gameId];
+        
+        // Update displays
+        this.updatePicksDisplay();
+        this.updateSubmitButton();
+        
+        // Re-render the games display to update the UI
+        this.updateGamesDisplay();
+    }
+
+    /**
      * Update just the selection state of a game card
      */
     updateGameCardSelection(gameId) {
@@ -323,29 +456,40 @@ class NFLContestManager {
         }
 
         const userPick = this.userPicks[gameId];
+        console.log(`🎨 Updating game card ${gameId} with pick: ${userPick}`);
         
-        // Update card border based on pick status
-        gameCard.classList.remove('no-pick', 'has-pick');
-        gameCard.classList.add(userPick ? 'has-pick' : 'no-pick');
+        // Update team buttons
+        const teamButtons = gameCard.querySelectorAll('.team-btn');
+        console.log(`🔍 Found ${teamButtons.length} team buttons for game ${gameId}`);
         
-        // Update team option selections
-        const teamOptions = gameCard.querySelectorAll('.team-option');
-        teamOptions.forEach(option => {
-            // Check the onclick attribute to determine if this is away or home
-            const onclickAttr = option.getAttribute('onclick') || '';
-            const isAway = onclickAttr.includes("'away'");
-            const isHome = onclickAttr.includes("'home'");
+        teamButtons.forEach((button, index) => {
+            const isAway = button.getAttribute('data-team') === 'away';
+            const isHome = button.getAttribute('data-team') === 'home';
+            const isSelected = (isAway && userPick === 'away') || (isHome && userPick === 'home');
             
-            if ((isAway && userPick === 'away') || (isHome && userPick === 'home')) {
-                option.classList.add('selected');
-                const indicator = option.querySelector('.pick-indicator');
-                if (indicator) indicator.textContent = '✓';
+            console.log(`🎯 Button ${index + 1}: ${isAway ? 'away' : 'home'}, selected: ${isSelected}`);
+            
+            if (isSelected) {
+                button.classList.add('selected');
+                button.style.background = '#4CAF50';
+                button.style.color = '#000';
+                button.style.borderColor = '#4CAF50';
             } else {
-                option.classList.remove('selected');
-                const indicator = option.querySelector('.pick-indicator');
-                if (indicator) indicator.textContent = '';
+                button.classList.remove('selected');
+                button.style.background = '#2a2a2a';
+                button.style.color = '#fff';
+                button.style.borderColor = '#444';
             }
         });
+        
+        // Update the game card border
+        if (userPick) {
+            gameCard.style.borderColor = '#4CAF50';
+            gameCard.style.boxShadow = '0 0 15px rgba(76, 175, 80, 0.3)';
+        } else {
+            gameCard.style.borderColor = '#444';
+            gameCard.style.boxShadow = 'none';
+        }
 
         // Update the "PICK NEEDED" indicator
         const gameTime = gameCard.querySelector('.game-time');
@@ -473,7 +617,7 @@ class NFLContestManager {
             submitBtn.style.color = '';
             
             if (allPicksMade) {
-                submitBtn.innerHTML = '💰 Submit Picks & Pay 50 NUTS';
+                submitBtn.innerHTML = '💰 Submit Picks & Pay 5000 NUTS';
                 submitBtn.classList.add('ready');
                 submitBtn.style.background = '#4CAF50';
             } else {
@@ -497,7 +641,7 @@ class NFLContestManager {
         // Get entries for current week from Firebase
         const entries = await this.getWeekEntries(this.currentWeek);
         const entryCount = entries.length;
-        const prizePool = entryCount * 50;
+        const prizePool = entryCount * 5000; // NFL contests are 5000 NUTS per entry
 
         // Update entry count
         const entryCountEl = document.getElementById('nfl-entry-count');
@@ -727,7 +871,7 @@ class NFLContestManager {
                         </div>
                         <div class="detail-row">
                             <span>Entry Fee:</span>
-                            <span>50 NUTS</span>
+                            <span>5000 NUTS</span>
                         </div>
                         <div class="detail-row">
                             <span>Tiebreaker:</span>
@@ -740,6 +884,9 @@ class NFLContestManager {
                     </div>
                     
                     <div class="success-actions">
+                        <button onclick="downloadPicksFile('${entryId}', ${contestEntry.weekNumber}, '${picksText}', ${contestEntry.tiebreakerPoints})" class="btn btn-secondary" style="margin-right: 10px;">
+                            📥 Download Picks
+                        </button>
                         <button onclick="closeSuccessModal()" class="btn btn-primary">
                             Continue
                         </button>
@@ -774,6 +921,55 @@ class NFLContestManager {
 function closeSuccessModal() {
     const modal = document.getElementById('success-modal');
     if (modal) modal.style.display = 'none';
+}
+
+function downloadPicksFile(entryId, weekNumber, picksText, tiebreakerPoints) {
+    // Get current date and time for filename
+    const now = new Date();
+    const dateStr = now.toLocaleDateString().replace(/\//g, '-');
+    const timeStr = now.toLocaleTimeString().replace(/:/g, '-');
+    
+    // Create file content
+    const fileContent = `NUTS Sports Pick'em - NFL Contest Entry
+===============================================
+
+Entry Details:
+--------------
+Entry ID: ${entryId}
+Week: Week ${weekNumber}
+Date Submitted: ${now.toLocaleString()}
+Entry Fee: 5000 NUTS
+
+Your Picks:
+-----------
+${picksText}
+
+Tiebreaker:
+-----------
+${tiebreakerPoints} points
+
+===============================================
+Keep this record for your files!
+Visit https://nuts-sports-pickem.web.app for results.
+`;
+
+    // Create and download the file
+    const blob = new Blob([fileContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    
+    link.href = url;
+    link.download = `NFL-Week-${weekNumber}-Picks-${dateStr}-${timeStr}.txt`;
+    
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Clean up the URL object
+    window.URL.revokeObjectURL(url);
+    
+    console.log(`📥 Downloaded picks file: NFL-Week-${weekNumber}-Picks-${dateStr}-${timeStr}.txt`);
 }
 
 // Export for browser use

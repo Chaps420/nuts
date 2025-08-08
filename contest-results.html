@@ -560,7 +560,10 @@
                                 }).join('')}
                             </div>
                             <div style="text-align: center; margin-top: 20px; color: #888;">
-                                Total Prize Pool: ${entries.length * 50} NUTS
+                                Total Prize Pool: ${entries.reduce((total, entry) => {
+                                    const entryFee = entry.sport === 'nfl' ? 5000 : 50;
+                                    return total + entryFee;
+                                }, 0)} NUTS
                             </div>
                         </div>
                     `;

@@ -8,7 +8,7 @@
     },
     "wallet_config": {
         "network": "mainnet",
-        "entry_fee_amount": "50",
+        "entry_fee_amount": "5000",
         "currency": "NUTS",
         "payout_distribution": {
             "first_place": 0.50,
