@@ -1,59 +1,19 @@
 {
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+  "functions": {
+    "source": "functions",
+    "predeploy": []
   },
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ],
-      "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run build"
-      ]
-    }
-  ],
   "hosting": {
     "public": ".",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**",
-      "functions/**",
-      "src/**",
-      "config/**",
-      "scripts/**",
-      "docs/**",
-      "xaman_firebase_auth/**",
-      "test-*.html",
-      "debug-*.html",
-      "*.md"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ],
-    "headers": [
-      {
-        "source": "**/*.@(js|css)",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "max-age=31536000"
-          }
-        ]
-      }
+      "functions/**"
     ]
   },
-  "storage": {
-    "rules": "storage.rules"
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   }
 }

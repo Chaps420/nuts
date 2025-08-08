@@ -1,4 +1,4 @@
-// Daily Contest Manager - Multi-day contest support
+// MLB Contest Manager - Multi-day contest support
 class DailyContestManager {
     constructor() {
         this.selectedGames = [];
@@ -8,9 +8,15 @@ class DailyContestManager {
         this.currentDay = 0; // 0 = today, 1 = tomorrow, etc.
         this.contestDays = []; // Will store 5 days of contest data
         this.dayTabs = [];
+        this.backend = null;
+        this.integration = null; // Will be initialized in init()
+        this.contestDeadline = null; // Store the contest deadline
         console.log('🎮 Initializing Multi-Day Contest Manager...');
-    }    async init() {        try {
+    }    async init() {
+        try {
             console.log('🚀 Loading multi-day contest data...');
+            console.log('📅 Current date:', new Date().toISOString());
+            console.log('📅 Today formatted:', this.formatDate(new Date()));
             
             // Ensure DOM is ready
             if (document.readyState === 'loading') {
@@ -20,22 +26,27 @@ class DailyContestManager {
                 });
             }
 
-            // Check for existing wallet connection (authentication)
-            if (window.xamanAuth && window.xamanAuth.isUserAuthenticated()) {
-                console.log('✅ Existing wallet connection found');
-                const userInfo = window.xamanAuth.getUserInfo();
-                this.onWalletConnected(userInfo);
+            // No wallet connection needed - payment only system
+            console.log('💸 Payment-only system ready');
+            
+            // Always use production backend only - no localStorage fallback
+            console.log('🌐 Using production Firebase backend only');
+            if (window.ContestBackendProduction) {
+                this.backend = new ContestBackendProduction();
+                await this.backend.init();
+                console.log('✅ Production backend initialized');
             } else {
-                console.log('🔗 No existing wallet connection');
-                this.updateWalletUI(false);
-                this.updateContestStatus(false);
+                console.error('❌ Production backend not available');
+                throw new Error('Production backend required');
             }
-
-            // Initialize contest wallet for entry fee collection
-            if (!window.contestWallet) {
-                console.log('💰 Initializing contest wallet...');
-                window.contestWallet = new ContestWallet();
-                await window.contestWallet.connect();
+            
+            // Initialize Firebase + Xaman integration
+            if (window.FirebaseXamanIntegration) {
+                this.integration = new FirebaseXamanIntegration();
+                await this.integration.init();
+                console.log('✅ Firebase + Xaman integration ready');
+            } else {
+                console.warn('⚠️ Firebase + Xaman integration not available');
             }
 
             // Initialize contest days (next 5 days)
@@ -44,20 +55,28 @@ class DailyContestManager {
             // Create day tabs
             this.createDayTabs();
             
-            // Wait for MLB API to be ready
-            if (window.mlbAPI) {
-                await window.mlbAPI.init();
-            }
+            // MLB Schedule API is ready to use immediately (no init needed)
+            console.log('⚾ MLB Schedule API status:', window.mlbSchedule ? 'Available' : 'Not loaded');
             
             // Load contest data for current day
             await this.loadContestForDay(this.currentDay);
             
             this.setupEventListeners();
             this.updateUI();
+            
+            // Load and display contest stats
+            await this.loadContestStats();
+            
+            // Refresh stats every 30 seconds
+            setInterval(() => this.loadContestStats(), 30000);
+            
             console.log('✅ Multi-day contest initialized with wallet integration');
         } catch (error) {
-            console.error('❌ Failed to initialize daily contest:', error);
-            this.showError('Failed to load contest games. Please try refreshing the page.');
+            console.error('❌ Failed to initialize MLB contest:', error);
+            // Only show error if it's not a permissions issue
+            if (error.code !== 'permission-denied' && !error.message?.includes('permissions')) {
+                this.showError('Failed to load contest games. Please try refreshing the page.');
+            }
         }
     }
 
@@ -65,6 +84,7 @@ class DailyContestManager {
         const today = new Date();
         this.contestDays = [];
         
+        // Initialize 5 days of contests
         for (let i = 0; i < 5; i++) {
             const date = new Date(today);
             date.setDate(today.getDate() + i);
@@ -97,18 +117,32 @@ class DailyContestManager {
         this.renderTabs(tabsContainer);
     }    renderTabs(tabsContainer) {
         const days = ['Today', 'Tomorrow', 'Day 3', 'Day 4', 'Day 5'];
+        const now = new Date();
         
         tabsContainer.innerHTML = this.contestDays.map((contestDay, index) => {
             const date = contestDay.date;
             const dayName = days[index];
             const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             
+            // Check if contest is closed for today
+            let isClosed = false;
+            let closedStyle = '';
+            if (index === 0) { // Today's tab
+                const deadline = this.calculateContestDeadline(contestDay.games);
+                if (deadline && now > deadline) {
+                    isClosed = true;
+                    closedStyle = 'background: #ff4444 !important; border-color: #ff4444 !important;';
+                }
+            }
+            
             return `
-                <div class="day-tab ${index === this.currentDay ? 'active' : ''}" 
-                     data-day="${index}" onclick="window.switchToDay(${index})">
-                    <div class="tab-day">${dayName}</div>
+                <div class="day-tab ${index === this.currentDay ? 'active' : ''} ${isClosed ? 'closed' : ''}" 
+                     data-day="${index}" 
+                     onclick="window.switchToDay(${index})"
+                     style="${closedStyle}">
+                    <div class="tab-day">${dayName}${isClosed ? ' ❌' : ''}</div>
                     <div class="tab-date">${dateStr}</div>
-                    <div class="tab-indicator">0 games</div>
+                    <div class="tab-indicator">${isClosed ? 'CLOSED' : '0 games'}</div>
                 </div>
             `;
         }).join('');        
@@ -117,18 +151,40 @@ class DailyContestManager {
     }
 
     updateTabIndicators() {
+        const now = new Date();
+        
         this.contestDays.forEach((day, index) => {
+            const tab = document.querySelector(`[data-day="${index}"]`);
             const tabIndicator = document.querySelector(`[data-day="${index}"] .tab-indicator`);
+            const tabDay = document.querySelector(`[data-day="${index}"] .tab-day`);
+            
             if (tabIndicator) {
                 const gameCount = day.games ? day.games.length : 0;
-                tabIndicator.textContent = `${gameCount}/10`;
                 
-                // Update color based on completion
-                if (gameCount === 10) {
-                    tabIndicator.style.color = '#4CAF50';
+                // Check if contest is closed (for today only)
+                let isClosed = false;
+                if (index === 0 && day.games && day.games.length > 0) {
+                    const deadline = this.calculateContestDeadline(day.games);
+                    if (deadline && now > deadline) {
+                        isClosed = true;
+                    }
+                }
+                
+                if (isClosed) {
+                    tabIndicator.textContent = 'CLOSED';
+                    tabIndicator.style.color = '#fff';
+                    if (tab) {
+                        tab.style.background = '#ff4444';
+                        tab.style.borderColor = '#ff4444';
+                    }
+                    if (tabDay && !tabDay.textContent.includes('❌')) {
+                        tabDay.textContent = tabDay.textContent.replace('Today', 'Today ❌');
+                    }
                 } else if (gameCount > 0) {
-                    tabIndicator.style.color = '#ff9800';
+                    tabIndicator.textContent = `${gameCount} games`;
+                    tabIndicator.style.color = '#4CAF50';
                 } else {
+                    tabIndicator.textContent = 'Loading...';
                     tabIndicator.style.color = '#666';
                 }
             }
@@ -167,92 +223,102 @@ class DailyContestManager {
 
         console.log(`📅 Loading contest for ${contestDay.dateString}`);
 
-        // Load ALL games for this day (no admin selection needed)
-        const mlbGames = await this.loadMLBGamesForDay(contestDay.date);
-        
-        if (mlbGames && mlbGames.length > 0) {
-            console.log(`✅ Found ${mlbGames.length} MLB games for ${contestDay.dateString}`);
-            this.availableGames = mlbGames; // All games available
-            contestDay.games = mlbGames;
+        try {
+            // First try admin-selected games, then fallback to ALL available games
+            let games = this.loadAdminSelectedGamesForDay(contestDay.dateString);
             
-            // Calculate contest deadline (30 min before first game)
-            this.calculateContestDeadline(mlbGames);
-        } else {
-            // Fallback to mock games
-            console.log(`⚠️ Using mock games for ${contestDay.dateString}`);
-            const mockGames = this.getMockGamesForDate(contestDay.date);
-            this.availableGames = mockGames;
-            contestDay.games = mockGames;
+            if (!games || games.length === 0) {
+                // Load ALL available games for this day - no restrictions
+                games = await this.loadMLBGamesForDay(contestDay.date);
+                console.log(`🎮 Loaded ${games?.length || 0} available games (no admin selection)`);
+            } else {
+                console.log(`👨‍💼 Using ${games.length} admin-selected games`);
+            }
             
-            // Calculate deadline for mock games
-            this.calculateContestDeadline(mockGames);
-        }
+            if (games && games.length > 0) {
+                console.log(`✅ Found ${games.length} games for ${contestDay.dateString}`);
+                this.availableGames = games;
+                this.selectedGames = games;  // Show all available games
+                contestDay.games = games;
+                
+                // Calculate contest deadline (30 min before first game)
+                this.calculateContestDeadline(games);
+            } else {
+                // No games found for this date
+                console.log(`📅 No games scheduled for ${contestDay.dateString}`);
+                this.availableGames = [];
+                this.selectedGames = [];
+                contestDay.games = [];
+            }
 
-        contestDay.isLoaded = true;
-        this.updateTabIndicators();
+            contestDay.isLoaded = true;
+            this.updateTabIndicators();
+            
+            // Update UI to show the games
+            this.displayGames();
+            
+        } catch (error) {
+            console.error(`❌ Error loading games for day ${dayIndex}:`, error);
+            // No games on error
+            this.availableGames = [];
+            this.selectedGames = [];
+            contestDay.games = [];
+            contestDay.isLoaded = true;
+            this.updateTabIndicators();
+            this.displayGames();
+        }
     }
 
     loadAdminSelectedGamesForDay(dateString) {
-        try {
-            const contestData = localStorage.getItem(`daily_contest_games_${dateString}`);
-            if (contestData) {
-                const parsed = JSON.parse(contestData);
-                if (parsed.games && parsed.games.length === 10) {
-                    console.log(`📋 Loaded ${parsed.games.length} admin-selected games for ${dateString}`);
-                    return parsed.games;
-                }
-            }
-            
-            // Fallback to single-day storage format
-            const singleDayData = localStorage.getItem('daily_contest_games');
-            if (singleDayData) {
-                const parsed = JSON.parse(singleDayData);
-                const contestDate = new Date(parsed.contestDate).toDateString();
-                
-                if (contestDate === dateString && parsed.games && parsed.games.length === 10) {
-                    console.log(`📋 Loaded ${parsed.games.length} admin-selected games for ${dateString} (fallback)`);
-                    return parsed.games;
-                }
-            }
-            
-            console.log(`ℹ️ No valid admin-selected games found for ${dateString}`);
-            return null;
-        } catch (error) {
-            console.error(`❌ Error loading admin games for ${dateString}:`, error);
-            return null;
-        }
+        // Firebase-only mode: no localStorage fallback for admin-selected games
+        // This allows the system to use live MLB API data instead
+        console.log(`ℹ️ Firebase-only mode: using live MLB API data for ${dateString}`);
+        return null;
     }
 
     async loadMLBGamesForDay(date) {
         try {
             console.log(`⚾ Loading MLB games for ${date.toDateString()}...`);
             
-            if (window.mlbAPI) {
-                // For future dates, we'll use mock data since API may not have future games
-                if (date.toDateString() === new Date().toDateString()) {
-                    this.availableGames = await window.mlbAPI.getTodaysMLBGames();
+            if (window.mlbSchedule) {
+                console.log('✅ MLB Schedule API is available (FREE!)');
+                
+                // Get games for this specific date
+                console.log('📡 Fetching MLB games from free MLB Stats API...');
+                const games = await window.mlbSchedule.getGamesForDate(date);
+                console.log(`📅 Found ${games.length} games for ${date.toDateString()}`);
+                
+                if (games.length > 0) {
+                    this.availableGames = games;
+                    this.selectedGames = games; // Show ALL games
+                    console.log(`🎯 Showing all ${this.selectedGames.length} games (users must pick ALL)`);
+                    
+                    // Store in contest day
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const dayIndex = Math.floor((date - today) / (1000 * 60 * 60 * 24));
+                    
+                    if (this.contestDays[dayIndex] && dayIndex >= 0 && dayIndex < this.contestDays.length) {
+                        this.contestDays[dayIndex].games = this.selectedGames;
+                        this.contestDays[dayIndex].isLoaded = true;
+                    }
+                    
+                    return this.selectedGames;
                 } else {
-                    this.availableGames = this.getMockGamesForDate(date);
-                }
-                
-                console.log(`📋 Loaded ${this.availableGames.length} available MLB games for ${date.toDateString()}`);
-                
-                // Select first 10 games for contest (fallback when no admin selection)
-                this.selectedGames = this.availableGames.slice(0, 10);
-                
-                // Store in contest day
-                const dayIndex = Math.floor((date - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
-                if (this.contestDays[dayIndex]) {
-                    this.contestDays[dayIndex].games = this.selectedGames;
+                    console.log('⚠️ No games returned from API, checking if offseason or API issue');
+                    return [];
                 }
             } else {
-                console.warn('❌ MLB API not available, using mock data');
+                console.warn('❌ MLB Schedule API not available, using mock data');
                 this.selectedGames = this.getMockGamesForDate(date);
+                return this.selectedGames;
             }
             
         } catch (error) {
             console.error(`❌ Failed to load MLB games for ${date.toDateString()}:`, error);
-            this.selectedGames = this.getMockGamesForDate(date);
+            console.error('Error details:', error.message, error.stack);
+            // Don't automatically use mock games here - let the caller decide
+            return [];
         }
     }
 
@@ -269,12 +335,24 @@ class DailyContestManager {
             ['Cleveland Guardians', 'Detroit Tigers'],
             ['Minnesota Twins', 'Chicago White Sox'],
             ['Tampa Bay Rays', 'Toronto Blue Jays'],
-            ['Seattle Mariners', 'Oakland Athletics']
+            ['Seattle Mariners', 'Oakland Athletics'],
+            ['Arizona Diamondbacks', 'Colorado Rockies'],
+            ['Miami Marlins', 'Washington Nationals'],
+            ['New York Mets', 'Pittsburgh Pirates'],
+            ['Baltimore Orioles', 'Kansas City Royals'],
+            ['Texas Rangers', 'San Diego Padres']
         ];
 
-        return mlbTeams.map((teams, index) => {
+        // MLB typically has 12-15 games per day
+        const numGames = 12 + Math.floor(Math.random() * 4); // 12-15 games
+        const selectedTeams = mlbTeams.slice(0, numGames);
+
+        return selectedTeams.map((teams, index) => {
             const gameTime = new Date(date);
-            gameTime.setHours(19 + (index % 4), 0, 0, 0); // Spread games between 7-10 PM
+            // Spread games throughout the day (1 PM to 10 PM)
+            const hour = 13 + Math.floor(index / 2);
+            const minute = index % 2 === 0 ? 10 : 40;
+            gameTime.setHours(hour, minute, 0, 0);
             
             return {
                 id: `game_${date.toDateString()}_${index + 1}`,
@@ -315,13 +393,7 @@ class DailyContestManager {
             });
         }
 
-        // Connect Wallet Button - integrate with enhanced Xaman QR modal
-        const connectWalletBtn = document.getElementById('connect-wallet-btn');
-        if (connectWalletBtn) {
-            connectWalletBtn.addEventListener('click', () => this.handleWalletConnection());
-        }
-
-        // Entry button (will be enabled after wallet connection/authentication)
+        // Entry button
         const enterBtn = document.getElementById('enter-contest-btn');
         if (enterBtn) {
             enterBtn.addEventListener('click', () => this.handleContestEntry());
@@ -358,38 +430,9 @@ class DailyContestManager {
     }
     
     updateContestInfo() {
-        // Update contest stats with dynamic data
-        const prizePoolElement = document.getElementById('prize-pool');
-        const entryCountElement = document.getElementById('entry-count');
-        const timeRemainingElement = document.getElementById('time-remaining');
-        
-        // Calculate dynamic contest stats
-        const baseEntries = 25;
-        const randomEntries = Math.floor(Math.random() * 50);
-        const totalEntries = baseEntries + randomEntries;
-        const prizePool = totalEntries * 50; // 50 $NUTS entry fee
-        
-        // Calculate time remaining until contest deadline (assume 8 PM today)
-        const now = new Date();
-        const deadline = new Date();
-        deadline.setHours(20, 0, 0, 0); // 8 PM today
-        
-        if (now > deadline) {
-            deadline.setDate(deadline.getDate() + 1); // Next day if past deadline
-        }
-        
-        const timeRemaining = deadline - now;
-        const hoursRemaining = Math.floor(timeRemaining / (1000 * 60 * 60));
-        const minutesRemaining = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-        
-        if (prizePoolElement) prizePoolElement.textContent = `${prizePool.toLocaleString()} $NUTS`;
-        if (entryCountElement) entryCountElement.textContent = totalEntries.toString();        if (timeRemainingElement) {
-            if (timeRemaining > 0) {
-                timeRemainingElement.textContent = `${hoursRemaining}h ${minutesRemaining}m`;
-            } else {
-                timeRemainingElement.textContent = 'Contest Closed';
-            }
-        }
+        // This function no longer overrides real database stats
+        // The real stats are handled by loadContestStats()
+        console.log('📊 updateContestInfo called - real stats are loaded by loadContestStats()');
     }
     
     // displayGames - Main function to display all available games for the current day
@@ -404,6 +447,9 @@ class DailyContestManager {
         const currentDayGames = this.contestDays[this.currentDay]?.games || [];
         
         if (currentDayGames.length === 0) {
+            const currentDate = this.contestDays[this.currentDay]?.date;
+            const isToday = currentDate && currentDate.toDateString() === new Date().toDateString();
+            
             gamesContainer.innerHTML = `
                 <div class="no-games" style="
                     text-align: center; 
@@ -413,8 +459,32 @@ class DailyContestManager {
                     border: 2px dashed #333;
                     color: #888;
                 ">
-                    <h3>🔄 Loading Games...</h3>
-                    <p>Loading available games for this day.</p>
+                    <div style="font-size: 3em; margin-bottom: 20px;">�</div>
+                    <h3 style="color: #ffa500; margin-bottom: 15px;">No Games Available</h3>
+                    <p style="margin-bottom: 20px;">
+                        ${isToday ? 
+                            'No games are scheduled for today.' : 
+                            `No games are scheduled for ${currentDate ? currentDate.toDateString() : 'this date'}.`
+                        }
+                    </p>
+                    <div style="margin-top: 20px;">
+                        <button onclick="window.dailyContest.loadContestForDay(${this.currentDay})" style="
+                            background: #4CAF50;
+                            color: white;
+                            border: none;
+                            padding: 12px 24px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            margin: 5px;
+                        ">🔄 Refresh Games</button>
+                        ${isToday ? `
+                            <br><br>
+                            <p style="color: #666; font-size: 0.9em;">
+                                Admins can manually select games via the 
+                                <a href="admin-contest.html" style="color: #ffa500;">Admin Portal</a>
+                            </p>
+                        ` : ''}
+                    </div>
                 </div>
             `;
             return;
@@ -422,14 +492,54 @@ class DailyContestManager {
 
         console.log(`🎮 Displaying ${currentDayGames.length} games for day ${this.currentDay}`);
         
-        // Render all available games (user can pick any 10)
+        // Check if these are admin-selected or auto-loaded games
+        const adminSelectedGames = this.loadAdminSelectedGamesForDay(this.contestDays[this.currentDay].dateString);
+        const isAdminSelected = adminSelectedGames && adminSelectedGames.length > 0;
+        
+        // Render all available games with game type indicator
         gamesContainer.innerHTML = `
-            <div class="games-header" style="margin-bottom: 15px; text-align: center;">
-                <h3 style="color: #ffa500; margin-bottom: 10px;">All Available Games - Pick Any 10</h3>
-                <p style="color: #888; margin: 0;">Select exactly 10 games to enter the contest</p>
+            <div class="games-display-header" style="
+                background: #1a1a1a; 
+                padding: 20px; 
+                border-radius: 8px; 
+                margin-bottom: 20px;
+                border: 1px solid #333;
+                text-align: center;
+            ">
+                <h3 style="color: #4CAF50; margin-bottom: 10px;">
+                    📅 ${this.contestDays[this.currentDay].dateString}
+                </h3>
+                <p style="color: #ccc; margin: 0;">
+                    ${currentDayGames.length} games available - Pick your winners!
+                </p>
+                <div style="margin-top: 10px;">
+                    ${isAdminSelected ? 
+                        '<span style="background: #4CAF50; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em;">👨‍💼 Admin Selected Games</span>' : 
+                        '<span style="background: #2196F3; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8em;">🤖 All Available Games</span>'
+                    }
+                </div>
+                ${this.isContestClosed() ? `
+                    <div style="
+                        background: #ff4444; 
+                        color: white; 
+                        padding: 10px; 
+                        border-radius: 6px; 
+                        margin-top: 15px;
+                        font-weight: bold;
+                    ">
+                        ⏰ Contest deadline has passed - No more picks allowed
+                    </div>
+                ` : ''}
             </div>
-            <div class="games-list">
-                ${currentDayGames.map((game, index) => this.renderGameCard(game, index)).join('')}
+            <div class="games-content-wrapper">
+                <div class="games-list" style="
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0;
+                    padding: 5px;
+                ">
+                    ${currentDayGames.map((game, index) => this.renderGameCard(game, index)).join('')}
+                </div>
             </div>
         `;
 
@@ -439,110 +549,257 @@ class DailyContestManager {
         // Add enter button if not already present
         this.addEnterButton();
         
+        // Update entry button state
+        this.updateEntryButton();
+        
+        // Check if contest is closed and update UI accordingly
+        this.updateContestClosedUI();
+        
         console.log(`✅ Displayed ${currentDayGames.length} games with ${Object.keys(this.userPicks).length} picks`);
     }
 
     renderGameCard(game, index) {
+        // Debug first game to see structure
+        if (index === 0) {
+            console.log('🎮 First game structure:', {
+                awayTeam: game.awayTeam,
+                homeTeam: game.homeTeam,
+                awayTeamFull: game.awayTeamFull,
+                homeTeamFull: game.homeTeamFull,
+                awayOdds: game.awayOdds,
+                homeOdds: game.homeOdds
+            });
+        }
+        
         const gameDate = new Date(game.gameTime);
-        const isToday = gameDate.toDateString() === new Date().toDateString();
+        const timeStr = gameDate.toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'});
+        const isGameLocked = this.isGameLocked(game);
+        
+        // Get team abbreviations
+        const getTeamAbbr = (teamName) => {
+            const abbreviations = {
+                'Arizona Diamondbacks': 'ARI', 'Atlanta Braves': 'ATL', 'Baltimore Orioles': 'BAL',
+                'Boston Red Sox': 'BOS', 'Chicago Cubs': 'CHC', 'Chicago White Sox': 'CHW',
+                'Cincinnati Reds': 'CIN', 'Cleveland Guardians': 'CLE', 'Colorado Rockies': 'COL',
+                'Detroit Tigers': 'DET', 'Houston Astros': 'HOU', 'Kansas City Royals': 'KC',
+                'Los Angeles Angels': 'LAA', 'Los Angeles Dodgers': 'LAD', 'Miami Marlins': 'MIA',
+                'Milwaukee Brewers': 'MIL', 'Minnesota Twins': 'MIN', 'New York Mets': 'NYM',
+                'New York Yankees': 'NYY', 'Oakland Athletics': 'OAK', 'Philadelphia Phillies': 'PHI',
+                'Pittsburgh Pirates': 'PIT', 'San Diego Padres': 'SD', 'San Francisco Giants': 'SF',
+                'Seattle Mariners': 'SEA', 'St. Louis Cardinals': 'STL', 'Tampa Bay Rays': 'TB',
+                'Texas Rangers': 'TEX', 'Toronto Blue Jays': 'TOR', 'Washington Nationals': 'WSH'
+            };
+            return abbreviations[teamName] || teamName.substring(0, 3).toUpperCase();
+        };
+        
+        // Handle both formats - if awayTeam is already an abbreviation (3 chars or less), use it directly
+        const awayAbbr = (game.awayTeam && game.awayTeam.length <= 3) ? game.awayTeam : getTeamAbbr(game.awayTeamFull || game.awayTeam);
+        const homeAbbr = (game.homeTeam && game.homeTeam.length <= 3) ? game.homeTeam : getTeamAbbr(game.homeTeamFull || game.homeTeam);
+        const isPicked = this.userPicks[game.id];
+        const pickedTeam = this.userPicks[game.id];
         
         return `
-            <div class="game-card compact" data-game-id="${game.id}" style="
-                background: #2a2a2a;
-                border: 1px solid #444;
-                border-radius: 6px;
-                padding: 8px;
-                margin-bottom: 6px;
-                transition: all 0.3s ease;
+            <div class="game-card ${isGameLocked ? 'game-locked' : ''}" data-game-id="${game.id}" style="
+                background: ${isGameLocked ? 'linear-gradient(135deg, #2a2a2a, #1a1a1a)' : 
+                            (isPicked ? 'linear-gradient(135deg, #1a3d1a, #1e1e1e)' : '#1e1e1e')};
+                border: 2px solid ${isGameLocked ? '#666' : (isPicked ? '#4CAF50' : '#333')};
+                border-radius: 8px;
+                padding: 12px;
+                margin-bottom: 8px;
+                transition: all 0.2s ease;
+                box-shadow: ${isPicked ? '0 2px 8px rgba(76, 175, 80, 0.3)' : 'none'};
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                opacity: ${isGameLocked ? '0.7' : '1'};
             ">
-                <div class="game-header" style="
+                <!-- Game Time -->
+                <div class="game-time" style="
+                    color: ${isGameLocked ? '#ff6b6b' : '#ffa500'};
+                    font-size: 0.8em;
+                    min-width: 55px;
+                    text-align: center;
+                    flex-shrink: 0;
+                    font-weight: 600;
+                ">${isGameLocked ? 'LOCKED' : timeStr}</div>
+                
+                <!-- Team Selection -->
+                <div class="matchup" style="
+                    flex: 1;
                     display: flex;
-                    justify-content: space-between;
                     align-items: center;
-                    margin-bottom: 6px;
-                    font-size: 0.75em;
+                    gap: 8px;
                 ">
-                    <div class="game-time" style="color: #ffa500; font-weight: bold;">
-                        ${isToday ? 'Today' : 'Tomorrow'} ${gameDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </div>
-                    <div class="game-sport" style="color: #888; font-size: 0.7em;">Game ${index + 1}</div>
-                </div>
-                
-                <div class="game-matchup" style="
-                    display: grid;
-                    grid-template-columns: 1fr auto 1fr;
-                    gap: 6px;
-                    align-items: center;
-                    margin-bottom: 4px;
-                ">
-                    <div class="team-option ${this.userPicks[game.id] === 'away' ? 'selected' : ''}" 
-                         data-team="away" data-game-id="${game.id}" style="
-                        background: ${this.userPicks[game.id] === 'away' ? '#4CAF50' : '#333'};
-                        border: 1px solid ${this.userPicks[game.id] === 'away' ? '#4CAF50' : '#555'};
-                        border-radius: 4px;
-                        padding: 6px 4px;
-                        cursor: pointer;
-                        text-align: center;
-                        transition: all 0.3s ease;
-                        font-size: 0.8em;
-                        min-height: 45px;
+                    <!-- Away Team Button -->
+                    <button class="team-btn ${pickedTeam === 'away' ? 'selected' : ''} ${isGameLocked ? 'locked' : ''}" 
+                         data-team="away" 
+                         data-game-id="${game.id}" 
+                         ${isGameLocked ? 'disabled' : ''}
+                         style="
+                        flex: 1;
+                        background: ${pickedTeam === 'away' ? '#4CAF50' : (isGameLocked ? '#333' : '#2a2a2a')};
+                        color: ${pickedTeam === 'away' ? '#000' : (isGameLocked ? '#888' : '#fff')};
+                        border: 2px solid ${pickedTeam === 'away' ? '#4CAF50' : (isGameLocked ? '#666' : '#444')};
+                        border-radius: 6px;
+                        padding: 10px;
+                        cursor: ${isGameLocked ? 'not-allowed' : 'pointer'};
+                        transition: all 0.2s ease;
                         display: flex;
                         flex-direction: column;
+                        align-items: center;
                         justify-content: center;
-                    ">
-                        <div class="team-name" style="font-weight: bold; font-size: 0.75em; margin-bottom: 1px; line-height: 1.1;">
-                            ${game.awayTeam}
-                        </div>
-                        <div class="team-odds" style="color: #4CAF50; font-size: 0.7em;">
-                            ${game.awayOdds}
-                        </div>
-                    </div>
+                        font-family: inherit;
+                        position: relative;
+                        min-height: 50px;
+                    " 
+                    ${!isGameLocked ? `onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#666'; this.style.background='#333'; }"
+                    onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#444'; this.style.background='#2a2a2a'; }"` : ''}>
+                        <span style="font-weight: bold; font-size: 1.1em;">${awayAbbr || 'AWAY'}</span>
+                        <span style="font-size: 0.75em; opacity: 0.8; margin-top: 2px;">${game.awayOdds || '+100'}</span>
+                        ${pickedTeam === 'away' ? '<div style="position: absolute; top: 2px; right: 2px; font-size: 0.7em;">✓</div>' : ''}
+                        ${isGameLocked ? '<div style="position: absolute; top: 2px; left: 2px; font-size: 0.7em; color: #ff6b6b;">🔒</div>' : ''}
+                    </button>
                     
-                    <div class="vs-divider" style="
-                        color: #ffa500; 
-                        font-weight: bold; 
-                        font-size: 0.7em;
-                        text-align: center;
-                    ">@</div>
+                    <!-- VS Separator -->
+                    <div style="
+                        display: flex;
+                        align-items: center;
+                        padding: 0 10px;
+                        color: ${isGameLocked ? '#666' : '#888'};
+                        font-size: 0.9em;
+                        font-weight: bold;
+                    ">VS</div>
                     
-                    <div class="team-option ${this.userPicks[game.id] === 'home' ? 'selected' : ''}" 
-                         data-team="home" data-game-id="${game.id}" style="
-                        background: ${this.userPicks[game.id] === 'home' ? '#4CAF50' : '#333'};
-                        border: 1px solid ${this.userPicks[game.id] === 'home' ? '#4CAF50' : '#555'};
-                        border-radius: 4px;
-                        padding: 6px 4px;
-                        cursor: pointer;
-                        text-align: center;
-                        transition: all 0.3s ease;
-                        font-size: 0.8em;
-                        min-height: 45px;
+                    <!-- Home Team Button -->
+                    <button class="team-btn ${pickedTeam === 'home' ? 'selected' : ''} ${isGameLocked ? 'locked' : ''}" 
+                         data-team="home" 
+                         data-game-id="${game.id}" 
+                         ${isGameLocked ? 'disabled' : ''}
+                         style="
+                        flex: 1;
+                        background: ${pickedTeam === 'home' ? '#4CAF50' : (isGameLocked ? '#333' : '#2a2a2a')};
+                        color: ${pickedTeam === 'home' ? '#000' : (isGameLocked ? '#888' : '#fff')};
+                        border: 2px solid ${pickedTeam === 'home' ? '#4CAF50' : (isGameLocked ? '#666' : '#444')};
+                        border-radius: 6px;
+                        padding: 10px;
+                        cursor: ${isGameLocked ? 'not-allowed' : 'pointer'};
+                        transition: all 0.2s ease;
                         display: flex;
                         flex-direction: column;
+                        align-items: center;
                         justify-content: center;
-                    ">
-                        <div class="team-name" style="font-weight: bold; font-size: 0.75em; margin-bottom: 1px; line-height: 1.1;">
-                            ${game.homeTeam}
-                        </div>
-                        <div class="team-odds" style="color: #4CAF50; font-size: 0.7em;">
-                            ${game.homeOdds}
-                        </div>
-                    </div>
+                        font-family: inherit;
+                        position: relative;
+                        min-height: 50px;
+                    "
+                    ${!isGameLocked ? `onmouseover="if(!this.classList.contains('selected')) { this.style.borderColor='#666'; this.style.background='#333'; }"
+                    onmouseout="if(!this.classList.contains('selected')) { this.style.borderColor='#444'; this.style.background='#2a2a2a'; }"` : ''}>
+                        <span style="font-weight: bold; font-size: 1.1em;">${homeAbbr || 'HOME'}</span>
+                        <span style="font-size: 0.75em; opacity: 0.8; margin-top: 2px;">${game.homeOdds || '-120'}</span>
+                        ${pickedTeam === 'home' ? '<div style="position: absolute; top: 2px; right: 2px; font-size: 0.7em;">✓</div>' : ''}
+                        ${isGameLocked ? '<div style="position: absolute; top: 2px; left: 2px; font-size: 0.7em; color: #ff6b6b;">🔒</div>' : ''}
+                    </button>
                 </div>
                 
-                <div class="pick-status" style="text-align: center; font-size: 0.7em; margin-top: 3px; padding-top: 3px; border-top: 1px solid #444;">
-                    ${this.userPicks[game.id] ? 
-                        `<span style="color: #4CAF50;">✅ ${this.userPicks[game.id] === 'home' ? game.homeTeam : game.awayTeam}</span>` : 
-                        '<span style="color: #888;">Click a team</span>'
-                    }
-                </div>
+                <!-- Clear Pick Button or Lock Status -->
+                ${isGameLocked ? `
+                    <div style="
+                        background: #ff6b6b;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        padding: 8px 14px;
+                        font-size: 0.8em;
+                        font-weight: 500;
+                        flex-shrink: 0;
+                        opacity: 0.8;
+                    ">
+                        🔒 Started
+                    </div>
+                ` : (isPicked ? `
+                    <button class="clear-pick-btn" 
+                         data-game-id="${game.id}"
+                         style="
+                        background: #ff4444;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        padding: 8px 14px;
+                        font-size: 0.8em;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        opacity: 0.9;
+                        font-weight: 500;
+                        flex-shrink: 0;
+                    "
+                    onmouseover="this.style.opacity='1'; this.style.background='#ff5555';"
+                    onmouseout="this.style.opacity='0.9'; this.style.background='#ff4444';">
+                        Clear
+                    </button>
+                ` : '')}
             </div>
         `;
-    }setupGameEventListeners() {
-        document.querySelectorAll('.team-option').forEach(teamElement => {
-            teamElement.addEventListener('click', (e) => {
-                const gameId = e.currentTarget.dataset.gameId;
-                const team = e.currentTarget.dataset.team;
+    }
+
+    setupGameEventListeners() {
+        // Handle clicks on team buttons
+        document.querySelectorAll('.team-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const gameId = button.dataset.gameId;
+                const team = button.dataset.team;
+                
+                // Find the game to check if it's locked
+                const game = this.selectedGames.find(g => g.id === gameId);
+                if (!game) {
+                    console.error('Game not found:', gameId);
+                    return;
+                }
+                
+                // Check if this specific game is locked (started)
+                if (this.isGameLocked(game)) {
+                    this.showError('This game has already started. Picks are locked for this game.');
+                    return;
+                }
+                
+                // Add haptic feedback for mobile
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(10);
+                }
+                
                 this.makePickForGame(gameId, team);
+            });
+        });
+        
+        // Handle clear pick buttons
+        document.querySelectorAll('.clear-pick-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const gameId = button.dataset.gameId;
+                
+                // Find the game to check if it's locked
+                const game = this.selectedGames.find(g => g.id === gameId);
+                if (!game) {
+                    console.error('Game not found:', gameId);
+                    return;
+                }
+                
+                // Check if this specific game is locked (started)
+                if (this.isGameLocked(game)) {
+                    this.showError('This game has already started. No changes allowed.');
+                    return;
+                }
+                
+                // Add haptic feedback for mobile
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(10);
+                }
+                
+                delete this.userPicks[gameId];
+                this.displayGames();
+                this.updateEntryButton();
             });
         });
     }
@@ -550,35 +807,104 @@ class DailyContestManager {
     calculateContestDeadline(games) {
         if (!games || games.length === 0) return null;
         
-        // Find the earliest game time
-        const earliestGame = games.reduce((earliest, game) => {
+        const now = new Date();
+        
+        // Find games that haven't started yet
+        const upcomingGames = games.filter(game => {
             const gameTime = new Date(game.gameTime);
-            const earlyTime = new Date(earliest.gameTime);
-            return gameTime < earlyTime ? game : earliest;
+            return now <= gameTime;
         });
         
-        // Set deadline to 30 minutes before earliest game
-        const deadline = new Date(earliestGame.gameTime);
-        deadline.setMinutes(deadline.getMinutes() - 30);
+        // Check if MLB API reported games in progress
+        if (games.hasGamesInProgress) {
+            console.log('🚨 MLB API reports games in progress');
+        }
         
-        console.log(`⏰ Contest deadline set to: ${deadline.toLocaleString()}`);
-        return deadline;
+        // Log all games and their status
+        console.log('🔍 Checking all games for start times:');
+        games.forEach((game, index) => {
+            const gameTime = new Date(game.gameTime);
+            const started = now > gameTime;
+            console.log(`Game ${index + 1}: ${game.awayTeam} @ ${game.homeTeam} - ${gameTime.toLocaleString()} (Started: ${started})`);
+        });
+        
+        // For multi-day contests, only set deadline if ALL games for current day have started
+        // But individual games will be locked based on their own start time
+        if (upcomingGames.length > 0) {
+            const earliestUpcomingGame = upcomingGames.reduce((earliest, game) => {
+                const gameTime = new Date(game.gameTime);
+                const earlyTime = new Date(earliest.gameTime);
+                return gameTime < earlyTime ? game : earliest;
+            });
+            
+            this.contestDeadline = new Date(earliestUpcomingGame.gameTime);
+            console.log(`✅ ${upcomingGames.length} games still available. Next deadline: ${this.contestDeadline.toLocaleString()}`);
+        } else {
+            // All games for today have started - but user can still pick for future days
+            console.log('ℹ️ All games for today have started - but future days remain available');
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(8, 0, 0, 0); // Set to 8 AM tomorrow
+            this.contestDeadline = tomorrow;
+        }
+        
+        // Trigger immediate time update in HTML
+        if (typeof updateTimeRemaining === 'function') {
+            updateTimeRemaining();
+        }
+        
+        return this.contestDeadline;
+    }
+
+    isContestClosed() {
+        // For multi-day contests, never fully close - just lock individual games
+        return false;
+    }
+
+    isGameStarted(game) {
+        if (!game || !game.gameTime) return false;
+        const now = new Date();
+        const gameTime = new Date(game.gameTime);
+        return now > gameTime;
+    }
+
+    isGameLocked(game) {
+        // Individual games are locked once they start
+        return this.isGameStarted(game);
+    }
+
+    updateContestClosedUI() {
+        // For multi-day contests, we don't close the entire UI
+        // Individual games are locked when they start, but the contest remains open
+        console.log('ℹ️ Multi-day contest - individual games lock when they start');
+        
+        // Count locked games for information
+        const lockedGames = this.selectedGames.filter(game => this.isGameLocked(game));
+        const totalGames = this.selectedGames.length;
+        
+        if (lockedGames.length > 0) {
+            console.log(`🔒 ${lockedGames.length}/${totalGames} games are locked (started)`);
+        }
     }
 
     makePickForGame(gameId, team) {
-        const pickedCount = Object.keys(this.userPicks).length;
-        const maxPicks = 10;
+        // Find the game to check if it's locked
+        const game = this.selectedGames.find(g => g.id === gameId);
+        if (!game) {
+            console.error('Game not found:', gameId);
+            return;
+        }
         
-        // Don't allow more than 10 picks
-        if (pickedCount >= maxPicks && !this.userPicks[gameId]) {
-            this.showError(`You can only pick ${maxPicks} games!`);
+        // Check if this specific game is locked (started)
+        if (this.isGameLocked(game)) {
+            console.log('🚫 Cannot make pick - game has started');
             return;
         }
         
         // Store the pick
         this.userPicks[gameId] = team;
         
-        console.log(`🎯 Pick made: Game ${gameId} -> ${team} team`);
+        console.log(`✅ Pick made: Game ${gameId} -> ${team}`);
         
         // Refresh display
         this.displayGames();
@@ -616,23 +942,6 @@ class DailyContestManager {
             `<span class="picked" style="color: #4CAF50;">✅ ${teamName} selected</span>`;
     }
 
-    updateEntryButton() {
-        const entryButton = document.getElementById('enter-contest-btn');
-        const picksCount = Object.keys(this.userPicks).length;
-        
-        if (entryButton) {
-            if (picksCount === this.selectedGames.length) {
-                entryButton.disabled = false;
-                entryButton.textContent = `Enter Contest (${picksCount}/${this.selectedGames.length} picks)`;
-                entryButton.classList.add('ready');
-            } else {
-                entryButton.disabled = true;
-                entryButton.textContent = `Make Your Picks (${picksCount}/${this.selectedGames.length})`;
-                entryButton.classList.remove('ready');
-            }
-        }
-    }
-
     addEnterButton() {
         // Find the games section container
         const gamesSection = document.getElementById('games-section');
@@ -659,11 +968,24 @@ class DailyContestManager {
             text-align: center;
         `;
 
+        // Check if contest is closed
+        const now = new Date();
+        const deadline = this.calculateContestDeadline(this.selectedGames);
+        const isClosed = deadline && now > deadline;
+
         // Create picks summary
         const picksCount = Object.keys(this.userPicks).length;
         const totalGames = this.selectedGames.length;
 
-        buttonContainer.innerHTML = `
+        if (isClosed) {
+            buttonContainer.innerHTML = `
+                <div style="background: #ff4444; color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                    <h3 style="margin: 0 0 10px 0;">❌ Contest Closed</h3>
+                    <p style="margin: 0;">Entry deadline has passed. Check back tomorrow!</p>
+                </div>
+            `;
+        } else {
+            buttonContainer.innerHTML = `
             <div class="picks-summary" style="margin-bottom: 15px;">
                 <h3 style="color: #ffa500; margin-bottom: 10px; font-size: 1.1em;">Your Contest Entry</h3>
                 <div class="picks-progress" style="
@@ -686,7 +1008,69 @@ class DailyContestManager {
                 </p>
             </div>
             
-            <button id="enter-contest-btn" class="contest-enter-btn" style="
+            ${picksCount === totalGames ? `
+                <!-- Tiebreaker Section -->
+                <div class="tiebreaker-section" style="background: #252525; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #444;">
+                    <h4 style="color: #4CAF50; margin: 0 0 8px 0; font-size: 1em;">Tiebreaker</h4>
+                    <p style="color: #ccc; font-size: 0.85em; margin-bottom: 10px;">
+                        Predict total runs in the last game
+                    </p>
+                    <div style="display: flex; align-items: center; gap: 10px; justify-content: center;">
+                        <label style="color: #888; font-size: 0.9em;">Total Runs:</label>
+                        <input type="number" 
+                               id="tiebreaker-runs" 
+                               min="0" 
+                               max="50" 
+                               style="background: #2a2a2a; 
+                                      border: 1px solid #444; 
+                                      color: white; 
+                                      padding: 6px 10px; 
+                                      border-radius: 4px; 
+                                      width: 80px;
+                                      text-align: center;"
+                               placeholder="0">
+                        <span style="color: #666; font-size: 0.8em;">(Required)</span>
+                    </div>
+                </div>
+            ` : ''}
+            
+            <!-- Twitter Handle Section -->
+            <div class="twitter-handle-section" style="
+                background: #1a1a1a; 
+                padding: 20px; 
+                border-radius: 8px; 
+                margin: 20px 0; 
+                border: 1px solid #333;
+            ">
+                <h4 style="color: #1DA1F2; margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#1DA1F2">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    Add Your X Handle (Optional)
+                </h4>
+                <p style="color: #ccc; font-size: 0.9em; margin-bottom: 15px;">
+                    Show your X username on the leaderboard
+                </p>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: #666; font-size: 1.2em;">@</span>
+                    <input type="text" 
+                           id="twitter-handle" 
+                           placeholder="yourhandle"
+                           style="
+                               background: #2a2a2a; 
+                               border: 1px solid #444; 
+                               color: white; 
+                               padding: 8px 12px; 
+                               border-radius: 4px; 
+                               flex: 1;
+                               max-width: 300px;
+                           "
+                           onkeyup="this.value = this.value.replace(/[@\\s]/g, '').toLowerCase();">
+                    <span style="color: #666; font-size: 0.85em;">(Leave blank to stay anonymous)</span>
+                </div>
+            </div>
+            
+            <button id="enter-contest-btn" type="button" class="contest-enter-btn" onclick="window.dailyContestManager.handleContestEntry()" style="
                 background: ${picksCount === totalGames ? 'linear-gradient(135deg, #4CAF50, #00ff88)' : '#555'};
                 color: ${picksCount === totalGames ? '#000' : '#888'};
                 border: none;
@@ -707,10 +1091,13 @@ class DailyContestManager {
                 }
             </button>
             
-            <div class="entry-info" style="margin-top: 10px; font-size: 0.8em; color: #666;">
-                💰 Entry fee: 50 $NUTS • 🏆 Top 3 split prize pool
+            <div class="entry-info" style="margin-top: 10px; font-size: 0.8em; color: #666; text-align: center;">
+                💰 Entry fee: 50 $NUTS • 🏆 Top 3 win (50%/30%/20%)
+                <br>
+                <span style="color: #ffa500; font-weight: bold;">🔗 Wallet connection required for contest entry</span>
             </div>
         `;
+        }
 
         // Add the button container after the games grid
         const gamesGrid = document.getElementById('games-grid');
@@ -718,11 +1105,10 @@ class DailyContestManager {
             gamesGrid.parentNode.insertBefore(buttonContainer, gamesGrid.nextSibling);
         }
 
-        // Set up the enter button event listener
-        const enterButton = document.getElementById('enter-contest-btn');
-        if (enterButton) {
-            enterButton.addEventListener('click', () => this.handleContestEntry());
-        }        console.log('✅ Enter button added with', picksCount, 'picks');
+        // Store reference to this for use in onclick
+        const self = this;
+        
+        console.log('✅ Enter button added with', picksCount, 'picks');
     }
 
     updateEntryButton() {
@@ -730,347 +1116,259 @@ class DailyContestManager {
         const progressBar = document.querySelector('.progress-bar');
         const picksCountSpan = document.querySelector('.picks-summary span[style*="color: #4CAF50"]');
         const picksCount = Object.keys(this.userPicks).length;
-        const totalGames = this.selectedGames.length;
+        const unlockedGames = this.selectedGames.filter(game => !this.isGameLocked(game));
+        const lockedGames = this.selectedGames.filter(game => this.isGameLocked(game));
+        
+        // Check if user has picks for all unlocked games
+        const unlockedGameIds = unlockedGames.map(g => g.id);
+        const picksForUnlockedGames = Object.keys(this.userPicks).filter(gameId => 
+            unlockedGameIds.includes(gameId)
+        );
         
         if (entryButton) {
-            const isComplete = picksCount === totalGames;
+            const isComplete = picksForUnlockedGames.length === unlockedGames.length && unlockedGames.length > 0;
+            const canSubmit = unlockedGames.length > 0;
             
             // Update button state
             entryButton.disabled = !isComplete;
-            entryButton.style.background = isComplete ? 
-                'linear-gradient(135deg, #4CAF50, #00ff88)' : '#555';
-            entryButton.style.color = isComplete ? '#000' : '#888';
-            entryButton.style.cursor = isComplete ? 'pointer' : 'not-allowed';
-            entryButton.style.boxShadow = isComplete ? 
-                '0 0 20px rgba(76, 175, 80, 0.3)' : 'none';
             
-            entryButton.textContent = isComplete ? 
-                '🎯 Enter Contest (50 $NUTS)' : 
-                `Make All Picks (${totalGames - picksCount} remaining)`;
+            // If button just became enabled, ensure click handler is attached
+            if (isComplete && !entryButton.hasClickHandler) {
+                console.log('🎉 Button enabled! Attaching final click handler');
+                entryButton.hasClickHandler = true;
+                entryButton.onclick = (e) => {
+                    console.log('🔥🔥 ENTER CONTEST CLICKED!');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.handleContestEntry();
+                };
+            }
+            
+            if (!canSubmit) {
+                // No unlocked games available
+                entryButton.style.background = '#ff4444';
+                entryButton.style.color = '#fff';
+                entryButton.style.cursor = 'not-allowed';
+                entryButton.style.boxShadow = 'none';
+                entryButton.textContent = 'All Games Started - Try Another Day!';
+            } else {
+                // Some unlocked games available
+                entryButton.style.background = isComplete ? 
+                    'linear-gradient(135deg, #4CAF50, #00ff88)' : '#555';
+                entryButton.style.color = isComplete ? '#000' : '#888';
+                entryButton.style.cursor = isComplete ? 'pointer' : 'not-allowed';
+                entryButton.style.boxShadow = isComplete ? 
+                    '0 0 20px rgba(76, 175, 80, 0.3)' : 'none';
+                
+                const remainingPicks = unlockedGames.length - picksForUnlockedGames.length;
+                
+                entryButton.textContent = isComplete ? 
+                    `🎯 Enter Contest (50 $NUTS) - ${unlockedGames.length} games` : 
+                    `Make All Available Picks (${remainingPicks} remaining)`;
+            }
             
             // Update progress bar
             if (progressBar) {
-                progressBar.style.width = `${(picksCount / totalGames) * 100}%`;
+                const progress = unlockedGames.length > 0 ? 
+                    (picksForUnlockedGames.length / unlockedGames.length) * 100 : 0;
+                progressBar.style.width = `${progress}%`;
             }
             
             // Update picks count
             if (picksCountSpan) {
-                picksCountSpan.textContent = `${picksCount}/${totalGames}`;
+                const statusText = lockedGames.length > 0 ? 
+                    `${picksForUnlockedGames.length}/${unlockedGames.length} available (${lockedGames.length} started)` :
+                    `${picksForUnlockedGames.length}/${unlockedGames.length}`;
+                picksCountSpan.textContent = statusText;
             }
         }
     }    async handleContestEntry() {
+        console.log('🚀 handleContestEntry called!');
+        console.log('🎯 Current picks:', this.userPicks);
+        
         try {
-            // Check if wallet is connected (authenticated)
-            if (!window.xamanAuth || !window.xamanAuth.isUserAuthenticated()) {
-                this.showError('Please connect your Xaman wallet to enter the contest.');
-                return;
-            }
-
             const picksCount = Object.keys(this.userPicks).length;
+            const unlockedGames = this.selectedGames.filter(game => !this.isGameLocked(game));
+            const lockedGames = this.selectedGames.filter(game => this.isGameLocked(game));
             
-            if (picksCount !== this.selectedGames.length) {
-                this.showError(`Please make picks for all ${this.selectedGames.length} games.`);
+            console.log('📊 Games status:', {
+                totalGames: this.selectedGames.length,
+                unlockedGames: unlockedGames.length,
+                lockedGames: lockedGames.length,
+                picksCount: picksCount
+            });
+            
+            // Check if user has picks for all unlocked games
+            const unlockedGameIds = unlockedGames.map(g => g.id);
+            const picksForUnlockedGames = Object.keys(this.userPicks).filter(gameId => 
+                unlockedGameIds.includes(gameId)
+            );
+            
+            if (picksForUnlockedGames.length !== unlockedGames.length) {
+                const missingCount = unlockedGames.length - picksForUnlockedGames.length;
+                this.showError(`Please make picks for all ${unlockedGames.length} available games. You're missing ${missingCount} pick${missingCount !== 1 ? 's' : ''}.`);
+                return;
+            }
+            
+            // If there are no unlocked games, don't allow entry
+            if (unlockedGames.length === 0) {
+                this.showError('All games have started. No new entries allowed for today. Try another day!');
+                return;
+            }
+            
+            // Check entry limits (optional - can limit entries per user)
+            const userId = 'USER_' + Date.now(); // In production, use actual user ID
+            const existingEntries = await this.backend.getContestEntries(
+                this.formatDate(this.contestDays[this.currentDay].date)
+            );
+            const userEntries = existingEntries.filter(e => e.userId === userId);
+            
+            const MAX_ENTRIES_PER_USER = 3; // Configurable limit
+            if (userEntries.length >= MAX_ENTRIES_PER_USER) {
+                this.showError(`You have reached the maximum of ${MAX_ENTRIES_PER_USER} entries per contest.`);
+                return;
+            }
+            
+            // Get tiebreaker value
+            const tiebreakerInput = document.getElementById('tiebreaker-runs');
+            const tiebreakerRuns = tiebreakerInput ? parseInt(tiebreakerInput.value) : null;
+            
+            if (tiebreakerRuns === null || isNaN(tiebreakerRuns) || tiebreakerRuns < 0) {
+                this.showError('Please enter your tiebreaker prediction (total runs in last game)');
+                tiebreakerInput.focus();
                 return;
             }
 
-            // Show entry fee collection notification
-            this.showNotification('🔄 Processing entry fee payment...', 'info');
+            console.log('💰 Processing contest entry...');
+            console.log('🎯 Tiebreaker prediction:', tiebreakerRuns, 'runs');
             
-            // Initialize contest wallet if not already done
-            if (!window.contestWallet) {
-                window.contestWallet = new ContestWallet();
-                await window.contestWallet.connect();
-            }
+            // Get Twitter handle if provided
+            const twitterHandleInput = document.getElementById('twitter-handle');
+            const twitterHandle = twitterHandleInput ? twitterHandleInput.value.trim() : '';
             
-            // Get authenticated user's wallet address
-            const userWallet = this.getUserWallet();
-            if (!userWallet) {
-                this.showError('Unable to get wallet address. Please try logging in again.');
-                return;
-            }
+            // Prepare contest entry data - only include picks for unlocked games
+            const validPicks = {};
+            const validGames = [];
             
-            console.log('💰 Collecting entry fee from authenticated user:', userWallet);
-            
-            // Collect 50 NUTS entry fee
-            const entryFeeTransaction = await window.contestWallet.collectEntryFee(userWallet, 50);
-              if (entryFeeTransaction.status === 'SUCCESS') {
-                // Entry fee collected successfully, now enter contest
-                console.log('🎮 Entering contest with picks:', this.userPicks);
-                console.log('💰 Entry fee transaction:', entryFeeTransaction.txId);
-                
-                // Store contest entry data with authenticated user info
-                const userInfo = window.xamanAuth.getUserInfo();
-                const contestEntry = {
-                    userId: userInfo.sub,
-                    userName: userInfo.name,
-                    userWallet: userWallet,
-                    picks: this.userPicks,
-                    entryFee: 50,
-                    transactionId: entryFeeTransaction.txId,
-                    contestDay: this.currentDay,
-                    timestamp: new Date().toISOString(),
-                    games: this.selectedGames.length
-                };
-                
-                // Create individual bets in Firebase for each pick
-                if (window.firebaseIntegration && window.firebaseIntegration.initialized) {
-                    console.log('🔥 Creating bets in Firebase...');
-                    await this.createFirebaseBets(contestEntry);
+            unlockedGames.forEach(game => {
+                if (this.userPicks[game.id]) {
+                    validPicks[game.id] = this.userPicks[game.id];
+                    validGames.push({
+                        gameId: game.id,
+                        pickedTeam: this.userPicks[game.id],
+                        result: null, // win, loss, or pending
+                        actualWinner: null,
+                        gameTime: game.gameTime,
+                        awayTeam: game.awayTeam,
+                        homeTeam: game.homeTeam
+                    });
                 }
+            });
+            
+            const contestEntry = {
+                userId: 'USER_' + Date.now(),
+                userName: twitterHandle ? `@${twitterHandle}` : 'Player #' + Math.floor(Math.random() * 9999),
+                twitterHandle: twitterHandle ? `@${twitterHandle}` : null,
+                sport: 'mlb', // Required for Firebase filtering
+                picks: validPicks,
+                tiebreakerRuns: tiebreakerRuns,
+                entryFee: 50,
+                contestDay: this.formatDate(this.contestDays[this.currentDay].date),
+                timestamp: new Date().toISOString(),
+                totalGames: unlockedGames.length, // Only count unlocked games
+                availableGames: this.selectedGames.length, // Track total games for context
+                lockedGames: lockedGames.length, // Track how many were locked
+                games: validGames
+            };
+            
+            let result;
+            
+            // Show payment QR code
+            console.log('💳 Creating payment QR code...');
+            const paymentResult = await window.xamanPayment.createContestPayment();
+            
+            if (paymentResult && paymentResult.success) {
+                console.log('✅ Payment successful!');
+                contestEntry.transactionId = paymentResult.txid || paymentResult.txHash;
+                contestEntry.paymentTxHash = paymentResult.txid || paymentResult.txHash; // Add this field for Firebase
+                contestEntry.paymentTimestamp = paymentResult.timestamp || new Date().toISOString();
                 
-                // Store in local storage for backup (in production, save to database)
-                this.saveContestEntry(contestEntry);
-                
-                this.showSuccess(`✅ Contest entered successfully! Entry fee paid: 50 NUTS`);
-                this.showSuccess(`📋 Transaction ID: ${entryFeeTransaction.txId.substring(0, 16)}...`);
-                this.showSuccess(`🎯 ${picksCount} picks submitted. Good luck! 🍀`);
-                
-                // Disable further changes
-                document.querySelectorAll('.team-option').forEach(team => {
-                    team.style.pointerEvents = 'none';
-                    team.style.opacity = '0.7';
-                });
-                
-                const entryButton = document.getElementById('enter-contest-btn');
-                if (entryButton) {
-                    entryButton.textContent = '✅ Contest Entered (50 NUTS Paid)';
-                    entryButton.disabled = true;
-                    entryButton.style.background = '#4CAF50';
+                // Try to store the entry - but don't fail if storage fails
+                try {
+                    if (this.backend && this.backend.createContestEntry) {
+                        console.log('📝 Storing entry via production backend...');
+                        result = await this.backend.createContestEntry(contestEntry);
+                    } else if (this.integration) {
+                        console.log('📝 Storing entry via integration...');
+                        result = await this.integration.storeInFirebase(contestEntry);
+                    } else if (this.backend && this.backend.storeContestEntry) {
+                        console.log('📝 Storing entry via local backend...');
+                        result = await this.backend.storeContestEntry(contestEntry);
+                    } else {
+                        console.log('📝 Storing entry locally...');
+                        result = { success: true, entryId: 'LOCAL_' + Date.now() };
+                    }
+                } catch (storageError) {
+                    console.error('⚠️ Storage failed but payment succeeded:', storageError);
+                    // Payment succeeded, so we count this as a successful entry
+                    result = { 
+                        success: true, 
+                        entryId: 'PAID_' + Date.now(),
+                        txHash: paymentResult.txid || paymentResult.txHash,
+                        storageError: true
+                    };
                 }
             } else {
-                throw new Error('Entry fee payment failed');
+                result = { success: false, error: 'Payment cancelled' };
             }
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to process contest entry');
+            }
+            
+            console.log('✅ Contest entry complete:', result.entryId);
+                
+            this.showSuccess(`✅ Contest entered successfully! Entry fee paid: 50 NUTS`);
+            this.showSuccess(`📋 Entry ID: ${result.entryId}`);
+            if (twitterHandle) {
+                this.showSuccess(`🐦 Entered as ${contestEntry.twitterHandle}`);
+            }
+            this.showSuccess(`💰 Transaction: ${result.txHash ? result.txHash.substring(0, 16) + '...' : 'Recorded'}`);
+            this.showSuccess(`🎯 ${picksCount} picks submitted. Good luck! 🍀`);
+                
+            // Disable further changes
+            document.querySelectorAll('.team-option').forEach(team => {
+                team.style.pointerEvents = 'none';
+                team.style.opacity = '0.7';
+            });
+            
+            const entryButton = document.getElementById('enter-contest-btn');
+            if (entryButton) {
+                entryButton.textContent = '✅ Contest Entered (50 NUTS Paid)';
+                entryButton.disabled = true;
+                entryButton.style.background = '#4CAF50';
+            }
+            
+            // Reload contest stats to show updated entry count and prize pool
+            setTimeout(() => {
+                this.loadContestStats();
+            }, 1000);
+            
+            // Show redirect message
+            setTimeout(() => {
+                this.showSuccess('🏆 Redirecting to leaderboard...');
+            }, 2000);
+            
+            // Redirect to contest results page after showing success messages
+            setTimeout(() => {
+                console.log('🏆 Redirecting to leaderboard...');
+                const contestDate = this.formatDate(this.contestDays[this.currentDay].date);
+                window.location.href = `contest-results.html?date=${contestDate}&entry=${result.entryId}`;
+            }, 3000); // Give user time to see success messages
             
         } catch (error) {
             console.error('❌ Contest entry failed:', error);
             this.showError('Failed to enter contest: ' + error.message);
-        }
-    }    // Wallet Connection handler methods
-    async handleWalletConnection() {
-        try {
-            console.log('🔗 Connecting Xaman wallet with enhanced QR modal...');
-            
-            const connectBtn = document.getElementById('connect-wallet-btn');
-            const walletText = document.getElementById('walletText');
-            const walletSpinner = document.getElementById('walletSpinner');
-            
-            // Prevent multiple clicks
-            if (connectBtn && connectBtn.disabled) {
-                console.log('⚠️ Connection already in progress...');
-                return;
-            }
-            
-            // Check if already authenticated
-            if (window.xamanAuth && window.xamanAuth.isUserAuthenticated()) {
-                // Already authenticated, show disconnect option
-                this.handleWalletDisconnection();
-                return;
-            }
-            
-            // Show loading state
-            if (walletText) walletText.textContent = 'Connecting...';
-            if (walletSpinner) walletSpinner.classList.remove('hidden');
-            if (connectBtn) connectBtn.disabled = true;
-            
-            // Initialize enhanced QR modal if not available
-            if (!window.enhancedQRModal) {
-                console.log('🎨 Initializing enhanced QR modal...');
-                window.enhancedQRModal = new EnhancedQRModal();
-            }
-            
-            // Show enhanced QR modal with real Xaman API integration
-            await window.enhancedQRModal.show();
-            
-        } catch (error) {
-            console.error('❌ Wallet connection failed:', error);
-            this.showError('Wallet connection failed: ' + error.message);
-            this.resetWalletButton();
-        }
-    }handleWalletDisconnection() {
-        try {
-            console.log('🚪 Disconnecting wallet...');
-            
-            // Clear authentication state
-            if (window.xamanAuth) {
-                window.xamanAuth.user = null;
-                window.xamanAuth.isAuthenticated = false;
-                window.xamanAuth.accessToken = null;
-            }
-            
-            // Trigger disconnect event
-            window.dispatchEvent(new CustomEvent('xamanLogout'));
-            
-            // Update UI immediately
-            this.onWalletDisconnected();
-            
-        } catch (error) {
-            console.error('❌ Wallet disconnection failed:', error);
-            this.showError('Wallet disconnection failed: ' + error.message);
-        }
-    }    onWalletConnected(userInfo) {
-        console.log('✅ Wallet connected successfully:', userInfo);
-        
-        // Update wallet connection UI
-        this.updateWalletUI(true, userInfo);
-        
-        // Update contest status
-        this.updateContestStatus(true, userInfo);
-        
-        // Show success message
-        this.showNotification(`Wallet connected! Welcome ${userInfo.name}`, 'success');
-    }
-
-    onWalletDisconnected() {
-        console.log('🚪 Wallet disconnected');
-        
-        // Update wallet connection UI
-        this.updateWalletUI(false);
-        
-        // Update contest status
-        this.updateContestStatus(false);
-        
-        // Clear any user-specific data
-        this.clearUserData();
-    }    updateWalletUI(isConnected, userInfo = null) {
-        const connectBtn = document.getElementById('connect-wallet-btn');
-        const walletText = document.getElementById('walletText');
-        const walletSpinner = document.getElementById('walletSpinner');
-        const walletInfo = document.getElementById('wallet-info');
-        const walletAddress = document.querySelector('.wallet-address');
-        
-        if (isConnected && userInfo) {
-            // Update connect button to show connected state
-            if (walletText) walletText.textContent = 'Disconnect';
-            if (walletSpinner) walletSpinner.classList.add('hidden');
-            if (connectBtn) {
-                connectBtn.disabled = false;
-                connectBtn.onclick = () => this.handleWalletDisconnection();
-                connectBtn.title = 'Click to disconnect wallet';
-                connectBtn.style.background = 'linear-gradient(135deg, #f44336, #ff6b6b)';
-            }
-            
-            // Show wallet info
-            if (walletInfo) walletInfo.classList.remove('hidden');
-            if (walletAddress) {
-                walletAddress.textContent = userInfo.wallet_address.substring(0, 8) + '...';
-            }
-            
-            // Update user info section
-            const userInfoDiv = document.getElementById('user-info');
-            if (userInfoDiv) {
-                userInfoDiv.innerHTML = `
-                    <div class="user-profile" style="
-                        background: #2a2a2a; 
-                        padding: 15px; 
-                        border-radius: 8px; 
-                        border: 1px solid #4CAF50;
-                        text-align: center;
-                    ">
-                        <div class="user-details">
-                            <div class="user-name" style="color: #4CAF50; font-weight: bold; margin-bottom: 5px;">
-                                🟢 ${userInfo.name}
-                            </div>
-                            <div class="user-wallet" style="color: #ffa500; font-size: 0.9em; font-family: monospace;">
-                                ${userInfo.wallet_address}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                userInfoDiv.style.display = 'block';
-            }
-            
-        } else {
-            // Update connect button to show disconnected state
-            if (walletText) walletText.textContent = 'Connect Wallet';
-            if (walletSpinner) walletSpinner.classList.add('hidden');
-            if (connectBtn) {
-                connectBtn.disabled = false;
-                connectBtn.onclick = () => this.handleWalletConnection();
-                connectBtn.title = 'Connect your Xaman wallet';
-                connectBtn.style.background = 'linear-gradient(135deg, #4CAF50, #00ff88)';
-            }
-            
-            // Hide wallet info
-            if (walletInfo) walletInfo.classList.add('hidden');
-            
-            // Hide user info
-            const userInfoDiv = document.getElementById('user-info');
-            if (userInfoDiv) userInfoDiv.style.display = 'none';
-        }
-    }
-
-    updateContestStatus(isConnected, userInfo = null) {
-        const statusCard = document.querySelector('.status-card');
-        const statusIcon = document.querySelector('.status-icon');
-        const statusTitle = statusCard?.querySelector('h3');
-        const statusDescription = statusCard?.querySelector('p');
-        const enterContestBtn = document.getElementById('enter-contest-btn');
-        
-        if (isConnected && userInfo) {
-            // Update to connected state
-            if (statusIcon) statusIcon.textContent = '🎯';
-            if (statusTitle) statusTitle.textContent = 'Ready to Enter Contest';
-            if (statusDescription) statusDescription.textContent = 'Your wallet is connected and you can enter contests!';
-            
-            // Enable contest entry button
-            if (enterContestBtn) {
-                enterContestBtn.disabled = false;
-                enterContestBtn.innerHTML = '<span>Enter Contest (50 $NUTS)</span><div class="btn-glow"></div>';
-            }
-            
-        } else {
-            // Update to disconnected state
-            if (statusIcon) statusIcon.textContent = '🔗';
-            if (statusTitle) statusTitle.textContent = 'Wallet Connection Required';
-            if (statusDescription) statusDescription.textContent = 'Connect your Xaman wallet to participate in contests';
-            
-            // Disable contest entry button
-            if (enterContestBtn) {
-                enterContestBtn.disabled = true;
-                enterContestBtn.innerHTML = '<span>Connect Wallet to Enter Contest</span><div class="btn-glow"></div>';
-            }
-        }
-    }    clearUserData() {
-        // Clear user picks and contest entry data when wallet is disconnected
-        this.userPicks = {};
-        
-        // Reset any disabled UI elements
-        document.querySelectorAll('.team-option').forEach(team => {
-            team.style.pointerEvents = '';
-            team.style.opacity = '';
-        });
-        
-        // Re-enable entry button if user was in middle of contest entry
-        const entryButton = document.getElementById('enter-contest-btn');
-        if (entryButton && entryButton.textContent.includes('Contest Entered')) {
-            entryButton.disabled = true;
-            entryButton.innerHTML = '<span>Connect Wallet to Enter Contest</span><div class="btn-glow"></div>';
-            entryButton.style.background = '';
-        }
-        
-        // Refresh games display
-        this.displayGames();
-    }    // Update getUserWallet to use authenticated user's wallet
-    getUserWallet() {
-        if (window.xamanAuth && window.xamanAuth.isUserAuthenticated()) {
-            const userInfo = window.xamanAuth.getUserInfo();
-            if (userInfo && userInfo.wallet_address) {
-                return userInfo.wallet_address;
-            }
-        }
-        
-        // Fallback for demo purposes
-        return null;
-    }    resetWalletButton() {
-        const connectBtn = document.getElementById('connect-wallet-btn');
-        const walletText = document.getElementById('walletText');
-        const walletSpinner = document.getElementById('walletSpinner');
-        
-        if (walletText) walletText.textContent = 'Connect Wallet';
-        if (walletSpinner) walletSpinner.classList.add('hidden');
-        if (connectBtn) {
-            connectBtn.disabled = false;
-            connectBtn.onclick = () => this.handleWalletConnection();
         }
     }
 
@@ -1120,26 +1418,6 @@ class DailyContestManager {
             console.error('❌ Failed to create Firebase bets:', error);
             this.showError('Failed to store bets in Firebase: ' + error.message);
             return [];
-        }
-    }    /**
-     * Save contest entry to local storage (backup)
-     */
-    saveContestEntry(contestEntry) {
-        try {
-            const storageKey = `contest_entry_${contestEntry.contestDay}_${Date.now()}`;
-            localStorage.setItem(storageKey, JSON.stringify(contestEntry));
-            
-            // Also save to a general contest entries array
-            const allEntries = JSON.parse(localStorage.getItem('all_contest_entries') || '[]');
-            allEntries.push({
-                ...contestEntry,
-                storageKey: storageKey
-            });
-            localStorage.setItem('all_contest_entries', JSON.stringify(allEntries));
-            
-            console.log('✅ Contest entry saved to local storage');
-        } catch (error) {
-            console.error('❌ Failed to save contest entry:', error);
         }
     }
 
@@ -1221,15 +1499,203 @@ class DailyContestManager {
             }
         }, 5000);
     }
+    
+    /**
+     * Format date as YYYY-MM-DD
+     */
+    formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    
+    async loadContestStats() {
+        try {
+            // Always use today's date for the contest stats, not the selected day
+            const today = new Date();
+            const todayFormatted = this.formatDate(today);
+            const currentDate = this.formatDate(this.contestDays[this.currentDay].date);
+            
+            console.log(`📊 Loading contest stats - Today: ${todayFormatted}, Selected: ${currentDate}`);
+            
+            // Load entries for the selected date (not just today)
+            console.log(`📅 Loading entries for selected date: ${currentDate}`);
+            
+            if (this.backend) {
+                console.log(`🔍 Backend type: Firebase enabled = ${this.backend.firebaseEnabled}`);
+                console.log(`🔍 Looking for entries on date: ${currentDate}`);
+                const entries = await this.backend.getContestEntries(currentDate);
+                
+                console.log(`📊 Raw entries returned (${entries.length}):`, entries);
+                
+                // Log each entry in detail
+                entries.forEach((entry, index) => {
+                    console.log(`📋 Entry ${index + 1}:`, {
+                        id: entry.id,
+                        userName: entry.userName,
+                        contestDate: entry.contestDate,
+                        contestDay: entry.contestDay,
+                        timestamp: entry.timestamp,
+                        transactionId: entry.transactionId,
+                        walletAddress: entry.walletAddress,
+                        contestStatus: entry.contestStatus,
+                        status: entry.status
+                    });
+                });
+                
+                // Filter for active entries only (backward compatible - if no status, assume active)
+                // Also filter out phantom entries missing required fields
+                const activeEntries = entries.filter(entry => {
+                    // Check if entry has required fields to be valid
+                    // Only require userName - transactionId can be pending for demo/testing
+                    const hasRequiredFields = entry.userName;
+                    
+                    // Check if entry is for the selected contest date
+                    let isForSelectedDate = true;
+                    if (entry.contestDate) {
+                        isForSelectedDate = entry.contestDate === currentDate;
+                        console.log(`📅 Date comparison: entry.contestDate="${entry.contestDate}" vs currentDate="${currentDate}" = ${isForSelectedDate}`);
+                    } else if (entry.contestDay) {
+                        isForSelectedDate = entry.contestDay === currentDate;
+                        console.log(`📅 Date comparison: entry.contestDay="${entry.contestDay}" vs currentDate="${currentDate}" = ${isForSelectedDate}`);
+                    }
+                    
+                    // Check if active
+                    const isActive = !entry.contestStatus || entry.contestStatus === 'active';
+                    
+                    // Additional validation - filter out test entries (but allow demo entries)
+                    const isNotTest = !entry.id?.toLowerCase().includes('test');
+                    
+                    // Entry must have basic required fields and be for the selected contest date
+                    const isValid = hasRequiredFields && isForSelectedDate && isActive && isNotTest;
+                    
+                    console.log(`Entry ${entry.id}: ` +
+                        `contestStatus=${entry.contestStatus}, ` +
+                        `hasReqFields=${hasRequiredFields}, ` +
+                        `contestDate=${entry.contestDate}, ` +
+                        `isForSelectedDate=${isForSelectedDate}, ` +
+                        `isActive=${isActive}, ` +
+                        `isNotTest=${isNotTest}, ` +
+                        `isValid=${isValid}`);
+                    
+                    if (!isValid && entry.id) {
+                        console.log(`🚫 Filtered out entry ${entry.id}: ${JSON.stringify({
+                            userName: entry.userName,
+                            contestDate: entry.contestDate,
+                            transactionId: entry.transactionId ? 'present' : 'missing',
+                            reason: !hasRequiredFields ? 'missing userName' :
+                                   !isForSelectedDate ? 'not for selected date' :
+                                   !isActive ? 'not active' :
+                                   !isNotTest ? 'test entry' : 'unknown'
+                        })}`);
+                    }
+                    
+                    return isValid;
+                });
+                
+                console.log(`📊 Found ${entries.length} total entries, ${activeEntries.length} active`);
+                
+                // Calculate stats
+                const totalEntries = activeEntries.length;
+                const prizePool = totalEntries * 50; // 50 NUTS per entry
+                
+                // Update the display
+                this.updateContestStats(totalEntries, prizePool);
+                
+                // Also update the header stats
+                document.getElementById('prize-pool').textContent = prizePool + ' NUTS';
+                document.getElementById('entry-count').textContent = totalEntries;
+            } else {
+                // Show default values
+                this.updateContestStats(0, 0);
+                document.getElementById('prize-pool').textContent = '0 NUTS';
+                document.getElementById('entry-count').textContent = '0';
+            }
+            
+        } catch (error) {
+            // Check if it's a permission error (expected for non-authenticated users)
+            if (error.code === 'permission-denied' || error.message?.includes('permissions')) {
+                console.log('📊 Contest stats require authentication - showing defaults');
+            } else {
+                console.error('❌ Failed to load contest stats:', error);
+            }
+            // Show default values - this is normal for non-authenticated users
+            this.updateContestStats(0, 0);
+            document.getElementById('prize-pool').textContent = '0 NUTS';
+            document.getElementById('entry-count').textContent = '0';
+        }
+    }
+    
+    updateContestStats(entries, prizePool) {
+        // Only update the main header stats - remove redundant displays
+        console.log(`📊 Updating contest stats: ${entries} entries, ${prizePool} NUTS prize pool`);
+        
+        // Remove any existing live stats banner to prevent duplicates
+        const existingBanner = document.getElementById('live-stats-banner');
+        if (existingBanner) {
+            existingBanner.remove();
+        }
+        
+        // The main header stats are updated in loadContestStats() directly
+        // We don't need additional stats displays here
+    }
 }
+
+// Utility function to clear contest data
+window.clearContestData = function(date) {
+    if (!date) {
+        console.log('Usage: clearContestData("YYYY-MM-DD") or clearContestData("all")');
+        return;
+    }
+    
+    if (date === 'all') {
+        // Clear all contest data
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('contest_entries_') || key.startsWith('entries_') || key === 'contest_entries')) {
+                keys.push(key);
+            }
+        }
+        
+        keys.forEach(key => {
+            console.log(`🗑️ Removing ${key}`);
+            localStorage.removeItem(key);
+        });
+        
+        console.log(`✅ Cleared all contest data (${keys.length} keys)`);
+    } else {
+        // Clear specific date
+        const keys = [
+            `contest_entries_${date}`,
+            `entries_${date}`
+        ];
+        
+        keys.forEach(key => {
+            if (localStorage.getItem(key)) {
+                console.log(`🗑️ Removing ${key}`);
+                localStorage.removeItem(key);
+            }
+        });
+        
+        console.log(`✅ Cleared contest data for ${date}`);
+    }
+    
+    // Reload stats if on contest page
+    if (window.dailyContestManager) {
+        window.dailyContestManager.loadContestStats();
+    }
+};
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('📄 DOM Content Loaded');
+    console.log('💡 Tip: Use clearContestData("YYYY-MM-DD") or clearContestData("all") to clear old contest entries');
     
     // Wait a bit to ensure all scripts are loaded
     setTimeout(() => {
-        console.log('🎮 Initializing Daily Contest Manager...');
+        console.log('🎮 Initializing MLB Contest Manager...');
         window.dailyContestManager = new DailyContestManager();
         window.dailyContestManager.init();
         
@@ -1301,4 +1767,4 @@ window.switchToDay = (dayIndex) => {
     }
 };
 
-console.log('⚾ Daily Contest module loaded');
+console.log('⚾ MLB Contest module loaded');

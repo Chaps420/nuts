@@ -3,13 +3,17 @@
 
 class MLBOddsAPI {
     constructor() {
-        this.apiKey = '9d542e15caa7acb9fc6dd5d3dc72ed6d';
+        // Widget key - for embedded widgets, not direct API access
+        this.widgetKey = 'wk_8e7ce1bebe8c2b5776b4d810dfa22cf1';
+        // API key would be needed for direct API access
+        this.apiKey = '9d542e15caa7acb9fc6dd5d3dc72ed6d'; // This appears to be invalid
         this.baseUrl = 'https://api.the-odds-api.com/v4';
         this.mlbSportKey = 'baseball_mlb';
         this.cache = new Map();
         this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
         
         console.log('🏈 MLBOddsAPI initialized for real MLB games');
+        console.log('⚠️ Note: Using widget key, not API key. API features may be limited.');
     }
 
     async init() {
@@ -183,63 +187,53 @@ class MLBOddsAPI {
         ];
 
         const games = [];
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-
-        // Generate 5 games for today
-        mlbTeams.slice(0, 5).forEach(([away, home], index) => {
-            const gameTime = new Date(today);
-            gameTime.setHours(13 + index * 2, 10, 0, 0); // Games at 1:10, 3:10, 5:10, 7:10, 9:10
+        
+        // Generate games for next 7 days
+        for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+            const gameDate = new Date();
+            gameDate.setDate(gameDate.getDate() + dayOffset);
             
-            games.push({
-                id: `mock_mlb_today_${index + 1}`,
-                homeTeam: home,
-                awayTeam: away,
-                gameTime: gameTime.toISOString(),
-                gameTimeFormatted: gameTime.toLocaleString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true
-                }),
-                homeOdds: this.generateRandomOdds(),
-                awayOdds: this.generateRandomOdds(),
-                bookmaker: 'DraftKings',
-                sport: 'MLB',
-                sportKey: 'baseball_mlb',
-                status: 'scheduled'
-            });
-        });
-
-        // Generate 5 games for tomorrow
-        mlbTeams.slice(5, 10).forEach(([away, home], index) => {
-            const gameTime = new Date(tomorrow);
-            gameTime.setHours(13 + index * 2, 10, 0, 0); // Games at 1:10, 3:10, 5:10, 7:10, 9:10
+            // Randomize number of games per day (8-15 games)
+            const gamesPerDay = 8 + Math.floor(Math.random() * 8);
             
-            games.push({
-                id: `mock_mlb_tomorrow_${index + 1}`,
-                homeTeam: home,
-                awayTeam: away,
-                gameTime: gameTime.toISOString(),
-                gameTimeFormatted: gameTime.toLocaleString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true
-                }),
-                homeOdds: this.generateRandomOdds(),
-                awayOdds: this.generateRandomOdds(),
-                bookmaker: 'FanDuel',
-                sport: 'MLB',
-                sportKey: 'baseball_mlb',
-                status: 'scheduled'
-            });
-        });
+            // Shuffle teams for variety
+            const shuffledTeams = [...mlbTeams].sort(() => Math.random() - 0.5);
+            
+            for (let i = 0; i < Math.min(gamesPerDay, shuffledTeams.length); i++) {
+                const [away, home] = shuffledTeams[i];
+                const gameTime = new Date(gameDate);
+                
+                // Vary game times: afternoon (1-5 PM) and evening (6-10 PM) games
+                if (i < gamesPerDay / 2) {
+                    // Afternoon games
+                    gameTime.setHours(13 + Math.floor(Math.random() * 4), Math.random() > 0.5 ? 10 : 40, 0, 0);
+                } else {
+                    // Evening games
+                    gameTime.setHours(18 + Math.floor(Math.random() * 4), Math.random() > 0.5 ? 5 : 35, 0, 0);
+                }
+                
+                games.push({
+                    id: `mock_mlb_day${dayOffset}_game${i + 1}`,
+                    homeTeam: home,
+                    awayTeam: away,
+                    gameTime: gameTime.toISOString(),
+                    gameTimeFormatted: gameTime.toLocaleString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                    }),
+                    homeOdds: this.generateRandomOdds(),
+                    awayOdds: this.generateRandomOdds(),
+                    bookmaker: ['DraftKings', 'FanDuel', 'BetMGM', 'Caesars'][Math.floor(Math.random() * 4)],
+                    sport: 'MLB',
+                    sportKey: 'baseball_mlb',
+                    status: 'scheduled'
+                });
+            }
+        }
 
         return games.sort((a, b) => new Date(a.gameTime) - new Date(b.gameTime));
     }

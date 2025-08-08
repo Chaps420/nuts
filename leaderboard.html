@@ -30,7 +30,6 @@
             <div class="nav-links desktop-nav">
                 <a href="index.html" class="nav-link">Home</a>
                 <a href="daily-contest.html" class="nav-link">Daily Contest</a>
-                <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
                 <a href="leaderboard.html" class="nav-link active">Leaderboard</a>
                 <a href="how-it-works.html" class="nav-link">How It Works</a>
                 <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
@@ -61,7 +60,6 @@
         <div class="mobile-nav hidden" id="mobile-menu">
             <a href="index.html" class="nav-link">Home</a>
             <a href="daily-contest.html" class="nav-link">Daily Contest</a>
-            <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
             <a href="leaderboard.html" class="nav-link">Leaderboard</a>
             <a href="how-it-works.html" class="nav-link">How It Works</a>
             <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
@@ -79,7 +77,6 @@
                     <!-- Leaderboard Tabs -->
                     <div class="leaderboard-tabs">
                         <button class="tab-btn active" data-tab="daily">Daily Contest</button>
-                        <button class="tab-btn" data-tab="weekly">Weekly NFT Contest</button>
                         <button class="tab-btn" data-tab="all-time">All-Time Leaders</button>
                     </div>
                 </div>
@@ -112,30 +109,6 @@
                                 <div class="spinner"></div>
                                 <span>Loading leaderboard...</span>
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Weekly NFT Contest Leaderboard -->
-                <div class="leaderboard-tab" id="weekly-tab">
-                    <div class="tab-header">
-                        <h2>This Week's NFT Holder Contest</h2>
-                        <div class="contest-info">
-                            <span>Prize Pool: <strong class="accent-green">1,000 $NUTS</strong></span>
-                            <span>NFT Holders: <strong>23</strong></span>
-                        </div>
-                    </div>
-                    
-                    <div class="leaderboard-table">
-                        <div class="table-header">
-                            <div class="rank-col">Rank</div>
-                            <div class="player-col">Player</div>
-                            <div class="nft-col">NFTs</div>
-                            <div class="score-col">Correct Picks</div>
-                            <div class="prize-col">Prize</div>
-                        </div>
-                        <div class="table-body" id="weekly-leaderboard">
-                            <!-- Weekly leaderboard data will be loaded here -->
                         </div>
                     </div>
                 </div>
@@ -229,12 +202,6 @@
                         <div class="achievement-prize">Streak Bonus: 1,000 $NUTS</div>
                     </div>
                     <div class="achievement-card">
-                        <div class="achievement-icon">💎</div>
-                        <h3>NFT Champion</h3>
-                        <p>DiamondSquirrel dominated 3 consecutive weekly NFT contests</p>
-                        <div class="achievement-prize">Legendary NFT Awarded</div>
-                    </div>
-                    <div class="achievement-card">
                         <div class="achievement-icon">🎯</div>
                         <h3>Accuracy Master</h3>
                         <p>PredictionPro maintains 78% accuracy over 50+ contests</p>
@@ -263,7 +230,6 @@
                     <h4>Contests</h4>
                     <ul class="footer-links">
                         <li><a href="daily-contest.html">Daily Pick'em</a></li>
-                        <li><a href="nft-contest.html">NFT Holder Contest</a></li>
                         <li><a href="leaderboard.html">Leaderboard</a></li>
                     </ul>
                 </div>
@@ -307,6 +273,7 @@
         </div>
     </footer>    <!-- Scripts -->
     <script src="config/config-browser.js"></script>
+    <script src="config/environment.js"></script>
     <script src="src/js/wallet-browser.js"></script>
     <script src="src/js/odds-api-browser.js"></script>
     <script src="src/js/contests-browser.js"></script>

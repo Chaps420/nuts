@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$NUTS MLB Contest - Compact</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: #1a1a1a;
+            border-bottom: 2px solid #333;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .logo {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ffa500;
+            text-decoration: none;
+        }
+        
+        .contest-info {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .contest-info h1 {
+            color: #ffa500;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .contest-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-box {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        /* Compact styles for better display */
+        .games-grid::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .games-grid::-webkit-scrollbar-track {
+            background: #1a1a1a;
+            border-radius: 4px;
+        }
+        
+        .games-grid::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+        
+        .games-grid::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        .game-card-compact:hover {
+            transform: translateY(-2px);
+            border-color: #666 !important;
+        }
+        
+        .team-box:hover {
+            filter: brightness(1.1);
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .contest-info h1 {
+                font-size: 1.5em;
+            }
+            
+            .games-grid {
+                grid-template-columns: 1fr !important;
+                max-height: 50vh !important;
+            }
+        }
+        
+        /* Animation */
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
+                    <img src="src/assets/images/nuts-logo.jpg" alt="$NUTS Logo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                    <span style="color: #ffa500; font-weight: bold;">$NUTS Sports Pick'em</span>
+                </a>
+                <nav>
+                    <a href="daily-contest.html" style="color: #888; text-decoration: none; margin-right: 20px;">Classic View</a>
+                    <button id="connect-wallet-btn" style="
+                        background: linear-gradient(135deg, #4CAF50, #00ff88);
+                        color: #000;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 8px;
+                        font-weight: bold;
+                        cursor: pointer;
+                    ">Connect Wallet</button>
+                </nav>
+            </div>
+        </div>
+    </header>
+    
+    <main class="container">
+        <div class="contest-info">
+            <h1>MLB Daily Pick 10 Contest</h1>
+            <p style="color: #888; margin-bottom: 20px;">
+                Pick winners from 10 MLB games to win your share of the prize pool!
+            </p>
+            
+            <div class="contest-stats">
+                <div class="stat-box">
+                    <div class="stat-label">Prize Pool</div>
+                    <div class="stat-value" id="prize-pool">2,500 NUTS</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Entry Fee</div>
+                    <div class="stat-value">50 NUTS</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Entries</div>
+                    <div class="stat-value" id="entries">47</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Time Left</div>
+                    <div class="stat-value" id="time-left">3h 45m</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tabs Container -->
+        <div id="contest-tabs"></div>
+        
+        <!-- Games Container -->
+        <div id="games-container"></div>
+    </main>
+    
+    <!-- Scripts -->
+    <script src="src/js/mlb-odds-compact.js"></script>
+    <script src="src/js/xaman-payment-only.js"></script>
+    <script src="src/js/daily-contest-compact.js"></script>
+    
+    <script>
+        // Update contest stats dynamically
+        function updateContestStats() {
+            // Simulate dynamic data
+            const entries = 40 + Math.floor(Math.random() * 30);
+            const prizePool = entries * 50;
+            
+            document.getElementById('entries').textContent = entries;
+            document.getElementById('prize-pool').textContent = prizePool.toLocaleString() + ' NUTS';
+            
+            // Update time left
+            const now = new Date();
+            const deadline = new Date();
+            deadline.setHours(19, 0, 0, 0); // 7 PM
+            
+            if (now > deadline) {
+                deadline.setDate(deadline.getDate() + 1);
+            }
+            
+            const diff = deadline - now;
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            
+            document.getElementById('time-left').textContent = `${hours}h ${minutes}m`;
+        }
+        
+        // Update stats every minute
+        updateContestStats();
+        setInterval(updateContestStats, 60000);
+        
+        // Simple wallet connection handler
+        document.getElementById('connect-wallet-btn').addEventListener('click', () => {
+            const btn = document.getElementById('connect-wallet-btn');
+            if (btn.textContent === 'Connect Wallet') {
+                btn.textContent = 'Connected';
+                btn.style.background = 'linear-gradient(135deg, #f44336, #ff6b6b)';
+            } else {
+                btn.textContent = 'Connect Wallet';
+                btn.style.background = 'linear-gradient(135deg, #4CAF50, #00ff88)';
+            }
+        });
+    </script>
+</body>
+</html>

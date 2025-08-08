@@ -1940,8 +1940,6 @@ p {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 8px;
-    max-height: 70vh;
-    overflow-y: auto;
     padding: 10px;
     background: rgba(26, 26, 26, 0.5);
     border-radius: 8px;
@@ -2087,4 +2085,196 @@ p {
     .day-tab .tab-date {
         font-size: 0.7em;
     }
+}
+
+
+/* Modal Overlay Styles for Xaman Integration */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: #1a1a1a;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    border: 1px solid #333;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #333;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.5em;
+    color: #4CAF50;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    background: #333;
+    color: #fff;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.connection-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.option-card {
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.option-card h4 {
+    margin: 0 0 10px 0;
+    color: #4CAF50;
+    font-size: 1.2em;
+}
+
+.option-card p {
+    margin: 5px 0;
+    color: #ccc;
+}
+
+.request-id {
+    background: #1a1a1a;
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 10px;
+    font-family: monospace;
+    font-size: 0.9em;
+    word-break: break-all;
+}
+
+.help-text {
+    font-size: 0.85em;
+    color: #888;
+    margin-top: 5px;
+}
+
+.form-input {
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: #fff;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #4CAF50;
+}
+
+.payment-info {
+    background: #252525;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.payment-info p {
+    margin: 5px 0;
+    color: #ccc;
+}
+
+.modal-footer {
+    margin-top: 20px;
+    text-align: center;
+}
+
+/* Add any custom styles below */
+
+/* Day tabs styling enhancement */
+.day-tab .tab-indicator {
+    font-size: 0.65em;
+    margin-top: 2px;
+    font-weight: normal;
+}
+
+.day-tab.active .tab-indicator {
+    font-weight: bold;
+}
+
+/* Ultra Compact Game Card Styles */
+.game-card.ultra-compact {
+    transition: all 0.15s ease !important;
+}
+
+.game-card.ultra-compact:hover {
+    background: #252525 !important;
+    transform: translateX(2px);
+}
+
+.game-card.ultra-compact .team {
+    transition: all 0.15s ease;
+}
+
+.game-card.ultra-compact .team:hover {
+    background: rgba(255, 165, 0, 0.1) !important;
+}
+
+.game-card.ultra-compact .team.picked {
+    background: rgba(76, 175, 80, 0.3) !important;
+    font-weight: bold;
+}
+
+/* Games list scrollbar */
+.games-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.games-list::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 3px;
+}
+
+.games-list::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 3px;
+}
+
+.games-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }

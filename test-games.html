@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Games Loading</title>
+</head>
+<body>
+    <h1>Testing MLB Games API</h1>
+    <div id="results"></div>
+    
+    <script src="config/config-browser.js"></script>
+    <script src="src/js/mlb-schedule-free.js"></script>
+    
+    <script>
+        async function testGames() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Loading games...</p>';
+            
+            try {
+                console.log('Testing MLB Schedule API...');
+                
+                if (!window.mlbSchedule) {
+                    throw new Error('MLB Schedule API not loaded');
+                }
+                
+                const today = new Date();
+                const games = await window.mlbSchedule.getGamesForDate(today);
+                
+                resultsDiv.innerHTML = `
+                    <h2>Today's Games (${today.toDateString()})</h2>
+                    <p>Found ${games.length} games</p>
+                    <pre>${JSON.stringify(games, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <h2>Error</h2>
+                    <p style="color: red;">${error.message}</p>
+                    <pre>${error.stack}</pre>
+                `;
+            }
+        }
+        
+        // Run test when page loads
+        document.addEventListener('DOMContentLoaded', testGames);
+    </script>
+</body>
+</html>

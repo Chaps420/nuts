@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Contest - $NUTS Sports Pick'em</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="src/assets/images/nuts-logo.jpg">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/css/styles.css">
+    
+    <!-- Daily Contest API -->
+    <script src="src/js/daily-contest-api.js"></script>
+    
+    <style>
+        .contest-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .contest-header {
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            border: 2px solid #ff6b00;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .choice-card {
+            background: #1a1a1a;
+            border: 2px solid #333;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .choice-card:hover {
+            border-color: #ff6b00;
+        }
+        
+        .choice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .choice-number {
+            background: #ff6b00;
+            color: #000;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .choice-category {
+            color: #888;
+            font-size: 0.9em;
+        }
+        
+        .choice-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .option-button {
+            background: #2a2a2a;
+            border: 2px solid #444;
+            color: #ccc;
+            padding: 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-size: 1em;
+        }
+        
+        .option-button:hover {
+            border-color: #ff6b00;
+            background: #333;
+        }
+        
+        .option-button.selected {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .option-label {
+            font-size: 0.8em;
+            color: #ff6b00;
+            margin-bottom: 5px;
+        }
+        
+        .choice-description {
+            color: #888;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+        
+        .entry-summary {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .submit-section {
+            background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+            border: 2px solid #4CAF50;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .submit-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .submit-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .contest-closed {
+            background: #ff4444;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .loading {
+            animation: pulse 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="src/assets/images/nuts-logo.jpg" alt="$NUTS Logo" class="logo" style="width: 40px; height: 40px; border-radius: 50%;">
+                <span class="brand-text">$NUTS Daily Contest</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="daily-contest.html" class="nav-link">MLB Contest</a>
+                <a href="nfl-contest.html" class="nav-link">NFL Contest</a>
+                <a href="daily-custom-contest.html" class="nav-link active">Daily Contest</a>
+                <a href="contest-results.html" class="nav-link">Leaderboard</a>
+                <a href="https://firstledger.net/token/rBpdegD7kqHdczjKzTKNEUZj1Fg1eYZRbe/4E75747300000000000000000000000000000000" target="_blank" class="nav-link">Buy $NUTS</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="contest-container">
+        <!-- Loading State -->
+        <div id="loading-section" class="loading">
+            <h2>Loading Daily Contest...</h2>
+            <p>Please wait while we fetch today's contest</p>
+        </div>
+        
+        <!-- Contest Header -->
+        <div id="contest-header" class="contest-header" style="display: none;">
+            <h1 style="color: #ff6b00; margin-bottom: 10px;">📅 Daily Contest</h1>
+            <p style="color: #ccc; margin-bottom: 15px;" id="contest-date-display">Loading...</p>
+            <div style="background: rgba(255, 107, 0, 0.1); padding: 15px; border-radius: 8px; margin-top: 20px;">
+                <p style="color: #ffa500; margin: 0;"><strong>Entry Fee:</strong> 50 NUTS | <strong>Prize Pool:</strong> Split among top 3 winners</p>
+            </div>
+        </div>
+        
+        <!-- No Contest Available -->
+        <div id="no-contest" style="display: none;">
+            <div class="contest-closed">
+                <h2>📭 No Daily Contest Available</h2>
+                <p>There is no daily contest available for today. Check back later or try a different date!</p>
+                <p style="margin-top: 15px;">
+                    <a href="daily-contest.html" style="color: #fff; text-decoration: underline;">Try MLB Contest</a> | 
+                    <a href="nfl-contest.html" style="color: #fff; text-decoration: underline;">Try NFL Contest</a>
+                </p>
+            </div>
+        </div>
+        
+        <!-- Contest Closed -->
+        <div id="contest-closed" style="display: none;">
+            <div class="contest-closed">
+                <h2>🔒 Contest Closed</h2>
+                <p id="closed-message">This contest is no longer accepting entries.</p>
+                <p style="margin-top: 15px;">
+                    <a href="contest-results.html" style="color: #fff; text-decoration: underline;">View Results</a>
+                </p>
+            </div>
+        </div>
+        
+        <!-- Contest Choices -->
+        <div id="choices-container" style="display: none;">
+            <!-- Choices will be dynamically populated here -->
+        </div>
+        
+        <!-- Entry Summary -->
+        <div id="entry-summary" class="entry-summary" style="display: none;">
+            <h3 style="color: #ff6b00; margin-bottom: 15px;">📋 Your Picks Summary</h3>
+            <div id="picks-summary">
+                <!-- Summary will be populated here -->
+            </div>
+        </div>
+        
+        <!-- Submit Section -->
+        <div id="submit-section" class="submit-section" style="display: none;">
+            <h3 style="color: #4CAF50; margin-bottom: 20px;">🎯 Submit Your Entry</h3>
+            <p style="color: #ccc; margin-bottom: 25px;">
+                Entry Fee: <strong style="color: #ff6b00;">50 NUTS</strong><br>
+                Make your picks and pay to join the contest!
+            </p>
+            
+            <div style="margin-bottom: 25px;">
+                <label style="display: block; margin-bottom: 5px; color: #ccc;">Twitter Handle (optional):</label>
+                <input type="text" id="twitter-handle" placeholder="@yourhandle" 
+                       style="background: #1a1a1a; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; width: 200px;">
+            </div>
+            
+            <button id="submit-btn" class="submit-btn" onclick="submitEntry()" disabled>
+                Complete All Picks to Submit
+            </button>
+            
+            <p style="color: #888; font-size: 0.9em; margin-top: 15px;">
+                By submitting, you agree to pay 50 NUTS and accept the contest rules.
+            </p>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+    <script src="config/config-browser.js"></script>
+    <script src="config/environment.js"></script>
+    <script src="src/js/firebase-integration.js"></script>
+    <script src="src/js/firebase-xaman-integration.js"></script>
+    <script src="src/js/contest-backend.js"></script>
+    <script src="src/js/contest-backend-production.js"></script>
+    
+    <script>
+        let currentContest = null;
+        let userPicks = {};
+        let backend = null;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🎮 Initializing Daily Custom Contest...');
+            
+            // Initialize production backend
+            console.log('🌐 Using production Firebase backend only');
+            backend = new ContestBackendProduction();
+            await backend.init();
+            
+            // Initialize Firebase
+            let retries = 0;
+            const maxRetries = 50;
+            
+            while (!window.firebaseIntegration && retries < maxRetries) {
+                console.log('⏳ Waiting for Firebase Integration to load...');
+                await new Promise(resolve => setTimeout(resolve, 100));
+                retries++;
+            }
+            
+            if (window.firebaseIntegration) {
+                console.log('🔄 Starting Firebase initialization...');
+                await window.firebaseIntegration.initialize();
+            } else {
+                console.warn('⚠️ Firebase Integration not found after waiting');
+            }
+            
+            // Initialize payment system
+            if (window.XamanPayment) {
+                window.xamanPayment = new window.XamanPayment();
+                console.log('💳 XUMM wallet system available');
+            }
+            
+            // Load today's contest
+            await loadTodaysContest();
+        });
+        
+        // Load today's daily contest
+        async function loadTodaysContest() {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                console.log('📅 Loading daily contest for:', today);
+                
+                // Load from Firebase with localStorage fallback
+                const contest = await window.smartDailyContestAPI.getDailyContest(today);
+                
+                if (contest && contest.active && contest.status === 'active') {
+                    currentContest = contest;
+                    console.log('✅ Loaded daily contest:', contest);
+                    displayContest();
+                    return;
+                }
+                
+                // No active contest found
+                console.log('ℹ️ No active daily contest found for today');
+                showNoContest();
+                
+            } catch (error) {
+                console.error('Failed to load daily contest:', error);
+                showNoContest();
+            }
+        }
+        
+        // Display the contest
+        function displayContest() {
+            document.getElementById('loading-section').style.display = 'none';
+            
+            if (!currentContest) {
+                showNoContest();
+                return;
+            }
+            
+            // Check contest status
+            if (currentContest.status !== 'active') {
+                showContestClosed();
+                return;
+            }
+            
+            // Show contest header
+            document.getElementById('contest-header').style.display = 'block';
+            document.getElementById('contest-date-display').textContent = 
+                `Contest Date: ${formatDate(currentContest.contestDate)} | Choices: ${currentContest.choices.length}`;
+            
+            // Display choices
+            displayChoices();
+            
+            // Show submit section
+            document.getElementById('submit-section').style.display = 'block';
+            
+            console.log('✅ Contest displayed successfully');
+        }
+        
+        // Display choices
+        function displayChoices() {
+            const container = document.getElementById('choices-container');
+            
+            if (!currentContest.choices || currentContest.choices.length === 0) {
+                showNoContest();
+                return;
+            }
+            
+            container.innerHTML = currentContest.choices.map((choice, index) => `
+                <div class="choice-card" id="choice-${choice.id}">
+                    <div class="choice-header">
+                        <div class="choice-number">Choice ${index + 1}</div>
+                        <div class="choice-category">${choice.category}</div>
+                    </div>
+                    
+                    <div class="choice-options">
+                        <button class="option-button" 
+                                id="option-${choice.id}-A" 
+                                onclick="selectOption('${choice.id}', 'A')">
+                            <div class="option-label">Option A</div>
+                            <div>${choice.optionA}</div>
+                        </button>
+                        <button class="option-button" 
+                                id="option-${choice.id}-B" 
+                                onclick="selectOption('${choice.id}', 'B')">
+                            <div class="option-label">Option B</div>
+                            <div>${choice.optionB}</div>
+                        </button>
+                    </div>
+                    
+                    ${choice.description ? `<div class="choice-description">${choice.description}</div>` : ''}
+                </div>
+            `).join('');
+            
+            container.style.display = 'block';
+        }
+        
+        // Select an option
+        function selectOption(choiceId, option) {
+            // Update user picks
+            userPicks[choiceId] = option;
+            
+            // Update UI
+            document.querySelectorAll(`#choice-${choiceId} .option-button`).forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.getElementById(`option-${choiceId}-${option}`).classList.add('selected');
+            
+            // Update summary
+            updatePicksSummary();
+            
+            // Check if all picks are made
+            updateSubmitButton();
+            
+            console.log('Selected:', choiceId, option);
+        }
+        
+        // Update picks summary
+        function updatePicksSummary() {
+            const totalChoices = currentContest.choices.length;
+            const madeChoices = Object.keys(userPicks).length;
+            
+            if (madeChoices === 0) {
+                document.getElementById('entry-summary').style.display = 'none';
+                return;
+            }
+            
+            const summaryContainer = document.getElementById('picks-summary');
+            summaryContainer.innerHTML = `
+                <div style="margin-bottom: 15px;">
+                    <strong>Progress:</strong> ${madeChoices} of ${totalChoices} picks made
+                </div>
+                ${currentContest.choices.map((choice, index) => {
+                    const userPick = userPicks[choice.id];
+                    if (!userPick) return '';
+                    
+                    const selectedOption = userPick === 'A' ? choice.optionA : choice.optionB;
+                    return `
+                        <div style="margin-bottom: 10px; padding: 10px; background: #1a1a1a; border-radius: 6px;">
+                            <strong>Choice ${index + 1}:</strong> ${selectedOption}
+                            <span style="color: #888; margin-left: 10px;">(${choice.category})</span>
+                        </div>
+                    `;
+                }).join('')}
+            `;
+            
+            document.getElementById('entry-summary').style.display = 'block';
+        }
+        
+        // Update submit button state
+        function updateSubmitButton() {
+            const totalChoices = currentContest.choices.length;
+            const madeChoices = Object.keys(userPicks).length;
+            const submitBtn = document.getElementById('submit-btn');
+            
+            if (madeChoices === totalChoices) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Entry & Pay 50 NUTS';
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.textContent = `Complete All Picks to Submit (${madeChoices}/${totalChoices})`;
+            }
+        }
+        
+        // Submit entry
+        async function submitEntry() {
+            try {
+                const totalChoices = currentContest.choices.length;
+                const madeChoices = Object.keys(userPicks).length;
+                
+                if (madeChoices !== totalChoices) {
+                    alert(`Please make picks for all ${totalChoices} choices before submitting.`);
+                    return;
+                }
+                
+                const twitterHandle = document.getElementById('twitter-handle').value.trim();
+                
+                console.log('🎯 Submitting daily contest entry...', {
+                    contestDate: currentContest.contestDate,
+                    picks: userPicks,
+                    twitter: twitterHandle
+                });
+                
+                // Prepare contest entry
+                const contestEntry = {
+                    userId: 'USER_' + Date.now(),
+                    userName: twitterHandle ? `@${twitterHandle}` : 'Player #' + Math.floor(Math.random() * 9999),
+                    twitterHandle: twitterHandle ? `@${twitterHandle}` : null,
+                    sport: 'daily',
+                    picks: userPicks,
+                    entryFee: 50,
+                    contestDay: currentContest.contestDate,
+                    contestDate: currentContest.contestDate,
+                    timestamp: new Date().toISOString(),
+                    totalChoices: totalChoices,
+                    score: null, // Will be calculated when contest is resolved
+                    choices: currentContest.choices.map(choice => ({
+                        choiceId: choice.id,
+                        pickedOption: userPicks[choice.id],
+                        category: choice.category,
+                        result: null
+                    }))
+                };
+                
+                // Show payment QR code
+                console.log('💳 Creating daily contest payment...');
+                
+                const paymentResult = await window.xamanPayment.createContestPayment();
+                
+                if (paymentResult && paymentResult.success) {
+                    console.log('✅ Daily contest payment successful!');
+                    contestEntry.transactionId = paymentResult.txid || paymentResult.txHash;
+                    contestEntry.paymentTxHash = paymentResult.txid || paymentResult.txHash;
+                    contestEntry.paymentTimestamp = paymentResult.timestamp || new Date().toISOString();
+                    contestEntry.walletAddress = paymentResult.walletAddress || 'unknown';
+                    
+                    // Submit entry to Firebase with localStorage fallback
+                    try {
+                        const result = await window.smartDailyContestAPI.submitDailyContestEntry(contestEntry);
+                        
+                        if (result.success) {
+                            console.log('✅ Entry submitted to backend:', result.entryId);
+                            contestEntry.id = result.entryId;
+                        } else {
+                            console.warn('⚠️ Backend submission failed, entry stored locally only');
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ Backend unavailable, entry stored locally only:', error.message);
+                    }
+                    
+                    // Show success and redirect
+                    showSuccessMessage(contestEntry);
+                    
+                } else {
+                    console.log('❌ Payment cancelled or failed');
+                    alert('Payment was cancelled. Please try again.');
+                }
+                
+            } catch (error) {
+                console.error('Failed to submit entry:', error);
+                alert('Failed to submit entry: ' + error.message);
+            }
+        }
+        
+        // Show success message
+        function showSuccessMessage(entry) {
+            const successHtml = `
+                <div style="text-align: center; padding: 40px; background: #4CAF50; color: white; border-radius: 12px; margin: 20px 0;">
+                    <h2>🎉 Entry Submitted Successfully!</h2>
+                    <p>Your daily contest entry has been recorded.</p>
+                    <p><strong>Entry ID:</strong> ${entry.userId}</p>
+                    <p><strong>Total Choices:</strong> ${entry.totalChoices}</p>
+                    <div style="margin-top: 20px;">
+                        <a href="contest-results.html" style="color: white; text-decoration: underline;">View Leaderboard</a>
+                    </div>
+                </div>
+            `;
+            
+            document.querySelector('.contest-container').innerHTML = successHtml;
+        }
+        
+        // Show no contest available
+        function showNoContest() {
+            document.getElementById('loading-section').style.display = 'none';
+            document.getElementById('no-contest').style.display = 'block';
+        }
+        
+        // Show contest closed
+        function showContestClosed() {
+            document.getElementById('loading-section').style.display = 'none';
+            document.getElementById('contest-closed').style.display = 'block';
+            
+            const message = document.getElementById('closed-message');
+            if (currentContest.status === 'locked') {
+                message.textContent = 'This contest is locked and no longer accepting entries.';
+            } else if (currentContest.status === 'resolved') {
+                message.textContent = 'This contest has been completed and results are available.';
+            } else {
+                message.textContent = 'This contest is not currently available.';
+            }
+        }
+        
+        // Format date for display
+        function formatDate(dateString) {
+            const date = new Date(dateString + 'T00:00:00');
+            return date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        }
+    </script>
+</body>
+</html>

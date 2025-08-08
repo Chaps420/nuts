@@ -1,6 +1,10 @@
 # Deployment Guide for $NUTS Sports Pick'em
 
-This guide walks through deploying the $NUTS Sports Pick'em platform to production.
+This guide walks through deploying the $NUTS Sports Pick'em platform with:
+- **Frontend**: GitHub Pages (free static hosting)
+- **Backend**: Firebase Functions (serverless backend)
+- **Database**: Firebase Firestore
+- **Payments**: XUMM API via Firebase Functions
 
 ## Prerequisites
 
@@ -23,10 +27,14 @@ This guide walks through deploying the $NUTS Sports Pick'em platform to producti
    - Create an admin wallet for prize distributions
    - Fund wallets with sufficient XRP for transaction fees
 
-4. **Domain and Hosting**
-   - Domain name for the platform
-   - Web hosting service (Vercel, Netlify, or Firebase Hosting)
-   - SSL certificate (usually provided by hosting service)
+4. **GitHub Account**
+   - Repository for your code
+   - GitHub Pages enabled (free)
+   - Optional: Custom domain
+
+5. **XUMM Developer Account**
+   - API Key and Secret from https://apps.xumm.dev
+   - For payment processing
 
 ### Development Tools
 
@@ -139,34 +147,121 @@ firebase functions:config:set \
 firebase deploy --only functions
 ```
 
-## Production Deployment
+## GitHub Pages + Firebase Deployment
 
-### 1. Build Production Assets
+### 1. Configure Firebase Functions for Backend
 
-```bash
-npm run build
-```
-
-### 2. Deploy to Firebase Hosting
+#### Move XUMM Server to Firebase Functions
+The local XUMM server (`xumm-server.js`) needs to be converted to Firebase Functions:
 
 ```bash
-firebase deploy --only hosting
+cd functions
+# Set XUMM credentials
+firebase functions:config:set \
+  xumm.api_key="YOUR_XUMM_API_KEY" \
+  xumm.api_secret="YOUR_XUMM_API_SECRET"
 ```
 
-### 3. Set Custom Domain (Optional)
+#### Update CORS for GitHub Pages
+In `functions/xummPayment.js`, update CORS origins:
+```javascript
+const corsOptions = {
+    origin: [
+        'http://localhost:3000',
+        'https://YOUR-GITHUB-USERNAME.github.io',
+        'https://your-custom-domain.com' // if using custom domain
+    ],
+    credentials: true
+};
+```
 
-1. In Firebase Console, go to Hosting
-2. Click "Add custom domain"
-3. Follow DNS setup instructions
-4. Wait for SSL certificate provisioning
+#### Deploy Firebase Functions
+```bash
+firebase deploy --only functions
+```
 
-### 4. Verify Deployment
+Note the function URLs:
+- `https://REGION-PROJECT-ID.cloudfunctions.net/createNutsPayment`
+- `https://REGION-PROJECT-ID.cloudfunctions.net/checkXummPayment`
 
-1. **Test wallet connection**
-2. **Test contest entry flow**
-3. **Verify API integrations**
-4. **Check database writes**
-5. **Test NFT verification**
+### 2. Configure Frontend for GitHub Pages
+
+#### Update Environment Configuration
+Edit `config/environment.js`:
+- Replace `YOUR-GITHUB-USERNAME` with your GitHub username
+- Update Firebase project details
+- Set production API endpoints
+
+#### Add Environment Script to HTML Files
+Add to all HTML files before other scripts:
+```html
+<script src="config/config-browser.js"></script>
+<script src="config/environment.js"></script>
+```
+
+#### Fix Asset Paths for GitHub Pages
+Remove leading slashes from paths:
+- Change: `/src/css/styles.css`
+- To: `src/css/styles.css`
+
+### 3. GitHub Pages Setup
+
+#### Enable GitHub Pages
+1. Go to Settings → Pages in your repository
+2. Source: Deploy from a branch
+3. Branch: main
+4. Folder: / (root)
+
+#### Create GitHub Actions Workflow
+The `.github/workflows/deploy.yml` is already configured.
+
+#### Deploy to GitHub Pages
+```bash
+git add .
+git commit -m "Deploy to GitHub Pages"
+git push origin main
+```
+
+The GitHub Action will automatically:
+- Build CSS with PostCSS
+- Update environment configuration
+- Deploy to GitHub Pages
+
+### 4. Custom Domain (Optional)
+
+#### Add CNAME File
+Create `CNAME` file in root:
+```
+your-domain.com
+```
+
+#### Configure DNS
+Add these records to your domain:
+- A records: `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
+- CNAME: `YOUR-GITHUB-USERNAME.github.io`
+
+### 5. Verify Deployment
+
+1. **Test Frontend Access**
+   - Visit: `https://YOUR-GITHUB-USERNAME.github.io/nuts-main/`
+   - Check all pages load correctly
+   - Verify assets load (CSS, JS, images)
+
+2. **Test Payment Flow**
+   - Enter a contest
+   - Verify QR code appears (from Firebase Function)
+   - Complete payment with Xaman
+   - Check Firebase for entry record
+
+3. **Test Admin Functions**
+   - Access admin panel
+   - Verify wallet addresses captured
+   - Test payout functionality
+
+4. **Monitor Logs**
+   - Firebase Functions logs for errors
+   - Browser console for frontend issues
+   - GitHub Actions for deployment status
 
 ## Post-Deployment Configuration
 
@@ -237,25 +332,57 @@ node scripts/test-odds-api.js
 - [ ] CORS properly configured
 - [ ] API key rotation schedule
 
+## Environment-Specific Configuration
+
+### Development (localhost)
+```javascript
+// Uses local XUMM server
+serverUrl: 'http://localhost:3001'
+// Live reload with live-server
+// Firebase emulators optional
+```
+
+### Production (GitHub Pages + Firebase)
+```javascript
+// Uses Firebase Functions
+serverUrl: 'https://REGION-PROJECT-ID.cloudfunctions.net'
+// HTTPS required
+// Real Firebase services
+```
+
+## Cost Considerations
+
+### GitHub Pages (Frontend)
+- **Free** for public repositories
+- Unlimited bandwidth
+- HTTPS included
+- Custom domain support
+
+### Firebase (Backend)
+- **Free Tier Includes**:
+  - 2M function invocations/month
+  - 1GB Firestore storage
+  - 10GB bandwidth
+- **Paid**: ~$0.40 per million invocations after free tier
+
 ## Maintenance Tasks
 
-### Daily
-- [ ] Monitor contest entry volumes
-- [ ] Check for failed transactions
-- [ ] Verify game data accuracy
-- [ ] Review error logs
+### Deploy Frontend Updates
+```bash
+# Just push to main branch
+git push origin main
+# GitHub Actions handles deployment
+```
 
-### Weekly
-- [ ] Process NFT holder contest
-- [ ] Update leaderboards
-- [ ] Backup critical data
-- [ ] Review user feedback
+### Deploy Backend Updates
+```bash
+cd functions
+firebase deploy --only functions
+```
 
-### Monthly
-- [ ] Security audit
-- [ ] Performance optimization
-- [ ] Cost analysis
-- [ ] Feature usage review
+### Update Both
+1. Deploy Firebase Functions first
+2. Then push frontend changes
 
 ## Troubleshooting
 

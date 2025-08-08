@@ -40,11 +40,14 @@ class WalletManager extends EventTarget {
         this.initializeXumm();
         resolve();
         return;
-      }      console.log('📦 Loading XUMM SDK...');
-        // Create script element for XUMM SDK - using working CDN
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/xumm-sdk@1.8.6/dist/xumm.min.js';
-      script.type = 'text/javascript';
+      }
+      
+      console.log('📦 Loading Xaman SDK...');
+      // Skip SDK loading and use QR connector directly
+      console.log('✅ Using direct Xaman QR integration instead of SDK');
+      this.initializeXumm();
+      resolve();
+      return;
       
       script.onload = () => {
         console.log('✅ XUMM SDK loaded successfully');
@@ -85,10 +88,21 @@ class WalletManager extends EventTarget {
       } else if (window.xumm) {
         console.log('✅ Using global xumm object');
         this.xumm = window.xumm;
+      } else if (window.xamanWallet) {
+        console.log('✅ Using Xaman wallet integration');
+        this.xumm = {
+          authorize: async () => {
+            const result = await window.xamanWallet.connect();
+            return {
+              me: {
+                account: result.account,
+                name: result.account.substring(0, 8) + '...'
+              }
+            };
+          }
+        };
       } else {
-        console.log('⚠️ XUMM SDK not found, creating mock object for testing');
-        // Create a mock XUMM object for development/testing
-        this.xumm = this.createMockXumm();
+        throw new Error('No wallet integration available');
       }
       
       console.log('✅ XUMM initialized successfully');
@@ -102,32 +116,38 @@ class WalletManager extends EventTarget {
   }
 
   createMockXumm() {
-    console.log('🧪 Creating mock XUMM object for testing');
+    console.log('🧪 Creating compatibility layer for Xaman');
     return {
       user: {
         account: null,
-        networkType: 'TESTNET'
+        networkType: 'MAINNET'
       },
       environment: {
         bearer: null
       },
       authorize: async () => {
-        console.log('🧪 Mock XUMM authorize called');
-        // Simulate successful authorization
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return {
-          user_token: 'mock_user_token_12345',
-          me: {
-            account: 'rMockWalletAddress123456789',
-            name: 'Mock Wallet User',
-            domain: 'mock.wallet.test',
-            blocked: false,
-            source: 'mock'
-          }
-        };
+        console.log('🔗 Using Xaman wallet for authorization');
+        // Use the new Xaman wallet
+        if (window.xamanWallet) {
+          const result = await window.xamanWallet.connect();
+          return {
+            user_token: 'xaman_session_' + Date.now(),
+            me: {
+              account: result.account,
+              name: result.account.substring(0, 8) + '...',
+              domain: 'xaman.app',
+              blocked: false,
+              source: 'xaman'
+            }
+          };
+        }
+        throw new Error('Xaman wallet not available');
       },
       logout: async () => {
-        console.log('🧪 Mock XUMM logout called');
+        console.log('🔌 Logging out from Xaman');
+        if (window.xamanWallet) {
+          window.xamanWallet.disconnect();
+        }
         return true;
       }
     };
@@ -137,18 +157,13 @@ class WalletManager extends EventTarget {
     try {
       console.log('🔍 Checking for existing wallet session...');
       
-      // Check localStorage for previous connection
-      const savedWallet = localStorage.getItem('nuts_wallet_data');
-      if (savedWallet) {
-        const walletData = JSON.parse(savedWallet);
-        if (walletData.address && walletData.connected) {
-          console.log('📱 Found previous wallet session');
-          await this.restoreWalletSession(walletData);
-          return;
-        }
-      }
+      // In production, we don't auto-restore sessions
+      // User must explicitly connect their wallet each time
+      console.log('ℹ️ Production mode - wallet must be connected manually');
       
-      console.log('ℹ️ No existing wallet session found');
+      // Clear any old session data
+      localStorage.removeItem('nuts_wallet_data');
+      
     } catch (error) {
       console.log('⚠️ Error checking existing session:', error.message);
       // Clear invalid session data
@@ -160,22 +175,24 @@ class WalletManager extends EventTarget {
     try {
       console.log('🔄 Starting wallet connection...');
       
-      if (!this.xumm) {
-        throw new Error('XUMM not initialized. Please refresh the page.');
-      }
-
       this.showLoadingState('Connecting to Xaman wallet...');
 
-      // Method 1: Try direct Xaman connection
-      try {
-        await this.connectWithXaman();
-        return;
-      } catch (error) {
-        console.log('⚠️ Direct Xaman connection failed, trying QR method...');
+      // Use the new simplified Xaman wallet
+      if (window.xamanWallet) {
+        const result = await window.xamanWallet.connect();
+        
+        if (result && result.account) {
+          await this.handleWalletConnection({
+            account: result.account,
+            name: result.account.substring(0, 8) + '...',
+            network: result.network
+          });
+        } else {
+          throw new Error('No wallet data received');
+        }
+      } else {
+        throw new Error('Xaman wallet not available');
       }
-
-      // Method 2: Try QR code method
-      await this.connectWithQR();
 
     } catch (error) {
       console.error('❌ Wallet connection error:', error);
@@ -216,21 +233,43 @@ class WalletManager extends EventTarget {
   }
 
   async requestXamanConnection() {
-    return new Promise((resolve, reject) => {
-      // Create a mock successful connection for demo
-      // In production, this would integrate with actual Xaman APIs
+    console.log('🔗 Starting real Xaman connection...');
+    
+    // Use the XamanQRConnector for real wallet connection
+    if (!window.xamanQR) {
+      window.xamanQR = new XamanQRConnector();
+    }
+    
+    try {
+      // Create sign-in payload with Xaman
+      const payload = await window.xamanQR.createSignInPayload();
       
-      const demoAccount = {
-        account: 'rDemoXRPLAccount1234567890NUTS',
-        name: 'Demo Xaman User',
-        picture: null
-      };
+      if (!payload || !payload.refs || !payload.refs.qr_png) {
+        throw new Error('Failed to create Xaman QR payload');
+      }
       
-      // Simulate connection delay
-      setTimeout(() => {
-        resolve(demoAccount);
-      }, 2000);
-    });
+      // Show QR modal with real QR code
+      this.showRealQRModal(payload);
+      
+      // Wait for user to scan and sign
+      const result = await window.xamanQR.waitForSignIn(payload.uuid);
+      
+      if (result && result.signed && result.response) {
+        this.hideQRModal();
+        return {
+          account: result.response.account,
+          name: result.response.account.substring(0, 8) + '...',
+          picture: null
+        };
+      } else {
+        throw new Error('Xaman sign-in was rejected or cancelled');
+      }
+      
+    } catch (error) {
+      console.error('❌ Xaman connection error:', error);
+      this.hideQRModal();
+      throw error;
+    }
   }
 
   async connectWithQR() {
@@ -256,8 +295,43 @@ class WalletManager extends EventTarget {
     }
   }
 
+  showRealQRModal(payload) {
+    let modal = document.getElementById('xaman-qr-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'xaman-qr-modal';
+      modal.className = 'modal-overlay';
+      document.body.appendChild(modal);
+    }
+    
+    modal.innerHTML = `
+      <div class="modal-content qr-modal">
+        <div class="modal-header">
+          <h3>🔗 Connect with Xaman</h3>
+          <button class="modal-close" onclick="window.walletManager.cancelConnection()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="qr-container">
+            <img src="${payload.refs.qr_png}" alt="Xaman QR Code" style="width: 250px; height: 250px;">
+          </div>
+          <p class="qr-instructions">
+            1. Open your Xaman wallet app<br>
+            2. Tap the scan button<br>
+            3. Scan this QR code to connect
+          </p>
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Waiting for connection...</p>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    modal.style.display = 'flex';
+  }
+
   showQRModal() {
-    // Create QR modal if it doesn't exist
+    // Fallback QR modal for when real connection fails
     let modal = document.getElementById('xaman-qr-modal');
     if (!modal) {
       modal = document.createElement('div');
@@ -321,41 +395,13 @@ class WalletManager extends EventTarget {
     });
   }
 
+  // Session restoration disabled in production
+  // Users must manually connect their wallet each time for security
   async restoreWalletSession(walletData) {
-    try {
-      console.log('🔄 Restoring wallet session...');
-      
-      this.wallet = {
-        address: walletData.address,
-        name: walletData.name || 'Restored User',
-        picture: walletData.picture
-      };
-      
-      this.isConnected = true;
-      
-      // Load current wallet data
-      await Promise.all([
-        this.loadNutsBalance(),
-        this.checkNFTHolding()
-      ]);
-      
-      // Emit connection event
-      this.dispatchEvent(new CustomEvent('walletConnected', {
-        detail: {
-          ...this.wallet,
-          nutsBalance: this.nutsBalance,
-          hasRequiredNFT: this.hasRequiredNFT,
-          restored: true
-        }
-      }));
-      
-      console.log('✅ Wallet session restored successfully');
-      
-    } catch (error) {
-      console.error('❌ Error restoring wallet session:', error);
-      localStorage.removeItem('nuts_wallet_data');
-      throw error;
-    }
+    console.log('⚠️ Session restoration disabled in production mode');
+    // Clear any stored data
+    localStorage.removeItem('nuts_wallet_data');
+    // Do not restore the session
   }
 
   async handleWalletConnection(userData) {

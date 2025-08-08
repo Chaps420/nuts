@@ -13,7 +13,7 @@ class ContestWallet {
         this.xrpl = null;
         
         // Real wallet credentials (for production)
-        this.walletAddress = 'rnWCi37MWrY4EWxnUDVHMwJ8sLY7R1XiyX';
+        this.walletAddress = 'rN2K1Tv6LEM94YN8Kxfe3QyWcGPQNgsD6d';
         this.walletSeed = 'sEd7d97WpuAUt7Qn21yhkZxtso2pYbx';
         
         console.log('💰 Contest Wallet initialized:', this.walletAddress);

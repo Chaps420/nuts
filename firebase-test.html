@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Contest Entries Test</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 { color: #ff6b00; }
+        
+        .entry {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        
+        .date-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        
+        button {
+            background: #ff6b00;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #ff5500;
+        }
+        
+        .delete-btn {
+            background: #ff4444;
+        }
+        
+        pre {
+            background: #0a0a0a;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔥 Firebase Contest Entries Inspector</h1>
+    
+    <div>
+        <button onclick="loadAllEntries()">Load All Contest Entries</button>
+        <button onclick="loadTodayEntries()">Load Today's Entries</button>
+        <button onclick="load2025Entries()">Load 2025-06-19 Entries</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- App Configuration -->
+    <script src="config/config-browser.js"></script>
+    <script src="config/environment.js"></script>
+    <script src="src/js/firebase-integration.js"></script>
+    
+    <script>
+        let db;
+        
+        async function initFirebase() {
+            if (window.firebaseIntegration) {
+                await window.firebaseIntegration.initialize();
+                db = firebase.firestore();
+                console.log('✅ Firebase initialized');
+            }
+        }
+        
+        async function loadAllEntries() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Loading all entries...</p>';
+            
+            try {
+                const snapshot = await db.collection('contest_entries').get();
+                
+                let html = `<h2>Total Entries: ${snapshot.size}</h2>`;
+                
+                // Group by date
+                const entriesByDate = {};
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const date = data.contestDate || data.contestDay || 'unknown';
+                    if (!entriesByDate[date]) {
+                        entriesByDate[date] = [];
+                    }
+                    entriesByDate[date].push({ id: doc.id, ...data });
+                });
+                
+                // Display by date
+                Object.entries(entriesByDate).forEach(([date, entries]) => {
+                    html += `
+                        <div class="date-section">
+                            <h3>${date} - ${entries.length} entries</h3>
+                            ${entries.map(entry => `
+                                <div class="entry">
+                                    <strong>ID:</strong> ${entry.id}<br>
+                                    <strong>User:</strong> ${entry.userName}<br>
+                                    <strong>Status:</strong> ${entry.status} / Contest: ${entry.contestStatus}<br>
+                                    <strong>Date:</strong> ${entry.contestDate || entry.contestDay}<br>
+                                    <strong>Timestamp:</strong> ${entry.timestamp}<br>
+                                    <button class="delete-btn" onclick="deleteEntry('${entry.id}')">Delete</button>
+                                    <details>
+                                        <summary>Full Data</summary>
+                                        <pre>${JSON.stringify(entry, null, 2)}</pre>
+                                    </details>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                });
+                
+                results.innerHTML = html || '<p>No entries found</p>';
+                
+            } catch (error) {
+                results.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                console.error(error);
+            }
+        }
+        
+        async function loadTodayEntries() {
+            const today = new Date().toISOString().split('T')[0];
+            loadEntriesByDate(today);
+        }
+        
+        async function load2025Entries() {
+            loadEntriesByDate('2025-06-19');
+        }
+        
+        async function loadEntriesByDate(date) {
+            const results = document.getElementById('results');
+            results.innerHTML = `<p>Loading entries for ${date}...</p>`;
+            
+            try {
+                const snapshot = await db.collection('contest_entries')
+                    .where('contestDate', '==', date)
+                    .get();
+                
+                let html = `<h2>Entries for ${date}: ${snapshot.size}</h2>`;
+                
+                snapshot.forEach(doc => {
+                    const entry = { id: doc.id, ...doc.data() };
+                    html += `
+                        <div class="entry">
+                            <strong>ID:</strong> ${entry.id}<br>
+                            <strong>User:</strong> ${entry.userName}<br>
+                            <strong>Status:</strong> ${entry.status} / Contest: ${entry.contestStatus}<br>
+                            <strong>Active?</strong> ${!entry.contestStatus || entry.contestStatus === 'active' ? 'YES' : 'NO'}<br>
+                            <button class="delete-btn" onclick="deleteEntry('${entry.id}')">Delete</button>
+                            <button onclick="markCompleted('${entry.id}')">Mark Completed</button>
+                            <details>
+                                <summary>Full Data</summary>
+                                <pre>${JSON.stringify(entry, null, 2)}</pre>
+                            </details>
+                        </div>
+                    `;
+                });
+                
+                results.innerHTML = html || `<p>No entries found for ${date}</p>`;
+                
+            } catch (error) {
+                results.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                console.error(error);
+            }
+        }
+        
+        async function deleteEntry(id) {
+            if (confirm(`Delete entry ${id}?`)) {
+                try {
+                    await db.collection('contest_entries').doc(id).delete();
+                    alert('Entry deleted');
+                    loadAllEntries();
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+        
+        async function markCompleted(id) {
+            try {
+                await db.collection('contest_entries').doc(id).update({
+                    contestStatus: 'completed',
+                    completedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                alert('Entry marked as completed');
+                loadAllEntries();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        // Initialize on load
+        initFirebase();
+    </script>
+</body>
+</html>

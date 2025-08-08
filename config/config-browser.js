@@ -26,19 +26,17 @@ window.config = {
     network: 'mainnet',
     server: 'wss://xrplcluster.com',
     nutsToken: {
-      issuer: 'rNutsTokenIssuerAddressHere',
+      issuer: 'rBpdegD7kqHdczjKzTKNEUZj1Fg1eYZRbe',
       currency: 'NUTS'
     },
     contestWallet: {
-      address: 'rnWCi37MWrY4EWxnUDVHMwJ8sLY7R1XiyX',
-      seed: 'sEd7d97WpuAUt7Qn21yhkZxtso2pYbx', // WARNING: Private key exposed - for development only
-      publicKey: 'ED9B0A601A4BF97C25C2FE340B80CE4CFD8400845AB7FA1FAF5EC9821007B45459',
-      privateKey: 'ED71F2E8986DE2242CFAA7254C04F65CDE132350500872455117F02DCD6D232DD2'
+      address: 'rN2K1Tv6LEM94YN8Kxfe3QyWcGPQNgsD6d'
+      // No private keys in production!
     },
     requiredNftIssuer: 'rNFTIssuerAddressHere'
   },  // XUMM/Xaman wallet configuration
   xumm: {
-    apiKey: '14242c23-a236-43bd-9126-6490cbd4001d',
+    apiKey: '5ae8e69a-1b48-4f80-b5bb-20ae099e6f2f',
     apiSecret: '6b5d2831-aa58-4b5b-9b72-fe0f65de3e5c',
     apiUrl: 'https://xumm.app/api/v1',
     websocketUrl: 'wss://xumm.app/sign/',
@@ -67,21 +65,23 @@ window.config = {
     dailyEntryFee: 50,
     maxPicks: 10,
     lockTimeBuffer: 5, // minutes before first game
+    minimumEntries: 4, // Minimum players required to run contest
     prizeDistribution: {
-      first: 0.7,   // 70% to 1st place
-      second: 0.2,  // 20% to 2nd place
-      third: 0.1    // 10% to 3rd place
+      first: 0.5,   // 50% to 1st place
+      second: 0.3,  // 30% to 2nd place
+      third: 0.2    // 20% to 3rd place
     }
   },
   // Firebase configuration
   firebase: {
-    apiKey: "AIzaSyD1NOVFWVmM98hJDyZ-TbouHbknfGj5BMc",
-    authDomain: "nuts-7b133.firebaseapp.com",
-    projectId: "nuts-7b133",
-    storageBucket: "nuts-7b133.firebasestorage.app",
-    messagingSenderId: "452726245470",
-    appId: "1:452726245470:web:23d8365bab3fda99fa4ccf",
-    measurementId: "G-H1WDPZMNJD",
+    apiKey: "AIzaSyB25fHJN3_6EzpE-KIkp3fEMFtsKEBmtY8",
+    authDomain: "nuts-sports-pickem.firebaseapp.com",
+    projectId: "nuts-sports-pickem",
+    storageBucket: "nuts-sports-pickem.firebasestorage.app",
+    messagingSenderId: "759992859280",
+    appId: "1:759992859280:web:e42c5c219e4bc0c2e8f615",
+    // Cloud Functions URL for GitHub Pages
+    functionsUrl: "https://us-central1-nuts-sports-pickem.cloudfunctions.net",
     // Cloud Functions
     cloudFunctions: {
       region: 'us-central1',
@@ -90,7 +90,11 @@ window.config = {
         createUserBet: '/createUserBet',
         getUserBets: '/getUserBets',
         getContestResults: '/getContestResults',
-        generatePayoutQR: '/generatePayoutQR'
+        generatePayoutQR: '/generatePayoutQR',
+        // New endpoints for production
+        createContestEntry: '/createContestEntry',
+        getContestEntries: '/getContestEntries',
+        updateGameResults: '/updateGameResults'
       }
     },
     // Firestore collections
@@ -98,8 +102,19 @@ window.config = {
       users: 'users',
       bets: 'bets',
       contests: 'contests',
-      payouts: 'payouts'
-    }
+      payouts: 'payouts',
+      mlbContests: 'mlbContests',
+      nflContests: 'nflContests',
+      contestEntries: 'contestEntries'
+    },
+    // CORS configuration for GitHub Pages
+    allowedOrigins: [
+      'https://yourusername.github.io', // Replace with your GitHub username
+      'http://localhost:8080',
+      'http://localhost:3000',
+      'https://nuts-sports-pickem.web.app',
+      'https://nuts-sports-pickem.firebaseapp.com'
+    ]
   },
 
   // NFT Configuration

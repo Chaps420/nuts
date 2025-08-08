@@ -1,6 +1,7 @@
-import * as admin from 'firebase-admin';
-import { onRequest } from 'firebase-functions/v2/https';
-import { defineSecret } from 'firebase-functions/params';
+const admin = require('firebase-admin');
+const { onRequest } = require('firebase-functions/v2/https');
+const { defineSecret } = require('firebase-functions/params');
+const fetch = require('node-fetch');
 
 // Define secrets for Xaman API credentials
 const xamanApiKey = defineSecret('XAMAN_CLIENT_ID');
@@ -14,7 +15,7 @@ if (!admin.apps.length) {
 /**
  * Cloud Function to exchange Xaman OAuth2 authorization code for Firebase custom token
  */
-export const xamanAuth = onRequest(
+exports.xamanAuth = onRequest(
   { 
     secrets: [xamanApiKey, xamanApiSecret],
     cors: true,
@@ -59,7 +60,7 @@ export const xamanAuth = onRequest(
         return;
       }
 
-      const tokenData = await tokenResponse.json() as any;
+      const tokenData = await tokenResponse.json();
       const accessToken = tokenData.access_token || tokenData.id_token;
 
       if (!accessToken) {
@@ -82,7 +83,7 @@ export const xamanAuth = onRequest(
         return;
       }
 
-      const userInfo = await userInfoResponse.json() as any;
+      const userInfo = await userInfoResponse.json();
       console.log('User info received:', { sub: userInfo.sub, account: userInfo.account });
 
       // Extract user ID and XRPL address
@@ -138,7 +139,7 @@ export const xamanAuth = onRequest(
         uid: uid,
       });
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error in xamanAuth:', error);
       res.status(500).json({ 
         error: 'Internal server error',

@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Contest - $NUTS Sports Pick'em</title>
+    <title>MLB Contest - $NUTS Sports Pick'em</title>
     <meta name="description" content="Enter the daily $NUTS sports pick'em contest. 50 $NUTS entry fee, top 3 win crypto prizes.">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="src/assets/images/favicon.ico">
+    <link rel="icon" type="image/jpeg" href="src/assets/images/nuts-logo.jpg">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,6 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
       <!-- Styles -->
     <link rel="stylesheet" href="src/css/styles.css">
+    <link rel="stylesheet" href="src/css/mobile-payment.css">
     
     <style>
         /* Ensure horizontal tabs override any conflicts */
@@ -80,6 +81,25 @@
             background: rgba(0,0,0,0.2) !important;
         }
         
+        /* Closed contest styling */
+        .day-tab.closed {
+            background: #ff4444 !important;
+            border-color: #ff4444 !important;
+            cursor: not-allowed !important;
+            opacity: 0.9 !important;
+        }
+        
+        .day-tab.closed:hover {
+            background: #cc3333 !important;
+            transform: none !important;
+        }
+        
+        .day-tab.closed .tab-indicator {
+            color: #fff !important;
+            font-weight: bold !important;
+            background: rgba(0,0,0,0.3) !important;
+        }
+        
         /* Hide any conflicting layouts */
         .contest-days-sidebar {
             display: none !important;
@@ -91,12 +111,86 @@
             width: 100% !important;
         }
         
+        /* Games display styling */
+        .games-display {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            position: relative;
+        }
+        
+        /* Ensure games container has proper height */
+        .games-grid {
+            min-height: 300px;
+            position: relative;
+        }
+        
+        /* Remove ALL inner scrollbars */
+        .games-display, .games-list, .games-grid, 
+        .games-content-wrapper, .contest-entry,
+        .entry-container, .games-section,
+        #games-section, #games-grid {
+            overflow: visible !important;
+            max-height: none !important;
+            height: auto !important;
+        }
+        
+        /* Ensure containers don't restrict height */
+        .container, .entry-container, .games-display {
+            min-height: auto !important;
+            max-height: none !important;
+        }
+        
+        /* Remove scrolling from any flex containers */
+        div[style*="overflow"] {
+            overflow: visible !important;
+        }
+        
+        /* Ensure only the main page scrolls */
+        body {
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+        
+        main {
+            overflow: visible;
+        }
+        
         @media (max-width: 768px) {
             .tabs-container {
                 gap: 4px !important;
-            }            .day-tab {
+            }
+            .day-tab {
                 min-width: 100px !important;
                 padding: 10px 12px !important;
+            }
+            
+            /* Mobile-optimized game cards */
+            .game-card {
+                font-size: 14px !important;
+            }
+            
+            .team-btn {
+                min-height: 45px !important;
+            }
+            
+            /* Better touch targets */
+            button, .btn {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            /* Adjust container padding */
+            .container {
+                padding: 10px !important;
+            }
+            
+            /* Responsive contest rules */
+            .contest-rules-horizontal > div > div {
+                flex-direction: column !important;
+                flex-wrap: wrap !important;
+                overflow: visible !important;
             }
         }
         
@@ -142,6 +236,29 @@
         .btn-secondary:hover {
             background: #555 !important;
         }
+        
+        /* Twitter handle input mobile styles */
+        @media (max-width: 768px) {
+            .twitter-handle-section {
+                padding: 15px !important;
+            }
+            
+            .twitter-handle-section > div {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 5px !important;
+            }
+            
+            .twitter-handle-section input {
+                width: 100% !important;
+                max-width: none !important;
+                margin-top: 10px;
+            }
+            
+            .twitter-handle-section span:last-child {
+                margin-top: 5px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -149,32 +266,21 @@
     <nav class="navbar" id="navbar">
         <div class="nav-container">
             <div class="nav-brand">
-                <div class="logo-placeholder">🥜</div>
+                <img src="src/assets/images/nuts-logo.jpg" alt="$NUTS Logo" class="logo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
                 <span class="brand-text">$NUTS</span>
             </div>
             
             <!-- Desktop Navigation -->
             <div class="nav-links desktop-nav">
                 <a href="index.html" class="nav-link">Home</a>
-                <a href="daily-contest.html" class="nav-link active">Daily Contest</a>
-                <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
-                <a href="leaderboard.html" class="nav-link">Leaderboard</a>
-                <a href="how-it-works.html" class="nav-link">How It Works</a>
-                <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
+                <a href="daily-contest.html" class="nav-link active">MLB Contest</a>
+                <a href="nfl-contest.html" class="nav-link">NFL Contest</a>
+                <a href="contest-results.html" class="nav-link">Leaderboard</a>
+                <a href="https://firstledger.net/token/rBpdegD7kqHdczjKzTKNEUZj1Fg1eYZRbe/4E75747300000000000000000000000000000000" target="_blank" class="nav-link">Buy $NUTS</a>
             </div>
             
-            <!-- Wallet Connection -->
+            <!-- Navigation Actions -->
             <div class="nav-actions">
-                <div id="wallet-info" class="wallet-info hidden">
-                    <span class="wallet-address"></span>
-                    <span class="nuts-balance"></span>
-                </div>
-                <button id="connect-wallet-btn" class="connect-wallet-btn">
-                    <span id="walletText">Connect Wallet</span>
-                    <span id="walletSpinner" class="spinner hidden"></span>
-                </button>
-                <div id="wallet-loading" class="wallet-loading hidden">Connecting...</div>
-                
                 <!-- Mobile menu toggle -->
                 <button class="mobile-menu-toggle" id="mobile-menu-btn">
                     <span></span>
@@ -187,10 +293,8 @@
         <!-- Mobile Navigation -->
         <div class="mobile-nav hidden" id="mobile-menu">
             <a href="index.html" class="nav-link">Home</a>
-            <a href="daily-contest.html" class="nav-link">Daily Contest</a>
-            <a href="nft-contest.html" class="nav-link">NFT Holder Contest</a>
-            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
-            <a href="how-it-works.html" class="nav-link">How It Works</a>
+            <a href="daily-contest.html" class="nav-link">MLB Contest</a>
+            <a href="contest-results.html" class="nav-link">Leaderboard</a>
             <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
         </div>
     </nav>
@@ -201,24 +305,51 @@
             <div class="container">
                 <div class="header-content">
                     <h1 class="page-title">Daily Pick'em Contest</h1>
-                    <p class="page-subtitle">Pick 10 game winners, top 3 split the $NUTS prize pool</p>
+                    <p class="page-subtitle">Pick all game winners, top 3 split the $NUTS prize pool (min 4 players)</p>
                     <div class="contest-stats">
                         <div class="stat-item">
                             <span class="stat-label">Entry Fee</span>
                             <span class="stat-value accent-gold">50 $NUTS</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">Today's Pool</span>
+                            <span class="stat-label">Today's Active Pool</span>
                             <span class="stat-value" id="prize-pool">Loading...</span>
                         </div>
                         <div class="stat-item">
                             <span class="stat-label">Entries</span>
                             <span class="stat-value" id="entry-count">Loading...</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Time Left</span>
-                            <span class="stat-value" id="time-remaining">Loading...</span>
-                        </div>
+                    </div>
+                    <div class="contest-notice" style="background: #ff6b00; color: white; padding: 10px 20px; border-radius: 8px; margin-top: 15px; text-align: center; font-weight: bold;">
+                        ⚠️ Minimum 4 players required - Contest cancelled & refunded if less than 4 entries
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contest Rules (Horizontal) -->
+        <section class="contest-rules-horizontal" style="background: #1a1a1a; padding: 20px 0; border-bottom: 1px solid #333;">
+            <div class="container">
+                <div style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 20px;">
+                    <div style="text-align: center; flex: 1; min-width: 200px;">
+                        <div style="color: #4CAF50; font-size: 1.5em; margin-bottom: 5px;">💰</div>
+                        <h4 style="margin: 0 0 5px 0; color: #4CAF50;">Entry Fee</h4>
+                        <p style="margin: 0; font-size: 0.9em; color: #ccc;">50 $NUTS per entry</p>
+                    </div>
+                    <div style="text-align: center; flex: 1; min-width: 200px;">
+                        <div style="color: #4CAF50; font-size: 1.5em; margin-bottom: 5px;">🎯</div>
+                        <h4 style="margin: 0 0 5px 0; color: #4CAF50;">How to Win</h4>
+                        <p style="margin: 0; font-size: 0.9em; color: #ccc;">Most correct picks wins</p>
+                    </div>
+                    <div style="text-align: center; flex: 1; min-width: 200px;">
+                        <div style="color: #4CAF50; font-size: 1.5em; margin-bottom: 5px;">🏆</div>
+                        <h4 style="margin: 0 0 5px 0; color: #4CAF50;">Prize</h4>
+                        <p style="margin: 0; font-size: 0.9em; color: #ccc;">Top 3 win (50%/30%/20%)</p>
+                    </div>
+                    <div style="text-align: center; flex: 1; min-width: 200px;">
+                        <div style="color: #4CAF50; font-size: 1.5em; margin-bottom: 5px;">⏰</div>
+                        <h4 style="margin: 0 0 5px 0; color: #4CAF50;">Deadline</h4>
+                        <p style="margin: 0; font-size: 0.9em; color: #ccc;">When first game starts</p>
                     </div>
                 </div>
             </div>
@@ -229,22 +360,17 @@
             <div class="container">
                 <div class="entry-container">
                     <!-- Entry Status -->
-                    <div class="entry-status" id="entry-status">                        <div class="status-card">
-                            <div class="status-icon">🔗</div>
-                            <h3>Wallet Connection Required</h3>
-                            <p>Connect your Xaman wallet to participate in contests</p>
-                              <!-- User Info (hidden by default) -->
-                            <div id="user-info" style="display: none; margin-bottom: 15px;">
-                                <!-- Will be populated by JavaScript -->
-                            </div>
-                            
-                            <!-- Contest Entry Button -->
-                            <button id="enter-contest-btn" class="btn btn-primary" disabled>
-                                <span>Connect Wallet to Enter Contest</span>
-                                <div class="btn-glow"></div>
-                            </button>
+                    <div class="entry-status" id="entry-status">
+                        <div class="status-card">
+                            <div class="status-icon">🏆</div>
+                            <h3>Make Your Picks</h3>
+                            <p>Select winners for all games below, then submit your entry</p>
                         </div>
-                    </div>                    <!-- Games Selection -->                    <div class="games-section" id="games-section">
+                    </div>
+
+
+
+                    <!-- Games Selection -->                    <div class="games-section" id="games-section">
                         <!-- Day Selection Tabs (Horizontal across top) -->
                         <div class="day-tabs" id="day-tabs">
                             <div class="tab-header">
@@ -256,7 +382,7 @@
                         </div>
                         
                         <!-- Games Display -->
-                        <div class="games-display">
+                        <div class="games-display" id="games-section">
                             <div class="games-grid" id="games-grid">
                                 <!-- Games will be loaded here by JavaScript -->
                                 <div class="loading-placeholder">
@@ -272,6 +398,30 @@
                                 <h3>Your Picks</h3>
                                 <div id="picks-list"></div>
                             </div>
+                            
+                            <!-- Tiebreaker Section -->
+                            <div class="tiebreaker-section" style="background: #1a1a1a; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #333;">
+                                <h4 style="color: #4CAF50; margin: 0 0 10px 0;">Tiebreaker</h4>
+                                <p style="color: #ccc; font-size: 0.9em; margin-bottom: 15px;">
+                                    Predict the total runs scored in the last game of the day
+                                </p>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <label style="color: #888;">Total Runs:</label>
+                                    <input type="number" 
+                                           id="tiebreaker-runs" 
+                                           min="0" 
+                                           max="50" 
+                                           style="background: #2a2a2a; 
+                                                  border: 1px solid #444; 
+                                                  color: white; 
+                                                  padding: 8px 12px; 
+                                                  border-radius: 4px; 
+                                                  width: 100px;"
+                                           placeholder="0">
+                                    <span style="color: #666; font-size: 0.85em;">(Required)</span>
+                                </div>
+                            </div>
+                            
                             <button id="submit-picks-btn" class="btn btn-success">
                                 <span>Submit Your Picks</span>
                                 <div class="btn-glow"></div>
@@ -282,67 +432,12 @@
             </div>
         </section>
 
-        <!-- Contest Rules -->
-        <section class="contest-rules">
-            <div class="container">
-                <h2 class="section-title">Contest Rules</h2>
-                <div class="rules-grid">
-                    <div class="rule-card">
-                        <div class="rule-icon">💰</div>
-                        <h3>Entry Fee</h3>
-                        <p>50 $NUTS per entry. Multiple entries allowed.</p>
-                    </div>
-                    <div class="rule-card">
-                        <div class="rule-icon">🎯</div>
-                        <h3>How to Win</h3>
-                        <p>Pick the winner of each game. Most correct picks wins.</p>
-                    </div>
-                    <div class="rule-card">
-                        <div class="rule-icon">🏆</div>
-                        <h3>Prize Split</h3>
-                        <p>1st: 50%, 2nd: 30%, 3rd: 20% of total pool.</p>
-                    </div>
-                    <div class="rule-card">
-                        <div class="rule-icon">⏰</div>
-                        <h3>Deadline</h3>
-                        <p>All picks must be submitted before first game starts.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
     </main>
 
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <div class="footer-section">
-                    <div class="footer-brand">
-                        <div class="logo-placeholder">🥜</div>
-                        <span class="brand-text">$NUTS</span>
-                    </div>
-                    <p class="footer-description">
-                        The premier sports pick'em platform powered by $NUTS token on the XRP Ledger.
-                    </p>
-                </div>
-                
-                <div class="footer-section">
-                    <h4>Contests</h4>
-                    <ul class="footer-links">
-                        <li><a href="daily-contest.html">Daily Pick'em</a></li>
-                        <li><a href="nft-contest.html">NFT Holder Contest</a></li>
-                        <li><a href="leaderboard.html">Leaderboard</a></li>
-                    </ul>
-                </div>
-                
-                <div class="footer-section">
-                    <h4>Platform</h4>
-                    <ul class="footer-links">
-                        <li><a href="how-it-works.html">How It Works</a></li>
-                        <li><a href="buy-nuts.html">Buy $NUTS</a></li>
-                        <li><a href="#support">Support</a></li>
-                    </ul>
-                </div>
                 
                 <div class="footer-section">
                     <h4>Community</h4>
@@ -362,14 +457,6 @@
                         <a href="#terms">Terms of Service</a>
                     </div>
                 </div>
-                <div class="footer-powered">
-                    <span>Powered by</span>
-                    <div class="tech-logos">
-                        <span class="tech-item">XRPL</span>
-                        <span class="tech-item">XUMM</span>
-                        <span class="tech-item">The Odds API</span>
-                    </div>
-                </div>
             </div>
         </div>
     </footer>    <!-- Scripts -->
@@ -381,16 +468,30 @@
     
     <!-- App Configuration and Core Scripts -->
     <script src="config/config-browser.js"></script>
+    <script src="config/environment.js"></script>
     <script src="src/js/firebase-integration.js"></script>
-    <script src="src/js/xaman-oauth2-web.js"></script>
-    <script src="src/js/xaman-auth.js"></script>
-    <script src="src/js/xaman-qr.js"></script>
-    <script src="src/js/enhanced-qr-modal.js"></script>
-    <script src="src/js/contest-wallet.js"></script>
-    <script src="src/js/wallet-browser.js"></script>
-    <script src="src/js/odds-api-mlb.js"></script>
+    <script src="src/js/xaman-payment-api.js"></script>
+    <script src="src/js/payment-debug.js"></script>
+    
+    <!-- Global contest entry helper -->
+    <script>
+        window.submitContestEntry = function() {
+            console.log('🚀 Direct contest entry submission');
+            const manager = window.contestManager;
+            if (manager && manager.handleContestEntry) {
+                manager.handleContestEntry();
+            } else {
+                console.error('Contest manager not found');
+            }
+        };
+        
+    </script>
+    
+    <script src="src/js/mlb-schedule-free.js"></script>
     <script src="src/js/contests-browser.js"></script>
-    <script src="src/js/main-browser.js"></script>
+    <script src="src/js/contest-backend.js"></script>
+    <script src="src/js/contest-backend-production.js"></script>
+    <script src="src/js/firebase-xaman-integration.js"></script>
     <script src="src/js/daily-contest-new.js"></script>
     
     <!-- Initialize Firebase when page loads -->
@@ -398,7 +499,18 @@
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('🔥 Initializing Firebase for contest platform...');
             
+            // Wait for firebaseIntegration to be available
+            let retries = 0;
+            const maxRetries = 50;
+            
+            while (!window.firebaseIntegration && retries < maxRetries) {
+                console.log('⏳ Waiting for Firebase Integration to load...');
+                await new Promise(resolve => setTimeout(resolve, 100));
+                retries++;
+            }
+            
             if (window.firebaseIntegration) {
+                console.log('🔄 Starting Firebase initialization...');
                 const success = await window.firebaseIntegration.initialize();
                 if (success) {
                     console.log('✅ Firebase integration ready for contest platform');
@@ -425,7 +537,75 @@
                 } else {
                     console.warn('⚠️ Firebase initialization failed, using local-only mode');
                 }
+            } else {
+                console.error('❌ Firebase Integration not found after waiting');
             }
+            
+            // Update time remaining countdown to contest deadline
+            function updateTimeRemaining() {
+                const timeElement = document.getElementById('time-remaining');
+                if (!timeElement) return;
+                
+                // Get the contest deadline from the MLB contest manager
+                if (window.dailyContestManager && window.dailyContestManager.contestDeadline) {
+                    console.log('⏰ Updating time remaining - checking deadline...');
+                    const now = new Date();
+                    const deadline = window.dailyContestManager.contestDeadline;
+                    
+                    const diff = deadline - now;
+                    
+                    if (diff <= 0) {
+                        timeElement.textContent = 'CLOSED';
+                        timeElement.style.color = '#ff4444';
+                        timeElement.style.fontWeight = 'bold';
+                        
+                        // Also update the contest status to show it's closed
+                        const statusCard = document.querySelector('.status-card');
+                        if (statusCard) {
+                            const statusIcon = statusCard.querySelector('.status-icon');
+                            const statusTitle = statusCard.querySelector('h3');
+                            const statusDescription = statusCard.querySelector('p');
+                            
+                            if (statusIcon) statusIcon.textContent = '🚫';
+                            if (statusTitle) statusTitle.textContent = 'Contest Closed';
+                            if (statusDescription) statusDescription.textContent = 'Today\'s contest entry period has ended. Games have started.';
+                        }
+                        
+                        // Disable entry button
+                        const enterBtn = document.getElementById('submit-picks-btn');
+                        if (enterBtn) {
+                            enterBtn.disabled = true;
+                            enterBtn.textContent = 'Contest Closed - Games Started';
+                            enterBtn.style.background = '#666';
+                        }
+                        
+                        return;
+                    }
+                    
+                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    
+                    timeElement.textContent = `${hours}h ${minutes}m`;
+                    timeElement.style.color = '';
+                    timeElement.style.fontWeight = '';
+                } else {
+                    // Fallback to midnight countdown if contest manager not ready
+                    const now = new Date();
+                    const midnight = new Date();
+                    midnight.setDate(midnight.getDate() + 1);
+                    midnight.setHours(0, 0, 0, 0);
+                    
+                    const diff = midnight - now;
+                    const hours = Math.floor(diff / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    
+                    timeElement.textContent = `${hours}h ${minutes}m`;
+                }
+            }
+            
+            // Update immediately and then every minute
+            updateTimeRemaining();
+            setInterval(updateTimeRemaining, 60000);
         });
     </script>
 </body>

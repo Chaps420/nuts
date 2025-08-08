@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>$NUTS Sports Pick'em - Win Crypto Prizes</title>
+    <meta name="description" content="Daily sports pick'em contests powered by $NUTS token on XRPL. Win crypto prizes with your sports knowledge.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="src/assets/images/nuts-logo.jpg">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/css/styles.css">
+    
+    <!-- Meta tags for social sharing -->
+    <meta property="og:title" content="$NUTS Sports Pick'em - Win Crypto Prizes">
+    <meta property="og:description" content="Daily sports pick'em contests powered by $NUTS token on XRPL">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://your-domain.com">
+    <meta property="og:image" content="https://your-domain.com/src/assets/images/og-image.png">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="$NUTS Sports Pick'em">
+    <meta name="twitter:description" content="Win crypto prizes with your sports knowledge">
+    <meta name="twitter:image" content="https://your-domain.com/src/assets/images/twitter-card.png">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">            <div class="nav-brand">
+                <img src="src/assets/images/nuts-logo.jpg" alt="$NUTS Logo" class="logo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                <span class="brand-text">$NUTS</span>
+            </div>              <!-- Desktop Navigation -->
+            <div class="nav-links desktop-nav">
+                <a href="#home" class="nav-link active">Home</a>
+                <a href="daily-contest.html" class="nav-link">MLB Contest</a>
+                <a href="nfl-contest.html" class="nav-link">NFL Contest</a>
+                <a href="https://firstledger.net/token/rBpdegD7kqHdczjKzTKNEUZRbe/4E75747300000000000000000000000000000000" target="_blank" class="nav-link">Buy $NUTS</a>
+            </div>
+            
+            <!-- Navigation Actions -->
+            <div class="nav-actions">
+                <!-- Mobile menu toggle -->
+                <button class="mobile-menu-toggle" id="mobile-menu-btn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>          <!-- Mobile Navigation -->
+        <div class="mobile-nav hidden" id="mobile-menu">
+            <a href="#home" class="nav-link">Home</a>
+            <a href="daily-contest.html" class="nav-link">MLB Contest</a>
+            <a href="nfl-contest.html" class="nav-link">NFL Contest</a>
+            <a href="buy-nuts.html" class="nav-link">Buy $NUTS</a>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero" id="home">
+            <div class="hero-background">
+                <div class="animated-bg"></div>
+            </div>
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1 class="hero-title">
+                        PICK WINNERS. <span class="accent-gold">WIN $NUTS.</span><br>
+                        HOLD NFTs.<br>
+                        <span class="accent-green">GET PAID.</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        Join the $NUTS sports contest hub—powered by XRP and your collectible NFTs.
+                    </p>                    <div class="hero-actions">
+                        <a href="daily-contest.html" class="btn btn-primary wallet-required" id="daily-contest-btn">
+                            <span>ENTER MLB CONTEST</span>
+                            <div class="btn-glow"></div>
+                        </a>
+                    </div>
+                    <div class="quick-actions">
+                        <a href="https://firstledger.net/token/rBpdegD7kqHdczjKzTKNEUZj1Fg1eYZRbe/4E75747300000000000000000000000000000000" target="_blank" class="quick-link">
+                            <img src="src/assets/images/nuts-logo.jpg" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"> Buy $NUTS
+                        </a>
+                        <a href="https://xrp.cafe/collection/nutsmlb" target="_blank" class="quick-link">
+                            <img src="src/assets/images/nuts-logo.jpg" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"> View NFTs on XRP Cafe
+                        </a>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <a href="https://xrp.cafe/collection/nutsmlb" target="_blank" class="nft-preview-container" style="display: block; text-decoration: none;">
+                        <img src="src/assets/images/nuts-nft-collection.webp" alt="$NUTS MLB NFT Collection" class="hero-nft floating" style="width: 400px; height: 400px; border-radius: 16px; object-fit: cover; box-shadow: 0 20px 60px rgba(0,0,0,0.4); cursor: pointer; transition: transform 0.3s ease;">
+                        <div class="nft-glow"></div>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Upcoming Games Preview -->
+        <section class="upcoming-games" id="upcoming-games">
+            <div class="container">
+                <h2 class="section-title">TODAY'S GAMES</h2>
+                <p class="section-subtitle">Preview of games available for today's contest</p>
+                
+                <div class="games-container" id="upcoming-games-preview">
+                    <!-- Games will be loaded dynamically -->
+                    <div class="loading-placeholder">
+                        <div class="loading-spinner"></div>
+                        <p>Loading today's games...</p>
+                    </div>
+                </div>
+                
+                <a href="daily-contest.html" class="btn btn-primary">
+                    <span>View All Games & Enter Contest</span>
+                    <div class="btn-glow"></div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Quick Start Guide -->
+        <section class="how-it-works-preview" id="how-it-works">
+            <div class="container">
+                <h2 class="section-title">QUICK START GUIDE</h2>
+                <p class="section-subtitle">Four simple steps to start winning crypto prizes</p>
+                
+                <div class="steps-container">
+                    <div class="step" data-step="1">
+                        <div class="step-number">1</div>
+                        <div class="step-icon"><img src="src/assets/images/nuts-logo.jpg" style="width: 48px; height: 48px; border-radius: 50%;"></div>
+                        <h4>Connect Your Wallet</h4>
+                        <p>Use XUMM to connect your XRP wallet securely to the platform</p>
+                    </div>
+                    <div class="step" data-step="2">
+                        <div class="step-number">2</div>
+                        <div class="step-icon"><img src="src/assets/images/nuts-logo.jpg" style="width: 48px; height: 48px; border-radius: 50%;"></div>
+                        <h4>Get $NUTS Tokens</h4>
+                        <p>Purchase $NUTS tokens to enter contests</p>
+                    </div>
+                    <div class="step" data-step="3">
+                        <div class="step-number">3</div>
+                        <div class="step-icon"><img src="src/assets/images/nuts-logo.jpg" style="width: 48px; height: 48px; border-radius: 50%;"></div>
+                        <h4>Make Your Picks</h4>
+                        <p>Predict winners of all games in the MLB contest</p>
+                    </div>
+                    <div class="step" data-step="4">
+                        <div class="step-number">4</div>
+                        <div class="step-icon"><img src="src/assets/images/nuts-logo.jpg" style="width: 48px; height: 48px; border-radius: 50%;"></div>
+                        <h4>Win Prizes</h4>
+                        <p>Winner takes all - 100% of the prize pool</p>
+                    </div>
+                </div>
+                
+                <div class="cta-section">
+                    <div class="new-user-help">
+                        <p>New to crypto? <a href="https://firstledger.net/token/rBpdegD7kqHdczjKzTKNEUZj1Fg1eYZRbe/4E75747300000000000000000000000000000000" target="_blank" class="help-link">Get started here</a></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- NFT Showcase Section -->
+        <section class="nft-showcase-section" id="nft-showcase">
+            <div class="container">
+                <h2 class="section-title">$NUTS MLB NFT COLLECTION</h2>
+                <p class="section-subtitle">Exclusive NFT collection on XRP Cafe</p>
+                
+                <div class="nft-collection-preview" style="text-align: center; margin: 40px 0;">
+                    <a href="https://xrp.cafe/collection/nutsmlb" target="_blank" style="display: inline-block; text-decoration: none;">
+                        <img src="src/assets/images/nuts-nft-collection.webp" alt="NUTS MLB NFT Collection" style="
+                            width: 100%;
+                            max-width: 600px;
+                            height: auto;
+                            border-radius: 16px;
+                            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+                            transition: transform 0.3s ease;
+                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    </a>
+                    
+                    <div style="margin-top: 30px;">
+                        <a href="https://xrp.cafe/collection/nutsmlb" target="_blank" class="btn btn-primary">
+                            <span>View Collection on XRP Cafe</span>
+                            <div class="btn-glow"></div>
+                        </a>
+                    </div>
+                    
+                    <div style="margin-top: 20px; color: #888;">
+                        <p>Own exclusive $NUTS MLB NFTs and get special perks!</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">                <div class="footer-brand">
+                    <img src="src/assets/images/nuts-logo.jpg" alt="$NUTS Logo" class="footer-logo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                    <div class="brand-info">
+                        <span class="brand-name">$NUTS Sports Pick'em</span>
+                        <span class="brand-tagline">Powered by XRPL</span>
+                    </div>
+                </div>
+                
+                <div class="footer-links">
+                    <div class="link-group">
+                        <h4>Platform</h4>
+                        <a href="daily-contest.html">MLB Contest</a>
+                    </div>
+                    <div class="link-group">
+                        <h4>Resources</h4>
+                        <a href="https://firstledger.net/token/rBpdegD7kqHdczjKzTKNEUZj1Fg1eYZRbe/4E75747300000000000000000000000000000000" target="_blank">Buy $NUTS</a>
+                        <a href="terms.html">Terms of Service</a>
+                        <a href="privacy.html">Privacy Policy</a>
+                        <a href="support.html">Support</a>
+                    </div>
+                    <div class="link-group">
+                        <h4>Community</h4>
+                        <a href="#" target="_blank" rel="noopener">Discord</a>
+                        <a href="#" target="_blank" rel="noopener">Twitter</a>
+                        <a href="#" target="_blank" rel="noopener">Telegram</a>
+                        <a href="#" target="_blank" rel="noopener">XRPL Cafe</a>
+                    </div>
+                </div>
+                
+            </div>
+            
+            <div class="footer-bottom">
+                <div class="footer-disclaimer">
+                    <p>
+                        <strong>Skill-based contest.</strong> Must be 18+ to participate. 
+                        Void where prohibited. This is not gambling - winners determined by sports knowledge and skill.
+                    </p>
+                </div>
+                <div class="footer-legal">
+                    <span>&copy; 2025 $NUTS Sports Pick'em. All rights reserved.</span>
+                    <span>Built on XRP Ledger</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p id="loadingText">Loading...</p>
+        </div>
+    </div>    <!-- Scripts -->
+    <script src="config/config-browser.js"></script>
+    <script src="config/environment.js"></script>
+    <script src="src/js/mlb-schedule-free.js"></script>
+    <script src="src/js/xaman-payment-standard.js"></script>
+    <script src="src/js/contests-browser.js"></script>
+    
+    <script>
+        // Initialize the application when DOM is ready
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🌐 DOM loaded, initializing $NUTS app...');
+            
+            // Simple mobile menu toggle
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            if (mobileMenuBtn && mobileMenu) {
+                mobileMenuBtn.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+            
+            // Initialize MLB Schedule API and load today's games
+            window.mlbSchedule = new MLBScheduleFree();
+            await loadTodaysGames();
+        });
+        
+        async function loadTodaysGames() {
+            try {
+                const gamesContainer = document.getElementById('upcoming-games-preview');
+                if (!gamesContainer) return;
+                
+                // Get today's games
+                const today = new Date();
+                const games = await window.mlbSchedule.getGamesForDate(today);
+                
+                if (games && games.length > 0) {
+                    // Show first 6 games as preview
+                    const previewGames = games.slice(0, 6);
+                    
+                    gamesContainer.innerHTML = `
+                        <div style="max-width: 800px; margin: 0 auto;">
+                            ${games.map(game => `
+                                <div style="
+                                    display: flex;
+                                    justify-content: space-between;
+                                    align-items: center;
+                                    padding: 12px 0;
+                                    border-bottom: 1px solid #333;
+                                ">
+                                    <div style="flex: 1;">
+                                        <span style="color: #888; margin-right: 15px;">${game.gameTimeFormatted || formatGameTime(game.gameTime)}</span>
+                                        <span>${game.awayTeam} @ ${game.homeTeam}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    gamesContainer.innerHTML = '<p style="text-align: center; color: #888;">No games scheduled for today</p>';
+                }
+            } catch (error) {
+                console.error('Failed to load today\'s games:', error);
+                const gamesContainer = document.getElementById('upcoming-games-preview');
+                if (gamesContainer) {
+                    gamesContainer.innerHTML = '<p style="text-align: center; color: #888;">Unable to load games at this time</p>';
+                }
+            }
+        }
+        
+        function formatGameTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+        }
+    </script>
+</body>
+</html>

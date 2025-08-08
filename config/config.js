@@ -28,7 +28,7 @@ export const config = {
       currency: import.meta.env.VITE_NUTS_TOKEN_CURRENCY || 'NUTS'
     },
     contestWallet: {
-      address: 'rnWCi37MWrY4EWxnUDVHMwJ8sLY7R1XiyX',
+      address: 'rN2K1Tv6LEM94YN8Kxfe3QyWcGPQNgsD6d',
       seed: 'sEd7d97WpuAUt7Qn21yhkZxtso2pYbx' // WARNING: Private key exposed - for development only
     },
     requiredNftIssuer: import.meta.env.VITE_REQUIRED_NFT_ISSUER

@@ -179,7 +179,7 @@ service cloud.firestore {
 ### Admin Portal Features:
 - Real-time bet monitoring
 - Contest resolution tools
-- Automated payout QR generation
+- Manual payout QR generation
 - User search and statistics
 
 ## 🔧 Development vs Production
@@ -219,7 +219,7 @@ XAMAN_API_SECRET=your-xaman-api-secret
 1. **API Keys**: Never expose Firebase private keys in client-side code
 2. **Security**: Configure proper Firestore security rules before production
 3. **Scaling**: Monitor Firestore read/write limits as user base grows
-4. **Backup**: Set up automated Firestore backups for data protection
+4. **Backup**: Set up regular Firestore backups for data protection
 
 ## 🆘 Troubleshooting
 
