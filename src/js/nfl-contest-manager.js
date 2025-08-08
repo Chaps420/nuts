@@ -556,8 +556,28 @@ class NFLContestManager {
                     return game ? `${game.awayTeam} @ ${game.homeTeam}` : gameId;
                 });
                 counterHTML += `
-                    <div style="color: #ff6b6b; font-size: 0.8em; margin-top: 8px;">
-                        Missing picks: ${missingGames.join(', ')}
+                    <div class="missing-picks-container" style="
+                        color: #ff6b6b; 
+                        font-size: 0.8em; 
+                        margin-top: 8px;
+                        max-height: 60px;
+                        overflow-y: auto;
+                        line-height: 1.2;
+                    ">
+                        <div style="font-weight: bold; margin-bottom: 4px;">Missing picks:</div>
+                        <div class="missing-picks-list" style="
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: 4px 8px;
+                        ">
+                            ${missingGames.map(game => `<span style="
+                                background: rgba(255, 107, 107, 0.1);
+                                padding: 2px 6px;
+                                border-radius: 4px;
+                                white-space: nowrap;
+                                font-size: 0.75em;
+                            ">${game}</span>`).join('')}
+                        </div>
                     </div>
                 `;
             }
