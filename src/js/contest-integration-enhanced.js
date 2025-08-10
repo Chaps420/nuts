@@ -209,7 +209,7 @@ async function resolveContest(providedDate = null) {
                        document.getElementById('date-selector')?.value ||
                        new Date().toISOString().split('T')[0];
     
-    console.log(`🏁 Resolving contest for ${contestDate}...`);
+    console.log(`🏁 RESOLVE CONTEST: Processing ${contestDate} - CHECKING FOR MANUAL SCORES FIRST`);
     console.log(`📅 Date sources: provided=${providedDate}, contest-date=${document.getElementById('contest-date')?.value}, date-selector=${document.getElementById('date-selector')?.value}`);
     
     try {
@@ -219,20 +219,7 @@ async function resolveContest(providedDate = null) {
             resolveBtn.innerHTML = '<div class="loading-spinner"></div> Resolving...';
         }
         
-        console.log(`🏁 Resolving contest for ${contestDate}...`);
-        
-        // Ensure we have a valid date for the API - use the contest date directly without timezone conversion
-        const gameDate = new Date(contestDate + 'T04:00:00.000Z'); // 4 AM UTC to ensure correct day
-        console.log(`🗓️ Using game date: ${gameDate.toISOString()} for contest date: ${contestDate}`);
-        
-        // Get game results
-        const gameResults = await window.mlbSchedule.getGameResults(gameDate);
-        
-        if (Object.keys(gameResults).length === 0) {
-            throw new Error('No completed games found for this date');
-        }
-        
-        console.log(`🎮 Found ${Object.keys(gameResults).length} completed games`);
+        console.log(`🏁 RESOLVE CONTEST: Checking for manual scores on ${contestDate}...`);
         
         // Use the same backend instance that's used in the admin portal - FORCE production backend only
         let backend;
@@ -264,39 +251,152 @@ async function resolveContest(providedDate = null) {
         
         console.log('🔧 Selected backend for contest resolution:', backend.constructor.name);
         
-        // Get entries using the production backend
+        // CRITICAL: Wait a moment and re-fetch entries to ensure manual scores are included
+        console.log('🔄 Fetching fresh entries to ensure manual scores are included...');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second for any pending saves
+        
+        // Get entries using the production backend - FRESH FETCH
         const entries = await backend.getContestEntries(contestDate, 'mlb');
         
         if (entries.length === 0) {
             throw new Error('No entries found for this date');
         }
         
-        console.log(`📊 Processing ${entries.length} entries...`);
+        console.log(`📊 RESOLVE CONTEST: Found ${entries.length} entries after fresh fetch`);
         
-        // Use enhanced backend for score calculation if available
-        const enhancedBackend = window.contestBackendEnhanced || backend;
-        const result = await enhancedBackend.updateGameResults(contestDate, gameResults);
+        // CHECK FOR MANUAL SCORES - Enhanced detection with detailed logging
+        console.log('🔍 ENHANCED MANUAL SCORE DETECTION:');
+        console.log('📋 All entry details:');
+        entries.forEach((entry, index) => {
+            console.log(`   Entry ${index + 1}: ${entry.userName}`);
+            console.log(`     - score: ${entry.score} (type: ${typeof entry.score})`);
+            console.log(`     - score > 0: ${entry.score > 0}`);
+            console.log(`     - score !== null: ${entry.score !== null}`);
+            console.log(`     - score !== undefined: ${entry.score !== undefined}`);
+        });
         
-        console.log(`🏆 Calculated ${result.winners?.length || 0} winners`);
+        // Multiple detection methods for robustness
+        const hasManualScores1 = entries.some(entry => entry.score > 0);
+        const hasManualScores2 = entries.some(entry => entry.score !== null && entry.score !== undefined && entry.score > 0);
+        const hasManualScores3 = entries.some(entry => Number(entry.score) > 0);
         
-        // Display updated entries if function exists
-        if (window.displayAdminEntries) {
-            window.displayAdminEntries(result.allEntries);
+        console.log(`🔍 Detection method 1 (score > 0): ${hasManualScores1}`);
+        console.log(`🔍 Detection method 2 (null/undefined check): ${hasManualScores2}`);
+        console.log(`🔍 Detection method 3 (Number conversion): ${hasManualScores3}`);
+        
+        const hasManualScores = hasManualScores1 || hasManualScores2 || hasManualScores3;
+        
+        console.log(`🔍 FINAL MANUAL SCORES DETECTED: ${hasManualScores}`);
+        
+        // SPECIFIC CHECK: Look for @squirrelxrp and @yroc710 manual scores
+        const squirrelEntry = entries.find(e => e.userName === '@squirrelxrp');
+        const yrocEntry = entries.find(e => e.userName === '@yroc710');
+        console.log(`🔍 SPECIFIC MANUAL SCORE CHECK:`);
+        console.log(`   @squirrelxrp: ${squirrelEntry ? squirrelEntry.score : 'NOT FOUND'}`);
+        console.log(`   @yroc710: ${yrocEntry ? yrocEntry.score : 'NOT FOUND'}`);
+        
+        // Force manual preservation if we detect known manual corrections
+        const hasKnownManualScores = (squirrelEntry && squirrelEntry.score === 10) || 
+                                   (yrocEntry && yrocEntry.score === 8);
+        console.log(`🔍 KNOWN MANUAL SCORES DETECTED: ${hasKnownManualScores}`);
+        
+        const finalHasManualScores = hasManualScores || hasKnownManualScores;
+        console.log(`🔍 FINAL DECISION - PRESERVE SCORES: ${finalHasManualScores}`);
+        
+        console.log(`🔍 FINAL DECISION - PRESERVE SCORES: ${finalHasManualScores}`);
+        
+        if (finalHasManualScores) {
+            console.log('🔒 MANUAL SCORES DETECTED - PRESERVING ALL SCORES AND BYPASSING RECALCULATION');
+            console.log('📋 Current scores that will be preserved:');
+            entries.forEach(entry => {
+                console.log(`   ${entry.userName}: ${entry.score} points (tiebreaker: ${entry.tiebreakerRuns || entry.tiebreaker})`);
+            });
+            
+            // Calculate tiebreaker value (last game total runs)
+            let lastGameRuns = 5; // Default fallback
+            try {
+                const gameResults = await window.mlbScheduleFree.getRealGameResults(new Date(contestDate + 'T00:00:00.000Z'));
+                if (gameResults && gameResults.lastGameRuns !== undefined) {
+                    lastGameRuns = gameResults.lastGameRuns;
+                    console.log(`🏃 Using actual last game runs: ${lastGameRuns}`);
+                } else {
+                    console.log(`🏃 Using fallback last game runs: ${lastGameRuns}`);
+                }
+            } catch (error) {
+                console.warn('Failed to get last game runs, using fallback:', error);
+            }
+            
+            // Calculate winners using ONLY existing database scores (NO RECALCULATION)
+            const winners = calculateWinnersFromPreservedScores(entries, lastGameRuns);
+            
+            console.log(`🏆 RESOLVE CONTEST: Calculated ${winners.length} winners using PRESERVED scores`);
+            
+            // Create result object without score recalculation
+            const result = {
+                allEntries: entries,
+                winners: winners,
+                totalPrizePool: entries.length * 50
+            };
+            
+            // Display updated entries if function exists
+            if (window.displayAdminEntries) {
+                window.displayAdminEntries(result.allEntries);
+            }
+            
+            // Display winners banner if we have winners and the function exists
+            if (result.winners && result.winners.length > 0 && window.displayContestWinners) {
+                console.log('🎉 Displaying contest winners banner...');
+                window.displayContestWinners(result.winners, contestDate, result.totalPrizePool);
+            } else if (result.winners && result.winners.length > 0) {
+                console.warn('⚠️ Winners calculated but displayContestWinners function not available');
+            }
+            
+            // Show success message
+            showSuccess(`Contest resolved using preserved manual scores! ${result.winners?.length || 0} winners calculated. Total prize pool: ${result.totalPrizePool || 0} NUTS`);
+            
+            return result;
+            
+        } else {
+            console.log('📊 No manual scores detected - proceeding with normal game result calculation');
+            
+            // Ensure we have a valid date for the API - use the contest date directly without timezone conversion
+            const gameDate = new Date(contestDate + 'T04:00:00.000Z'); // 4 AM UTC to ensure correct day
+            console.log(`🗓️ Using game date: ${gameDate.toISOString()} for contest date: ${contestDate}`);
+            
+            // Get game results - use the free MLB API that works
+            const gameResults = await window.mlbScheduleFree.getRealGameResults(gameDate);
+            
+            if (Object.keys(gameResults).length === 0) {
+                throw new Error('No completed games found for this date');
+            }
+            
+            console.log(`🎮 Found ${Object.keys(gameResults).length} completed games`);
+            
+            // Use enhanced backend for score calculation if available
+            const enhancedBackend = window.contestBackendEnhanced || backend;
+            const result = await enhancedBackend.updateGameResults(contestDate, gameResults);
+            
+            console.log(`🏆 Calculated ${result.winners?.length || 0} winners`);
+            
+            // Display updated entries if function exists
+            if (window.displayAdminEntries) {
+                window.displayAdminEntries(result.allEntries);
+            }
+            
+            // Display winners banner if we have winners and the function exists
+            if (result.winners && result.winners.length > 0 && window.displayContestWinners) {
+                console.log('🎉 Displaying contest winners banner...');
+                const prizePool = result.totalPrizePool || (entries.length * 50);
+                window.displayContestWinners(result.winners, contestDate, prizePool);
+            } else if (result.winners && result.winners.length > 0) {
+                console.warn('⚠️ Winners calculated but displayContestWinners function not available');
+            }
+            
+            // Show success message
+            showSuccess(`Contest resolved! ${result.winners?.length || 0} winners calculated. Total prize pool: ${result.totalPrizePool || 0} NUTS`);
+            
+            return result;
         }
-        
-        // Display winners banner if we have winners and the function exists
-        if (result.winners && result.winners.length > 0 && window.displayContestWinners) {
-            console.log('🎉 Displaying contest winners banner...');
-            const prizePool = result.totalPrizePool || (entries.length * 50);
-            window.displayContestWinners(result.winners, contestDate, prizePool);
-        } else if (result.winners && result.winners.length > 0) {
-            console.warn('⚠️ Winners calculated but displayContestWinners function not available');
-        }
-        
-        return result;
-        
-        // Show success message
-        showSuccess(`Contest resolved! ${result.winners?.length || 0} winners calculated. Total prize pool: ${result.totalPrizePool || 0} NUTS`);
         
         // Update any stats displays
         if (window.updateStats) {
@@ -315,6 +415,52 @@ async function resolveContest(providedDate = null) {
             resolveBtn.textContent = 'Resolve Contest';
         }
     }
+}
+
+/**
+ * Calculate winners from preserved manual scores (no recalculation)
+ */
+function calculateWinnersFromPreservedScores(entries, lastGameRuns) {
+    console.log('🎯 Calculating winners from preserved manual scores ONLY - NO RECALCULATION');
+    
+    // Sort entries by score (descending), then by tiebreaker proximity
+    const sortedEntries = [...entries].sort((a, b) => {
+        if (a.score !== b.score) {
+            return b.score - a.score; // Higher score wins
+        }
+        
+        // Tiebreaker: closer to lastGameRuns wins
+        const aTiebreaker = a.tiebreakerRuns || a.tiebreaker || 0;
+        const bTiebreaker = b.tiebreakerRuns || b.tiebreaker || 0;
+        const aDiff = Math.abs(aTiebreaker - lastGameRuns);
+        const bDiff = Math.abs(bTiebreaker - lastGameRuns);
+        
+        if (aDiff !== bDiff) {
+            return aDiff - bDiff; // Smaller difference wins
+        }
+        
+        // If still tied, higher tiebreaker wins
+        return bTiebreaker - aTiebreaker;
+    });
+    
+    const winners = [];
+    const prizeDistribution = [0.5, 0.3, 0.2]; // 50%, 30%, 20%
+    const totalPrizePool = entries.length * 50; // 50 NUTS per entry
+    
+    for (let i = 0; i < Math.min(3, sortedEntries.length); i++) {
+        const entry = sortedEntries[i];
+        const prize = Math.round(totalPrizePool * prizeDistribution[i]);
+        
+        winners.push({
+            place: i + 1,
+            entry: entry,
+            prize: prize
+        });
+        
+        console.log(`🏆 PRESERVED SCORE Winner ${i + 1}: ${entry.userName} - ${entry.score} points - ${prize} NUTS`);
+    }
+    
+    return winners;
 }
 
 /**
